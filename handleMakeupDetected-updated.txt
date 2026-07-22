@@ -1,0 +1,51 @@
+// Replace the existing handleMakeupDetected function with this:
+
+const handleMakeupDetected = async () => {
+    if (!videoRef.current || !landmarksRef.current) return;
+    setIsAnalyzing(true);
+
+    try {
+      // STEP 4: Makeup Analysis
+      const mkpReport = makeupCheckerEngine.evaluateMakeup(
+        videoRef.current,
+        landmarksRef.current,
+        currentMode
+      );
+
+      setMakeupReport(mkpReport);
+
+      // STEP 5: Extract base LAB from current frame
+      const baseLAB = extractAverageLABFromFace(
+        videoRef.current,
+        landmarksRef.current
+      );
+
+      // STEP 6: Reverse Engine
+      const reverseResult =
+        ReverseMathEngine.calculateEstimatedBareSkinLAB(
+          baseLAB,
+          mkpReport
+        );
+
+      // STEP 7: Skin Analyzer
+      const estimatedSkinMetrics =
+        clinicalMetricsEngine.generateExtendedMetrics(
+          reverseResult.lab
+        );
+
+      setSkinAnalysisReport(estimatedSkinMetrics);
+
+      // STEP 8: UI Flow
+      setShowAccuracyModal(false);
+      setShowMakeupAnalysisModal(true);
+
+      toast.success(
+        "Analysis complete! Showing makeup & estimated skin condition."
+      );
+    } catch (error) {
+      console.error("Engine integration failed:", error);
+      toast.error("Analysis failed.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };

@@ -1,0 +1,517 @@
+-- ==========================================
+-- CORRECTED PRODUCTION-READY ADVANCED INVENTORY MANAGEMENT
+-- Fixed version that handles existing database structure properly
+-- ==========================================
+
+-- Step 1: First, check if product_variants table exists and handle it properly
+DO $$
+BEGIN
+    -- Check if product_variants table already exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'product_variants' AND table_schema = 'public') THEN
+        -- Table exists, check if it has the required columns
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'product_variants' AND column_name = 'selling_price' AND table_schema = 'public') THEN
+            -- Add missing columns
+            ALTER TABLE public.product_variants 
+            ADD COLUMN IF NOT EXISTS selling_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            ADD COLUMN IF NOT EXISTS cost_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            ADD COLUMN IF NOT EXISTS low_stock_threshold INTEGER NOT NULL DEFAULT 5,
+            ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+        END IF;
+    ELSE
+        -- Table doesn't exist, create it
+        CREATE TABLE public.product_variants (
+            id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+            product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+            sku TEXT NOT NULL,
+            variant_name TEXT NOT NULL, -- e.g., "Small-Red", "Medium-Blue", "Large-Green"
+            size TEXT,
+            color TEXT,
+            cost_price DECIMAL(10,2) NOT NULL,
+            selling_price DECIMAL(10,2) NOT NULL,
+            original_price DECIMAL(10,2),
+            images TEXT[] DEFAULT '{}',
+            attributes JSONB DEFAULT '{}',
+            low_stock_threshold INTEGER NOT NULL DEFAULT 5,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            
+            UNIQUE(sku),
+            UNIQUE(product_id, size, color)
+        );
+    END IF;
+END $$;
+
+-- Step 2: Modify existing products table to be container-only
+DO $$
+BEGIN
+    -- Check if columns exist before dropping them
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'price' AND table_schema = 'public') THEN
+        ALTER TABLE public.products DROP COLUMN price;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'original_price' AND table_schema = 'public') THEN
+        ALTER TABLE public.products DROP COLUMN original_price;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'size_options' AND table_schema = 'public') THEN
+        ALTER TABLE public.products DROP COLUMN size_options;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'color_options' AND table_schema = 'public') THEN
+        ALTER TABLE public.products DROP COLUMN color_options;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'in_stock' AND table_schema = 'public') THEN
+        ALTER TABLE public.products DROP COLUMN in_stock;
+    END IF;
+END $$;
+
+-- Add new columns to products table
+ALTER TABLE public.products 
+ADD COLUMN IF NOT EXISTS status TEXT CHECK (status IN ('active', 'inactive')) DEFAULT 'active',
+ADD COLUMN IF NOT EXISTS vto_status TEXT CHECK (vto_status IN ('enabled', 'disabled')) DEFAULT 'disabled',
+ADD COLUMN IF NOT EXISTS three_d_enabled BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS glow_bid_eligible BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS min_bid_price DECIMAL(10,2),
+ADD COLUMN IF NOT EXISTS attributes_json JSONB DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS floor INTEGER DEFAULT 1;
+
+-- Step 3: Create inventory table (core logic)
+CREATE TABLE IF NOT EXISTS public.inventory (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    variant_id UUID NOT NULL UNIQUE REFERENCES public.product_variants(id) ON DELETE CASCADE,
+    total_stock INTEGER NOT NULL DEFAULT 0,
+    reserved_stock INTEGER NOT NULL DEFAULT 0,
+    damaged_stock INTEGER NOT NULL DEFAULT 0,
+    available_stock INTEGER GENERATED ALWAYS AS (
+        total_stock - reserved_stock - damaged_stock
+    ) STORED,
+    low_stock_threshold INTEGER NOT NULL DEFAULT 5,
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_by UUID REFERENCES public.profiles(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 4: Create inventory_logs table (audit trail)
+CREATE TABLE IF NOT EXISTS public.inventory_logs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    variant_id UUID NOT NULL REFERENCES public.product_variants(id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK (type IN ('IN', 'OUT', 'RESERVED', 'RETURN', 'DAMAGE', 'ADJUSTMENT')),
+    quantity INTEGER NOT NULL,
+    reason TEXT,
+    previous_total_stock INTEGER,
+    previous_reserved_stock INTEGER,
+    previous_damaged_stock INTEGER,
+    new_total_stock INTEGER,
+    new_reserved_stock INTEGER,
+    new_damaged_stock INTEGER,
+    order_id UUID REFERENCES public.orders(id),
+    created_by UUID REFERENCES public.profiles(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 5: Create order_items table (normalize order items)
+CREATE TABLE IF NOT EXISTS public.order_items (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+    variant_id UUID NOT NULL REFERENCES public.product_variants(id),
+    quantity INTEGER NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 6: Create variant_sales table (sales velocity tracking)
+CREATE TABLE IF NOT EXISTS public.variant_sales (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    variant_id UUID NOT NULL REFERENCES public.product_variants(id) ON DELETE CASCADE,
+    order_id UUID REFERENCES public.orders(id),
+    quantity INTEGER NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    sale_date DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 7: Update orders table to support buyer/seller relationship
+ALTER TABLE public.orders 
+ADD COLUMN IF NOT EXISTS buyer_id UUID REFERENCES public.profiles(id),
+ADD COLUMN IF NOT EXISTS seller_id UUID REFERENCES public.profiles(id),
+ADD COLUMN IF NOT EXISTS shipping_address_id UUID,
+ADD COLUMN IF NOT EXISTS billing_address_id UUID,
+ADD COLUMN IF NOT EXISTS tracking_number TEXT,
+ADD COLUMN IF NOT EXISTS estimated_delivery TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS cancellation_reason TEXT,
+ADD COLUMN IF NOT EXISTS customer_notes TEXT;
+
+-- Step 8: Create indexes safely (only if columns exist)
+DO $$
+BEGIN
+    -- Product variants indexes
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'product_variants' AND column_name = 'product_id' AND table_schema = 'public') THEN
+        CREATE INDEX IF NOT EXISTS idx_product_variants_product_id ON public.product_variants(product_id);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'product_variants' AND column_name = 'sku' AND table_schema = 'public') THEN
+        CREATE INDEX IF NOT EXISTS idx_product_variants_sku ON public.product_variants(sku);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'product_variants' AND column_name = 'size' AND table_schema = 'public') THEN
+        CREATE INDEX IF NOT EXISTS idx_product_variants_size ON public.product_variants(size);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'product_variants' AND column_name = 'color' AND table_schema = 'public') THEN
+        CREATE INDEX IF NOT EXISTS idx_product_variants_color ON public.product_variants(color);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'product_variants' AND column_name = 'selling_price' AND table_schema = 'public') THEN
+        CREATE INDEX IF NOT EXISTS idx_product_variants_price ON public.product_variants(selling_price);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'product_variants' AND column_name = 'is_active' AND table_schema = 'public') THEN
+        CREATE INDEX IF NOT EXISTS idx_product_variants_active ON public.product_variants(is_active);
+    END IF;
+END $$;
+
+-- Create indexes for inventory table
+CREATE INDEX IF NOT EXISTS idx_inventory_variant_id ON public.inventory(variant_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_available_stock ON public.inventory(available_stock);
+CREATE INDEX IF NOT EXISTS idx_inventory_low_stock ON public.inventory(available_stock) WHERE available_stock <= low_stock_threshold;
+CREATE INDEX IF NOT EXISTS idx_inventory_out_of_stock ON public.inventory(available_stock) WHERE available_stock = 0;
+CREATE INDEX IF NOT EXISTS idx_inventory_total_stock ON public.inventory(total_stock);
+
+-- Create indexes for inventory_logs table
+CREATE INDEX IF NOT EXISTS idx_inventory_logs_variant_id ON public.inventory_logs(variant_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_logs_type ON public.inventory_logs(type);
+CREATE INDEX IF NOT EXISTS idx_inventory_logs_created_at ON public.inventory_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_inventory_logs_order_id ON public.inventory_logs(order_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_logs_created_by ON public.inventory_logs(created_by);
+
+-- Create indexes for order_items table
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_variant_id ON public.order_items(variant_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_quantity ON public.order_items(quantity);
+
+-- Create indexes for variant_sales table
+CREATE INDEX IF NOT EXISTS idx_variant_sales_variant_id ON public.variant_sales(variant_id);
+CREATE INDEX IF NOT EXISTS idx_variant_sales_order_id ON public.variant_sales(order_id);
+CREATE INDEX IF NOT EXISTS idx_variant_sales_sale_date ON public.variant_sales(sale_date);
+CREATE INDEX IF NOT EXISTS idx_variant_sales_created_at ON public.variant_sales(created_at);
+CREATE INDEX IF NOT EXISTS idx_variant_sales_quantity ON public.variant_sales(quantity);
+
+-- Update indexes for orders table
+CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON public.orders(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_seller_id ON public.orders(seller_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at);
+
+-- Step 9: Create views for business logic
+
+-- Product inventory summary view
+CREATE OR REPLACE VIEW public.product_inventory_summary AS
+SELECT 
+    p.id as product_id,
+    p.seller_id,
+    p.name as product_name,
+    p.category,
+    p.status,
+    COUNT(pv.id) as total_variants,
+    COALESCE(SUM(i.available_stock), 0) as total_available_stock,
+    COALESCE(SUM(i.reserved_stock), 0) as total_reserved_stock,
+    COALESCE(SUM(i.damaged_stock), 0) as total_damaged_stock,
+    COALESCE(SUM(i.total_stock), 0) as total_stock,
+    CASE 
+        WHEN COALESCE(SUM(i.available_stock), 0) = 0 THEN 'OUT_OF_STOCK'
+        WHEN COALESCE(SUM(i.available_stock), 0) <= 5 THEN 'LOW_STOCK'
+        ELSE 'HEALTHY'
+    END as inventory_status,
+    p.created_at
+FROM public.products p
+LEFT JOIN public.product_variants pv ON p.id = pv.product_id
+LEFT JOIN public.inventory i ON pv.id = i.variant_id
+GROUP BY p.id, p.seller_id, p.name, p.category, p.status, p.created_at;
+
+-- Variant sales velocity view
+CREATE OR REPLACE VIEW public.variant_sales_velocity AS
+SELECT 
+    pv.id as variant_id,
+    pv.product_id,
+    pv.sku,
+    pv.variant_name,
+    pv.size,
+    pv.color,
+    pv.cost_price,
+    pv.selling_price,
+    pv.low_stock_threshold,
+    i.total_stock,
+    i.reserved_stock,
+    i.damaged_stock,
+    i.available_stock,
+    p.seller_id,
+    COALESCE(sales_7days.total_quantity, 0) as sales_7days,
+    COALESCE(sales_30days.total_quantity, 0) as sales_30days,
+    COALESCE(sales_60days.total_quantity, 0) as sales_60days,
+    COALESCE(sales_90days.total_quantity, 0) as sales_90days,
+    CASE 
+        WHEN i.available_stock = 0 THEN 'OUT_OF_STOCK'
+        WHEN i.available_stock <= i.low_stock_threshold THEN 'LOW_STOCK'
+        ELSE 'HEALTHY'
+    END as stock_status,
+    CASE 
+        WHEN COALESCE(sales_7days.total_quantity, 0) > 10 THEN 'FAST_MOVING'
+        WHEN COALESCE(sales_90days.total_quantity, 0) = 0 THEN 'DEAD_STOCK'
+        ELSE 'NORMAL'
+    END as movement_status
+FROM public.product_variants pv
+JOIN public.products p ON pv.product_id = p.id
+LEFT JOIN public.inventory i ON pv.id = i.variant_id
+LEFT JOIN (
+    SELECT variant_id, SUM(quantity) as total_quantity
+    FROM public.variant_sales
+    WHERE sale_date >= CURRENT_DATE - INTERVAL '7 days'
+    GROUP BY variant_id
+) sales_7days ON pv.id = sales_7days.variant_id
+LEFT JOIN (
+    SELECT variant_id, SUM(quantity) as total_quantity
+    FROM public.variant_sales
+    WHERE sale_date >= CURRENT_DATE - INTERVAL '30 days'
+    GROUP BY variant_id
+) sales_30days ON pv.id = sales_30days.variant_id
+LEFT JOIN (
+    SELECT variant_id, SUM(quantity) as total_quantity
+    FROM public.variant_sales
+    WHERE sale_date >= CURRENT_DATE - INTERVAL '60 days'
+    GROUP BY variant_id
+) sales_60days ON pv.id = sales_60days.variant_id
+LEFT JOIN (
+    SELECT variant_id, SUM(quantity) as total_quantity
+    FROM public.variant_sales
+    WHERE sale_date >= CURRENT_DATE - INTERVAL '90 days'
+    GROUP BY variant_id
+) sales_90days ON pv.id = sales_90days.variant_id;
+
+-- Step 10: Create triggers and functions
+
+-- Function to auto-create inventory record when variant is created
+CREATE OR REPLACE FUNCTION auto_create_inventory()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.inventory (variant_id, low_stock_threshold)
+    VALUES (NEW.id, NEW.low_stock_threshold)
+    ON CONFLICT (variant_id) DO NOTHING;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for auto-creating inventory
+DROP TRIGGER IF EXISTS trigger_auto_create_inventory ON public.product_variants;
+CREATE TRIGGER trigger_auto_create_inventory
+    AFTER INSERT ON public.product_variants
+    FOR EACH ROW
+    EXECUTE FUNCTION auto_create_inventory();
+
+-- Function to log inventory changes
+CREATE OR REPLACE FUNCTION log_inventory_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.inventory_logs (
+        variant_id, type, quantity, reason,
+        previous_total_stock, previous_reserved_stock, previous_damaged_stock,
+        new_total_stock, new_reserved_stock, new_damaged_stock,
+        created_by, created_at
+    )
+    VALUES (
+        NEW.variant_id, 'ADJUSTMENT', 
+        NEW.total_stock - OLD.total_stock, 'Stock adjustment',
+        OLD.total_stock, OLD.reserved_stock, OLD.damaged_stock,
+        NEW.total_stock, NEW.reserved_stock, NEW.damaged_stock,
+        NEW.updated_by, NOW()
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for logging inventory changes
+DROP TRIGGER IF EXISTS trigger_log_inventory_change ON public.inventory;
+CREATE TRIGGER trigger_log_inventory_change
+    AFTER UPDATE ON public.inventory
+    FOR EACH ROW
+    WHEN (OLD.total_stock IS DISTINCT FROM NEW.total_stock OR 
+          OLD.reserved_stock IS DISTINCT FROM NEW.reserved_stock OR 
+          OLD.damaged_stock IS DISTINCT FROM NEW.damaged_stock)
+    EXECUTE FUNCTION log_inventory_change();
+
+-- Function to update timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Triggers for updating timestamps
+DROP TRIGGER IF EXISTS trigger_products_updated_at ON public.products;
+CREATE TRIGGER trigger_products_updated_at
+    BEFORE UPDATE ON public.products
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trigger_product_variants_updated_at ON public.product_variants;
+CREATE TRIGGER trigger_product_variants_updated_at
+    BEFORE UPDATE ON public.product_variants
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Step 11: Enable Row Level Security
+DO $$
+BEGIN
+    -- Enable RLS on new tables
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'product_variants' AND table_schema = 'public') THEN
+        ALTER TABLE public.product_variants ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inventory' AND table_schema = 'public') THEN
+        ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inventory_logs' AND table_schema = 'public') THEN
+        ALTER TABLE public.inventory_logs ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'order_items' AND table_schema = 'public') THEN
+        ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'variant_sales' AND table_schema = 'public') THEN
+        ALTER TABLE public.variant_sales ENABLE ROW LEVEL SECURITY;
+    END IF;
+END $$;
+
+-- Step 12: Create RLS policies
+DO $$
+BEGIN
+    -- Product variants RLS policies
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'product_variants' AND table_schema = 'public') THEN
+        DROP POLICY IF EXISTS "Sellers can view variants of their products" ON public.product_variants;
+        CREATE POLICY "Sellers can view variants of their products" ON public.product_variants
+            FOR SELECT USING (
+                EXISTS (
+                    SELECT 1 FROM public.products 
+                    WHERE public.products.id = public.product_variants.product_id 
+                    AND public.products.seller_id = auth.uid()
+                )
+            );
+
+        DROP POLICY IF EXISTS "Sellers can manage variants of their products" ON public.product_variants;
+        CREATE POLICY "Sellers can manage variants of their products" ON public.product_variants
+            FOR ALL USING (
+                EXISTS (
+                    SELECT 1 FROM public.products 
+                    WHERE public.products.id = public.product_variants.product_id 
+                    AND public.products.seller_id = auth.uid()
+                )
+            );
+    END IF;
+
+    -- Inventory RLS policies
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inventory' AND table_schema = 'public') THEN
+        DROP POLICY IF EXISTS "Sellers can view inventory of their products" ON public.inventory;
+        CREATE POLICY "Sellers can view inventory of their products" ON public.inventory
+            FOR SELECT USING (
+                EXISTS (
+                    SELECT 1 FROM public.product_variants pv
+                    JOIN public.products p ON pv.product_id = p.id
+                    WHERE pv.id = public.inventory.variant_id 
+                    AND p.seller_id = auth.uid()
+                )
+            );
+
+        DROP POLICY IF EXISTS "Sellers can manage inventory of their products" ON public.inventory;
+        CREATE POLICY "Sellers can manage inventory of their products" ON public.inventory
+            FOR ALL USING (
+                EXISTS (
+                    SELECT 1 FROM public.product_variants pv
+                    JOIN public.products p ON pv.product_id = p.id
+                    WHERE pv.id = public.inventory.variant_id 
+                    AND p.seller_id = auth.uid()
+                )
+            );
+    END IF;
+
+    -- Inventory logs RLS policies
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inventory_logs' AND table_schema = 'public') THEN
+        DROP POLICY IF EXISTS "Sellers can view logs of their products" ON public.inventory_logs;
+        CREATE POLICY "Sellers can view logs of their products" ON public.inventory_logs
+            FOR SELECT USING (
+                EXISTS (
+                    SELECT 1 FROM public.product_variants pv
+                    JOIN public.products p ON pv.product_id = p.id
+                    WHERE pv.id = public.inventory_logs.variant_id 
+                    AND p.seller_id = auth.uid()
+                )
+            );
+
+        DROP POLICY IF EXISTS "System can create inventory logs" ON public.inventory_logs;
+        CREATE POLICY "System can create inventory logs" ON public.inventory_logs
+            FOR INSERT WITH CHECK (true);
+    END IF;
+
+    -- Order items RLS policies
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'order_items' AND table_schema = 'public') THEN
+        DROP POLICY IF EXISTS "Sellers can view order items of their products" ON public.order_items;
+        CREATE POLICY "Sellers can view order items of their products" ON public.order_items
+            FOR SELECT USING (
+                EXISTS (
+                    SELECT 1 FROM public.orders o
+                    WHERE o.id = public.order_items.order_id 
+                    AND o.seller_id = auth.uid()
+                )
+            );
+
+        DROP POLICY IF EXISTS "System can create order items" ON public.order_items;
+        CREATE POLICY "System can create order items" ON public.order_items
+            FOR INSERT WITH CHECK (true);
+    END IF;
+
+    -- Variant sales RLS policies
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'variant_sales' AND table_schema = 'public') THEN
+        DROP POLICY IF EXISTS "Sellers can view sales of their products" ON public.variant_sales;
+        CREATE POLICY "Sellers can view sales of their products" ON public.variant_sales
+            FOR SELECT USING (
+                EXISTS (
+                    SELECT 1 FROM public.product_variants pv
+                    JOIN public.products p ON pv.product_id = p.id
+                    WHERE pv.id = public.variant_sales.variant_id 
+                    AND p.seller_id = auth.uid()
+                )
+            );
+
+        DROP POLICY IF EXISTS "System can create variant sales" ON public.variant_sales;
+        CREATE POLICY "System can create variant sales" ON public.variant_sales
+            FOR INSERT WITH CHECK (true);
+    END IF;
+END $$;
+
+-- ==========================================
+-- CORRECTED IMPLEMENTATION COMPLETE!
+-- ==========================================
+
+-- Verification queries to test the implementation:
+
+-- Test new tables
+-- SELECT * FROM public.product_variants LIMIT 1;
+-- SELECT * FROM public.inventory LIMIT 1;
+-- SELECT * FROM public.inventory_logs LIMIT 1;
+-- SELECT * FROM public.order_items LIMIT 1;
+-- SELECT * FROM public.variant_sales LIMIT 1;
+
+-- Test views
+-- SELECT * FROM public.product_inventory_summary LIMIT 5;
+-- SELECT * FROM public.variant_sales_velocity LIMIT 5;
+
+-- Test business logic
+-- SELECT variant_id, available_stock, stock_status FROM public.variant_sales_velocity LIMIT 5;
