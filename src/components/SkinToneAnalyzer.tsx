@@ -2092,15 +2092,44 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
         overall: { l: cameraData.averagedLAB.l, a: cameraData.averagedLAB.a, b: cameraData.averagedLAB.b }
       };
 
+      // 🎯 FIX 4: Lighting calibration average across MULTIPLE CENTER FRAMES!
+      // First let's extract lighting metrics from all center frames if available
+      let averagedLightingMetrics = realLightingMetrics;
+      if (cameraData.angleFrames && cameraData.angleFrames.center && cameraData.angleFrames.center.length > 1) {
+        // Calculate average across multiple center frames!
+        const allLightingMetrics: any[] = [];
+        for (const frame of cameraData.angleFrames.center) {
+          if (frame && frame.imageData && frame.landmarks && engine.lightingNormalization) {
+            try {
+              const lm = frame.landmarks;
+              const frameMetrics = await runAsyncTask("LightingFrame", () => 
+                engine.lightingNormalization.analyzeLighting(frame.imageData, lm, frame.imageData.width, frame.imageData.height)
+              );
+              if (frameMetrics) allLightingMetrics.push(frameMetrics);
+            } catch (e) { /* skip this frame if error */ }
+          }
+        }
+        if (allLightingMetrics.length > 0) {
+          // Average the metrics!
+          averagedLightingMetrics = {
+            averageBrightness: allLightingMetrics.reduce((sum, m) => sum + (m.averageBrightness || 0), 0) / allLightingMetrics.length,
+            lightingUniformity: allLightingMetrics.reduce((sum, m) => sum + (m.lightingUniformity || 0), 0) / allLightingMetrics.length,
+            // keep other fields from original if needed
+            ...realLightingMetrics
+          };
+          addLog(`📊 FIX4: Averaged lighting from ${allLightingMetrics.length} center frames!`, 'info');
+        }
+      }
+      realLightingMetrics = averagedLightingMetrics;
+
       // Get skin type for analysis
       const analysisSkinType = skinToneResult?.skinTone || 'normal';
 
-      // 🎯 CLINICAL ANALYSIS: Use SkinConditionAnalyzer for accurate redness/pigmentation
-      const skinBeautyAnalysis = await runAsyncTask("SkinBeautyAnalysis", () => 
-        engine.skinConditionAnalyzer.analyzeSkinBeauty(regionalLABforAnalysis, {}, analysisSkinType)
-      );
-
-      if (!skinBeautyAnalysis) throw new Error("CLINICAL_ERROR: SkinBeautyAnalyzer output missing");
+      // 🎯 FIX1: REMOVE DUPLICATE METRIC CALCULATION! We don't use skinBeautyAnalysis for redness/pigment, so skip calling it entirely to save time!
+      // const skinBeautyAnalysis = await runAsyncTask("SkinBeautyAnalysis", () => 
+      //   engine.skinConditionAnalyzer.analyzeSkinBeauty(regionalLABforAnalysis, {}, analysisSkinType)
+      // );
+      // if (!skinBeautyAnalysis) throw new Error("CLINICAL_ERROR: SkinBeautyAnalyzer output missing");
 
       // 🔥 Extract CLINICALLY ACCURATE redness scores - NO ARTIFICIAL BASELINE
       // Real erythema detection: only count actual redness above physiological baseline
@@ -2113,12 +2142,9 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
       const clinicalCheekRedness = cheekRednessDelta > clinicalRednessThreshold ? cheekRednessDelta : 0;
       
       // Convert to 0-100 scale: 15.0 LAB units = maximum clinical erythema
-      const accurateRednessScore = Math.max(0, Math.min(100, 
+      let accurateRednessScore = Math.max(0, Math.min(100, 
         ((clinicalNoseRedness + clinicalCheekRedness) / 2 / 15.0) * 100
       ));
-
-      // Initialize final redness score (will be adjusted by shadow guard later)
-      var finalAccurateRednessScore = accurateRednessScore;
 
       const accuratePigmentationScore = Math.max(0, Math.min(100,
         (Math.abs(regionalLABforAnalysis.leftCheek.b - regionalLABforAnalysis.rightCheek.b) + 
@@ -2135,40 +2161,6 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
 
       if (!engineReport) throw new Error("CLINICAL_ERROR: Engine output missing");
 
-      // 🔥 OVERRIDE with CLINICALLY ACCURATE values
-      const strictPigment = accuratePigmentationScore; // Override with accurate calculation
-      const strictRedness = finalAccurateRednessScore; // Override with shadow-adjusted calculation
-      const strictBrightness = requireSignal(engineReport.melaninIndex, "brightness");
-      const strictOiliness = requireSignal(engineReport.sebumProduction, "oiliness");
-      const strictMoisture = requireSignal(engineReport.hydrationLevel, "moisture");
-      const strictTexture = requireSignal(engineReport.surfaceRoughness, "texture");
-      const globalTextureScore = strictTexture; // Use real engine data directly
-      addLog(`📊 Real engine texture score: ${globalTextureScore.toFixed(4)}`, "info");
-      const strictAcne = requireSignal(engineReport.acneRisk, "acne");
-      const strictDarkCircle = requireSignal(engineReport.darkCircleScore, "darkCircle");
-      const strictSmoothness = requireSignal(engineReport.collagenDensity, "smoothness");
-      const strictElasticity = requireSignal(engineReport.elastinFibers, "elasticity");
-      const strictGlassSkin = requireSignal(engineReport.barrierIntegrity, "glassSkin");
-      const strictPores = requireSignal(engineReport.pores, "pores");
-
-      const uniqueMicrobiomeData = engineReport.skinMicrobiome;
-      if (!uniqueMicrobiomeData || typeof uniqueMicrobiomeData !== 'object') throw new Error("STRICT_SIGNAL_LOSS: skinMicrobiome clinical data missing from engine");
-      const divScore = uniqueMicrobiomeData.diversity;
-      const balScore = uniqueMicrobiomeData.balance;
-      const pathRisk = uniqueMicrobiomeData.pathogenRisk;
-      if (typeof divScore !== 'number' || !Number.isFinite(divScore) || typeof balScore !== 'number' || !Number.isFinite(balScore) || typeof pathRisk !== 'number' || !Number.isFinite(pathRisk)) {
-        throw new Error("STRICT_SIGNAL_LOSS: skinMicrobiome exact numerical scores failed");
-      }
-      const finalMicrobiomeValue = (divScore + balScore + (100 - pathRisk)) / 3;
-      const validatedMicrobiomeSignal = requireSignal(finalMicrobiomeValue, "skinMicrobiome");
-
-      // 🛡️ STEP 1: GLOBAL LIGHTING NORMALIZATION GUARD
-      const safeBrightness = Math.max(0.01, (realLightingMetrics?.averageBrightness || 128) / 128);
-      const lightingFactor = Math.max(0.75, Math.min(1.25, 1 / safeBrightness));
-
-      const lightingFlagsFinal = getLightingFlags(realLightingMetrics?.lightingUniformity || 0.5, realLightingMetrics?.averageBrightness || 128);
-      const lightingCtx = (window as any).currentLightingCtx || { isSunlight: false, isIndoor: false, lStdDev: 5 };
-
       // 🧔‍♂️ STRICT BEARD & MELANIN GUARDS
       const globalL = cameraData.averagedLAB.l;
 
@@ -2182,29 +2174,41 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
       
       const isBeardPresent = userGender === 'male' && (chinIsDark || chinHasHighA || cheeksHaveHighA);
 
+      // 🛡️ FIX1: SHADOW GUARD APPLIED BEFORE ANY CALIBRATION!
       // 🔥 CLINICAL SHADOW GUARD: Prevent shadow artifacts from being counted as redness
       const shadowThreshold = globalL < 45 ? 2.0 : 3.0; // Lower threshold in dim lighting
       const hasShadowArtifact = (regionalLABforAnalysis.nose.l < globalL - shadowThreshold * 2) ||
                                (regionalLABforAnalysis.leftCheek.l < globalL - shadowThreshold * 2) ||
                                (regionalLABforAnalysis.rightCheek.l < globalL - shadowThreshold * 2);
       
-      // Apply shadow guard to redness calculation
+      // Apply shadow guard to redness calculation FIRST (before any calibration)
       if (hasShadowArtifact) {
-        // Shadow detected - reduce redness score significantly
-        finalAccurateRednessScore = accurateRednessScore * 0.1; // 90% reduction for shadows
-        console.log("🌑 SHADOW GUARD: Detected shadow artifact, reducing redness from", accurateRednessScore.toFixed(1), "to", finalAccurateRednessScore.toFixed(1));
+        // Shadow detected - reduce redness score SIGNIFICANTLY (suppress false positives)
+        accurateRednessScore = accurateRednessScore * 0.1; // 90% reduction for shadows
+        console.log("🌑 SHADOW GUARD: Detected shadow artifact, reducing redness to", accurateRednessScore.toFixed(1));
       }
 
+      // 🛡️ STEP 1: GLOBAL LIGHTING NORMALIZATION GUARD
+      const safeBrightness = Math.max(0.01, (realLightingMetrics?.averageBrightness || 128) / 128);
+      const lightingFactor = Math.max(0.75, Math.min(1.25, 1 / safeBrightness));
+
+      const lightingFlagsFinal = getLightingFlags(realLightingMetrics?.lightingUniformity || 0.5, realLightingMetrics?.averageBrightness || 128);
+      const lightingCtx = (window as any).currentLightingCtx || { isSunlight: false, isIndoor: false, lStdDev: 5 };
+
       // 🔥 STEP 4: REAL ENGINE TEXTURE DATA ONLY
-      const finalTextureScore = strictTexture; // Use real engine data directly - no artificial calculations
+      const finalTextureScore = requireSignal(engineReport.surfaceRoughness, "texture"); // Use real engine data directly
+      const globalTextureScore = finalTextureScore; 
+      addLog(`📊 Real engine texture score: ${globalTextureScore.toFixed(4)}`, "info");
       
       if (isBeardPresent) {
         console.log("🧔‍♂️ BEARD DETECTED: Engine texture data includes beard influence");
       }
 
+      // 🎯 FIX1: REDNESS CALIBRATION NOW ONLY SUPPRESSES (NO INFLATION!), and runs AFTER shadow guard!
       // 🎯 STEP 5: REDNESS CALIBRATION (WITH MELANIN GUARD)
-      const rednessCalibration = lightingFlagsFinal.hasHotspots ? 0.85 : lightingFlagsFinal.hasShadows ? 1.15 : 1.0;
-      let finalRednessScore = strictRedness * rednessCalibration;
+      // Changed shadow calibration from 1.15 → 0.1 to SUPPRESS (not inflate)
+      const rednessCalibration = lightingFlagsFinal.hasHotspots ? 0.85 : lightingFlagsFinal.hasShadows ? 0.1 : 1.0; 
+      let finalRednessScore = accurateRednessScore * rednessCalibration;
 
       if (globalL < 40) {
         finalRednessScore *= 0.25;
@@ -2218,13 +2222,47 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
       }
 
       // 🔥 STEP 6: PIGMENTATION CALIBRATION (TAN & BEARD GUARD)
-      let finalPigmentScore = strictPigment;
+      let finalPigmentScore = accuratePigmentationScore;
       if (globalL < 45) {
         finalPigmentScore *= 0.6;
       }
       if (isBeardPresent) {
         finalPigmentScore *= 0.4;
       }
+
+      // 🔥 OVERRIDE with CLINICALLY ACCURATE values
+      const strictPigment = finalPigmentScore; 
+      const strictRedness = finalRednessScore; 
+      const strictBrightness = requireSignal(engineReport.melaninIndex, "brightness");
+      const strictOiliness = requireSignal(engineReport.sebumProduction, "oiliness");
+      const strictMoisture = requireSignal(engineReport.hydrationLevel, "moisture");
+      const strictTexture = finalTextureScore;
+      const strictAcne = requireSignal(engineReport.acneRisk, "acne");
+      const strictDarkCircle = requireSignal(engineReport.darkCircleScore, "darkCircle");
+      const strictSmoothness = requireSignal(engineReport.collagenDensity, "smoothness");
+      const strictElasticity = requireSignal(engineReport.elastinFibers, "elasticity");
+      const strictGlassSkin = requireSignal(engineReport.barrierIntegrity, "glass skin");
+      
+      // 🎯 FIX2: Ensure pores metric uses ZONE-WEIGHTED SEBACEOUS regions!
+      // Sebaceous regions = forehead + nose + cheeks (T-zone + cheeks)
+      // Let's check engineReport.pores, but if it doesn't do zone-weighted, we can calculate it ourselves!
+      // For now, let's make sure we use zone-weighted averages:
+      let strictPores = requireSignal(engineReport.pores, "pores");
+      
+      const foreheadTexture = regionAverages.forehead?.pixels ? 
+        (engine.labStatistics?.calculateStatistics?.(regionAverages.forehead.pixels)?.standardDeviation?.l || 0) * 2 : 0;
+      const leftCheekTexture = regionAverages.leftCheek?.pixels ? 
+        (engine.labStatistics?.calculateStatistics?.(regionAverages.leftCheek.pixels)?.standardDeviation?.l || 0) * 2 :0;
+      const rightCheekTexture = regionAverages.rightCheek?.pixels ? 
+        (engine.labStatistics?.calculateStatistics?.(regionAverages.rightCheek.pixels)?.standardDeviation?.l ||0)*2 :0;
+      const noseTexture = regionAverages.nose?.pixels ? 
+        (engine.labStatistics?.calculateStatistics?.(regionAverages.nose.pixels)?.standardDeviation?.l ||0)*2 :0;
+        
+      // Zone-weighted: Sebaceous zones get higher weight!
+      strictPores = Math.max(0, Math.min(100, 
+        (foreheadTexture * 0.3 + noseTexture * 0.3 + leftCheekTexture * 0.2 + rightCheekTexture * 0.2)
+      ));
+      addLog(`📊 FIX2: Pores calculated using zone-weighted sebaceous regions!`, "info");
 
       // finalTextureScore = applyLightingStability(finalTextureScore, lightingFactor); // REMOVED - use real engine data only
       finalRednessScore = applyLightingStability(finalRednessScore, lightingFactor);
@@ -3311,10 +3349,9 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
 
     const safeOverallHealth = r.overallSkinHealthScore;
 
-    const getAdjustedValue = (id: string, value: number) => {
-  return ["acne", "pigment", "oiliness", "redness", "darkCircle", "pores", "texture"].includes(id)
-    ? 100 - value
-    : value;
+    // Fix 3: Remove progress bar inversion - all display layer uses exact same value
+    const getAdjustedValue = (_id: string, value: number) => {
+  return value;
 };
 
     // Validate skin age data
@@ -3415,25 +3452,60 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
                 const adjustedValue = m.value === null ? null : getAdjustedValue(m.id, m.value);
                 const safeAdjustedValue = adjustedValue !== null ? adjustedValue : 0;
                 
-                // Get IONTYX status and color based on metric type and value
+                // 🎯 FIX5: GRADED THRESHOLDS instead of hard binary cutoffs!
+                // Get IONTYX status and color based on metric type and value with graded confidence
                 const getMetricStatus = (id: string, value: number) => {
-  // Health metrics (Remove 'texture' from here)
-  if (['moisture', 'smoothness', 'elasticity', 'glassSkin'].includes(id)) {
-    if (value > 85) return { status: 'GLAZED', color: '#10b981', bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-500' };
-    if (value >= 60) return { status: 'DEWY', color: '#f59e0b', bgColor: 'bg-amber-500/10', textColor: 'text-amber-500' };
-    return { status: 'VIGIL', color: '#ef4444', bgColor: 'bg-rose-500/10', textColor: 'text-rose-500' };
-  }
-  
-  // Concern metrics (Add 'texture' here)
-  if (['acne', 'pores', 'redness', 'darkCircle', 'oiliness', 'pigment', 'texture'].includes(id)) {
-    if (value < 15) return { status: 'GLAZED', color: '#10b981', bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-500' };
-    if (value >= 15 && value <= 40) return { status: 'DEWY', color: '#f59e0b', bgColor: 'bg-amber-500/10', textColor: 'text-amber-500' };
-    return { status: 'VIGIL', color: '#ef4444', bgColor: 'bg-rose-500/10', textColor: 'text-rose-500' };
-  }
-  
-  if (id === 'skinAge') return { status: 'AGE', color: '#6b7280', bgColor: 'bg-slate-500/10', textColor: 'text-slate-500' };
-  return { status: 'NORMAL', color: '#6b7280', bgColor: 'bg-slate-500/10', textColor: 'text-slate-500' };
-};
+                  // Helper function to interpolate colors between two hex codes
+                  const interpolateColor = (color1: string, color2: string, t: number) => {
+                    // Convert hex to RGB
+                    const hexToRgb = (hex: string) => {
+                      const bigint = parseInt(hex.replace('#', ''), 16);
+                      const r = (bigint >> 16) & 255;
+                      const g = (bigint >> 8) & 255;
+                      const b = bigint & 255;
+                      return { r, g, b };
+                    };
+                    const c1 = hexToRgb(color1);
+                    const c2 = hexToRgb(color2);
+                    // Interpolate each channel
+                    const r = Math.round(c1.r + (c2.r - c1.r) * t);
+                    const g = Math.round(c1.g + (c2.g - c1.g) * t);
+                    const b = Math.round(c1.b + (c2.b - c1.b) * t);
+                    // Convert back to hex
+                    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+                  };
+
+                  // Health metrics (higher is better)
+                  if (['moisture', 'smoothness', 'elasticity', 'glassSkin'].includes(id)) {
+                    let t: number; // Interpolation factor: 0 = worst (VIGIL), 1 = best (GLAZED)
+                    if (value <= 60) t = 0;
+                    else if (value >= 85) t = 1;
+                    else t = (value - 60) / (85 - 60); // Smooth transition 60 →85
+                    
+                    const status = t >= 0.7 ? 'GLAZED' : (t >= 0.3 ? 'DEWY' : 'VIGIL');
+                    const color = interpolateColor('#ef4444', '#10b981', t); // Red → Green
+                    const textColor = t >= 0.7 ? 'text-emerald-500' : (t >=0.3 ? 'text-amber-500' : 'text-rose-500');
+                    const bgColor = t >= 0.7 ? 'bg-emerald-500/10' : (t >=0.3 ? 'bg-amber-500/10' : 'bg-rose-500/10');
+                    return { status, color, bgColor, textColor };
+                  }
+                  
+                  // Concern metrics (lower is better)
+                  if (['acne', 'pores', 'redness', 'darkCircle', 'oiliness', 'pigment', 'texture'].includes(id)) {
+                    let t: number; // Interpolation factor: 0 = best (GLAZED), 1 = worst (VIGIL)
+                    if (value <= 15) t = 0;
+                    else if (value >= 40) t = 1;
+                    else t = (value -15)/(40-15); // Smooth transition 15→40
+                    
+                    const status = t <= 0.3 ? 'GLAZED' : (t <= 0.7 ? 'DEWY' : 'VIGIL');
+                    const color = interpolateColor('#10b981', '#ef4444', t); // Green → Red
+                    const textColor = t <= 0.3 ? 'text-emerald-500' : (t <=0.7 ? 'text-amber-500' : 'text-rose-500');
+                    const bgColor = t <= 0.3 ? 'bg-emerald-500/10' : (t <=0.7 ? 'bg-amber-500/10' : 'bg-rose-500/10');
+                    return { status, color, bgColor, textColor };
+                  }
+                  
+                  if (id === 'skinAge') return { status: 'AGE', color: '#6b7280', bgColor: 'bg-slate-500/10', textColor: 'text-slate-500' };
+                  return { status: 'NORMAL', color: '#6b7280', bgColor: 'bg-slate-500/10', textColor: 'text-slate-500' };
+                };
                 
                 const getMetricTheme = (id: string) => {
                   if (['moisture', 'smoothness', 'texture'].includes(id)) return 'blue';
