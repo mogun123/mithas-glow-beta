@@ -2315,7 +2315,6 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
         glassSkin: strictGlassSkin,
         glassSkinZones: {},
         pores: strictPores,
-        skinMicrobiome: validatedMicrobiomeSignal,
       };
 
       addLog(`🕳️ Pores: ${normalizedMetrics.pores.toFixed(1)}%`, "info");
