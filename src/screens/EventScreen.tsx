@@ -42,6 +42,7 @@ const normalizeSupabaseAnalysis = (row: any): any => {
   const darkCircle = requireMetric('darkCircle');
   const elasticity = requireMetric('elasticity');
   const glassSkin = requireMetric('glassSkin');
+  const brightness = row.lab_values?.overall?.l ? 100 - row.metrics.pigment : requireMetric('moisture');
 
   const overallSkinHealthScore = Math.round(
     (moisture + elasticity + glassSkin + (100 - acne) + (100 - redness)) / 5
@@ -94,6 +95,7 @@ const normalizeSupabaseAnalysis = (row: any): any => {
       pigment,
       darkCircle,
       acne,
+      brightness: 100 - pigment,
     },
     labValues: row.lab_values,
     frameData: row.frame_data,
@@ -119,6 +121,7 @@ const getReportMetricCards = (report: any) => {
 
   return [
     { label: 'Moisture', value: report.clinicalMetrics?.moisture },
+    { label: 'Brightness', value: report.clinicalMetrics?.brightness },
     { label: 'Texture', value: report.clinicalMetrics?.texture ?? report.texture?.score },
     { label: 'Elasticity', value: report.clinicalMetrics?.elasticity },
     { label: 'Glass Skin', value: report.clinicalMetrics?.glassSkin },
@@ -393,12 +396,20 @@ export const EventScreen: React.FC<EventScreenProps> = ({
       console.log('📊 Scan history loaded:', normalizedHistory.length, 'analyses');
 
       let nextScanReport: any = null;
-      if (preferredReport?.savedToDatabase) {
+      if (preferredReport?.savedToDatabase && preferredReport?.id) {
         try {
-          nextScanReport = normalizeSupabaseAnalysis(preferredReport);
-          console.log('📊 Using preferred scan report:', nextScanReport.savedAnalysisId);
+          const { data: freshRow, error: fetchError } = await supabase
+            .from('clinical_analyses')
+            .select('*')
+            .eq('id', preferredReport.id)
+            .single();
+          
+          if (fetchError) throw fetchError;
+          
+          nextScanReport = normalizeSupabaseAnalysis(freshRow);
+          console.log('📊 Using fresh preferred scan report from DB:', nextScanReport.savedAnalysisId);
         } catch (preferredError) {
-          console.warn('Preferred scan report invalid; not using fallback to prevent ghost data', preferredError);
+          console.warn('Failed to load preferred scan report from DB; not using fallback to prevent ghost data', preferredError);
           // Don't fall back to DB history to prevent ghost data
           nextScanReport = null;
         }

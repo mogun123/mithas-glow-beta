@@ -41,6 +41,12 @@ backend_dir = Path(__file__).parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
+# Ensure the project root is importable so the root app package can be used
+# alongside the active backend.app package.
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 # Add app directory to Python path
 app_dir = backend_dir / "app"
 if str(app_dir) not in sys.path:
@@ -62,7 +68,7 @@ app.add_middleware(
 
 # Try to include beard_engine router with database-driven recommendations
 try:
-    from app.api.beard_engine import router as beard_router
+    from backend.app.api.beard_engine import router as beard_router
     app.include_router(beard_router)
     print("[OK] Using database-driven beard_engine with 61+ real beard styles")
 except Exception as e:
@@ -70,6 +76,18 @@ except Exception as e:
     import traceback
     traceback.print_exc()
     print("[ERROR] Check Supabase connection and Python dependencies")
+
+# Include the root artist bookings router on the active runtime backend.
+try:
+    from app.api.bookings import router as bookings_router
+
+    app.include_router(bookings_router)
+    print("[OK] Artist bookings router available at /api/bookings")
+except Exception as e:
+    print(f"[ERROR] Bookings router failed to load: {e}")
+    import traceback
+    traceback.print_exc()
+    print("[ERROR] Check booking models, schemas, and dependencies")
 
 # Health check
 @app.get("/health")

@@ -28,12 +28,15 @@ import { HomeScreen } from "./screens/HomeScreen";
 
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { EventScreen } from "./screens/EventScreen";
+import { ProductsScreen } from "./screens/ProductsScreen";
+import { CoachScreen } from "./screens/CoachScreen";
+import { BookingScreen } from "./screens/BookingScreen";
 
 // Lazy load heavy components for better performance
 
 const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
 
-type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events";
+type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking";
 
 // Loading component
 
@@ -64,6 +67,8 @@ const THEME_MAP: Record<View, string> = {
 register: "mithas-theme", login: "mithas-theme", otp: "mithas-theme", profile: "mithas-theme",
 
 home: "glow-home-theme", mirror: "glow-mirror-theme", userprofile: "glow-profile-theme", events: "glow-home-theme",
+
+products: "glow-home-theme", coach: "glow-home-theme", booking: "glow-home-theme",
 
 };
 
@@ -145,7 +150,7 @@ if (!profileError) {
 
 const savedView = localStorage.getItem("currentView") as View;
 
-const validViews: View[] = ["home", "mirror", "userprofile", "events"];
+const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking"];
 
 if (savedView && validViews.includes(savedView)) {
 
@@ -308,6 +313,18 @@ return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary>
 
 }
 
+if (currentView === "products") {
+  return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProductsScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
+}
+
+if (currentView === "coach") {
+  return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><CoachScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
+}
+
+if (currentView === "booking") {
+  return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><BookingScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
+}
+
 if (currentView === "home") {
 
 return (
@@ -327,6 +344,12 @@ onNavigateToMirror={() => navigate("mirror")}
 onNavigateToProfile={() => navigate("userprofile")}
 
 onNavigateToEvents={() => navigate("events")}
+
+onNavigateToProducts={() => navigate("products")}
+
+onNavigateToCoach={() => navigate("coach")}
+
+onNavigateToBooking={() => navigate("booking")}
 
 />
 

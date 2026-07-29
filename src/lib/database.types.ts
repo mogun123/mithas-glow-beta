@@ -844,6 +844,418 @@ export interface Database {
 
       };
 
+      glow_journeys: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: string;
+          start_date: string;
+          end_date: string | null;
+          total_scans: number;
+          target_scans: number;
+          streak_days: number;
+          longest_streak: number;
+          glow_points: number;
+          xp_earned: number;
+          badges_earned: string[];
+          initial_recommendations: Json | null;
+          current_routine: Json | null;
+          improvement_areas: string[];
+          skin_goals: string[];
+          commitment_level: string | null;
+          reminder_preferences: Json | null;
+          created_at: string;
+          updated_at: string;
+          completion_date: string | null;
+          progress: Json | null;
+        };
+        Insert: {
+          user_id: string;
+          status?: string;
+          start_date?: string;
+          end_date?: string | null;
+          total_scans?: number;
+          target_scans?: number;
+          streak_days?: number;
+          longest_streak?: number;
+          glow_points?: number;
+          xp_earned?: number;
+          badges_earned?: string[];
+          initial_recommendations?: Json | null;
+          current_routine?: Json | null;
+          improvement_areas?: string[];
+          skin_goals?: string[];
+          commitment_level?: string | null;
+          reminder_preferences?: Json | null;
+          progress?: Json | null;
+        };
+        Update: {
+          status?: string;
+          start_date?: string;
+          end_date?: string | null;
+          total_scans?: number;
+          target_scans?: number;
+          streak_days?: number;
+          longest_streak?: number;
+          glow_points?: number;
+          xp_earned?: number;
+          badges_earned?: string[];
+          initial_recommendations?: Json | null;
+          current_routine?: Json | null;
+          improvement_areas?: string[];
+          skin_goals?: string[];
+          commitment_level?: string | null;
+          reminder_preferences?: Json | null;
+          completion_date?: string | null;
+          progress?: Json | null;
+        };
+      };
+
+      face_analyses: {
+        Row: {
+          id: string;
+          user_id: string;
+          journey_id: string;
+          final_redness_score: number;
+          final_texture_score: number;
+          melanin_index: number;
+          beard_density_score: number;
+          skin_tone_result: Json;
+          undertone_result: Json;
+          face_shape_result: Json;
+          skin_conditions_result: Json;
+          skin_age_result: Json;
+          confidence_result: Json;
+          lab_values: Json;
+          overall_skin_health_score: number | null;
+          scan_image_url: string | null;
+          scan_metadata: Json | null;
+          scan_timestamp: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          journey_id: string;
+          final_redness_score: number;
+          final_texture_score: number;
+          melanin_index: number;
+          beard_density_score?: number;
+          skin_tone_result: Json;
+          undertone_result: Json;
+          face_shape_result: Json;
+          skin_conditions_result: Json;
+          skin_age_result: Json;
+          confidence_result: Json;
+          lab_values: Json;
+          scan_image_url?: string | null;
+          scan_metadata?: Json | null;
+        };
+        Update: {
+          final_redness_score?: number;
+          final_texture_score?: number;
+          melanin_index?: number;
+          beard_density_score?: number;
+          skin_tone_result?: Json;
+          undertone_result?: Json;
+          face_shape_result?: Json;
+          skin_conditions_result?: Json;
+          skin_age_result?: Json;
+          confidence_result?: Json;
+          lab_values?: Json;
+          scan_image_url?: string | null;
+          scan_metadata?: Json | null;
+        };
+      };
+
+      doctor_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          full_name: string;
+          specialization: string;
+          license_number: string | null;
+          years_of_experience: number | null;
+          medical_degree: string | null;
+          university: string | null;
+          board_certifications: string[];
+          specializations: string[];
+          clinic_name: string | null;
+          clinic_address: Json | null;
+          consultation_fee: number | null;
+          currency: string;
+          available_services: string[];
+          consultation_duration: number;
+          available_days: string[];
+          time_slots: Json | null;
+          average_rating: number;
+          total_consultations: number;
+          patient_reviews: Json | null;
+          is_verified: boolean;
+          verification_documents: string[];
+          verification_status: string;
+          bio: string | null;
+          profile_image_url: string | null;
+          languages_spoken: string[];
+          is_active: boolean;
+          is_accepting_patients: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          full_name: string;
+          specialization: string;
+          license_number?: string | null;
+          years_of_experience?: number | null;
+          medical_degree?: string | null;
+          university?: string | null;
+          board_certifications?: string[];
+          specializations?: string[];
+          clinic_name?: string | null;
+          clinic_address?: Json | null;
+          consultation_fee?: number | null;
+          currency?: string;
+          available_services?: string[];
+          consultation_duration?: number;
+          available_days?: string[];
+          time_slots?: Json | null;
+          is_verified?: boolean;
+          verification_documents?: string[];
+          verification_status?: string;
+          bio?: string | null;
+          profile_image_url?: string | null;
+          languages_spoken?: string[];
+          is_active?: boolean;
+          is_accepting_patients?: boolean;
+        };
+        Update: {
+          full_name?: string;
+          specialization?: string;
+          license_number?: string | null;
+          years_of_experience?: number | null;
+          medical_degree?: string | null;
+          university?: string | null;
+          board_certifications?: string[];
+          specializations?: string[];
+          clinic_name?: string | null;
+          clinic_address?: Json | null;
+          consultation_fee?: number | null;
+          currency?: string;
+          available_services?: string[];
+          consultation_duration?: number;
+          available_days?: string[];
+          time_slots?: Json | null;
+          average_rating?: number;
+          total_consultations?: number;
+          patient_reviews?: Json | null;
+          is_verified?: boolean;
+          verification_documents?: string[];
+          verification_status?: string;
+          bio?: string | null;
+          profile_image_url?: string | null;
+          languages_spoken?: string[];
+          is_active?: boolean;
+          is_accepting_patients?: boolean;
+        };
+      };
+
+      consultations: {
+        Row: {
+          id: string;
+          user_id: string;
+          doctor_id: string;
+          journey_id: string | null;
+          consultation_type: string;
+          status: string;
+          scheduled_date: string;
+          duration: number;
+          time_zone: string;
+          chief_complaint: string | null;
+          medical_history: Json | null;
+          current_medications: string[];
+          allergies: string[];
+          skin_concerns: string[];
+          attached_analyses: string[];
+          pre_consultation_notes: string | null;
+          diagnosis: string | null;
+          treatment_plan: Json | null;
+          prescription: Json | null;
+          follow_up_required: boolean;
+          follow_up_date: string | null;
+          consultation_fee: number | null;
+          payment_status: string;
+          payment_method: string | null;
+          session_type: string;
+          meeting_link: string | null;
+          meeting_room_id: string | null;
+          patient_rating: number | null;
+          patient_feedback: string | null;
+          doctor_notes: string | null;
+          booked_at: string;
+          confirmed_at: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          cancelled_at: string | null;
+          cancellation_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          doctor_id: string;
+          journey_id?: string | null;
+          consultation_type?: string;
+          status?: string;
+          scheduled_date: string;
+          duration?: number;
+          time_zone?: string;
+          chief_complaint?: string | null;
+          medical_history?: Json | null;
+          current_medications?: string[];
+          allergies?: string[];
+          skin_concerns?: string[];
+          attached_analyses?: string[];
+          pre_consultation_notes?: string | null;
+          follow_up_required?: boolean;
+          consultation_fee?: number | null;
+          payment_status?: string;
+          session_type?: string;
+        };
+        Update: {
+          status?: string;
+          scheduled_date?: string;
+          duration?: number;
+          time_zone?: string;
+          chief_complaint?: string | null;
+          medical_history?: Json | null;
+          current_medications?: string[];
+          allergies?: string[];
+          skin_concerns?: string[];
+          attached_analyses?: string[];
+          pre_consultation_notes?: string | null;
+          diagnosis?: string | null;
+          treatment_plan?: Json | null;
+          prescription?: Json | null;
+          follow_up_required?: boolean;
+          follow_up_date?: string | null;
+          consultation_fee?: number | null;
+          payment_status?: string;
+          payment_method?: string | null;
+          session_type?: string;
+          meeting_link?: string | null;
+          meeting_room_id?: string | null;
+          patient_rating?: number | null;
+          patient_feedback?: string | null;
+          doctor_notes?: string | null;
+          confirmed_at?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          cancellation_reason?: string | null;
+        };
+      };
+
+      glow_badges: {
+        Row: {
+          id: string;
+          badge_code: string;
+          name: string;
+          description: string | null;
+          icon_url: string | null;
+          badge_category: string;
+          requirements: Json;
+          glow_points_reward: number;
+          xp_reward: number;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          badge_code: string;
+          name: string;
+          description?: string | null;
+          icon_url?: string | null;
+          badge_category?: string;
+          requirements: Json;
+          glow_points_reward?: number;
+          xp_reward?: number;
+          is_active?: boolean;
+          sort_order?: number;
+        };
+        Update: {
+          badge_code?: string;
+          name?: string;
+          description?: string | null;
+          icon_url?: string | null;
+          badge_category?: string;
+          requirements?: Json;
+          glow_points_reward?: number;
+          xp_reward?: number;
+          is_active?: boolean;
+          sort_order?: number;
+        };
+      };
+
+      user_badges: {
+        Row: {
+          id: string;
+          user_id: string;
+          badge_id: string;
+          journey_id: string | null;
+          earned_at: string;
+        };
+        Insert: {
+          user_id: string;
+          badge_id: string;
+          journey_id?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          badge_id?: string;
+          journey_id?: string | null;
+        };
+      };
+
+      ai_routine_history: {
+        Row: {
+          id: string;
+          user_id: string;
+          journey_id: string;
+          analysis_id: string;
+          routine_type: string;
+          routine_data: Json;
+          ai_reasoning: Json;
+          user_feedback: number | null;
+          effectiveness_score: number | null;
+          adherence_rate: number | null;
+          is_active: boolean;
+          replaced_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          journey_id: string;
+          analysis_id: string;
+          routine_type?: string;
+          routine_data: Json;
+          ai_reasoning: Json;
+          user_feedback?: number | null;
+          is_active?: boolean;
+        };
+        Update: {
+          routine_type?: string;
+          routine_data?: Json;
+          ai_reasoning?: Json;
+          user_feedback?: number | null;
+          effectiveness_score?: number | null;
+          adherence_rate?: number | null;
+          is_active?: boolean;
+          replaced_at?: string | null;
+        };
+      };
+
       chats: {
 
         Row: {

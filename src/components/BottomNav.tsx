@@ -1,66 +1,89 @@
 import { useState } from 'react';
-import { Home, Film, Sparkles, ShoppingBag, MessageSquare } from 'lucide-react';
+import { Home, ShoppingBag, Calendar, Sparkles } from 'lucide-react';
 
 interface BottomNavProps {
-  onNavigateToMirror?: () => void;
-  onNavigateToChat?: () => void;
-  onNavigateToReels?: () => void;
-  onNavigateToShop?: () => void;
-  onsetCurrentViewToShop?: () => void;
   onNavigateToHome?: () => void;
+  onNavigateToProducts?: () => void;
+  onNavigateToCoach?: () => void;
+  onNavigateToBooking?: () => void;
 }
 
-export function BottomNav({ onNavigateToMirror, onNavigateToChat, onNavigateToReels, onNavigateToShop, onsetCurrentViewToShop, onNavigateToHome }: BottomNavProps) {
+export function BottomNav({
+  onNavigateToHome,
+  onNavigateToProducts,
+  onNavigateToCoach,
+  onNavigateToBooking,
+}: BottomNavProps) {
   const [activeTab, setActiveTab] = useState('Home');
 
   const navItems = [
     { id: 'Home', icon: Home, label: 'Home' },
-    { id: 'Reels', icon: Film, label: 'Reels' },
-    { id: 'Mirror', icon: Sparkles, label: 'Mirror', isMirror: true },
-    { id: 'Shop', icon: ShoppingBag, label: 'Shop' },
-    { id: 'Chat', icon: MessageSquare, label: 'Chat' },
+    { id: 'Products', icon: ShoppingBag, label: 'Products' },
+    {
+      id: 'AI Coach',
+      icon: Sparkles,
+      label: 'AI Coach',
+      isCenter: true,
+    },
+    { id: 'Booking', icon: Calendar, label: 'Booking' },
   ];
 
   const handleNavClick = (tabName: string) => {
     setActiveTab(tabName);
-    console.log(`Navigating to: ${tabName}`);
-    
-    // Haptic feedback if supported
+
     if (navigator.vibrate) {
       navigator.vibrate(50);
     }
 
-    // Navigate to appropriate screens
-    if (tabName === 'Mirror' && onNavigateToMirror) {
-      onNavigateToMirror();
-    } else if (tabName === 'Chat' && onNavigateToChat) {
-      onNavigateToChat();
-    } else if (tabName === 'Reels' && onNavigateToReels) {
-      onNavigateToReels();
-    } else if (tabName === 'Shop' && (onNavigateToShop || onsetCurrentViewToShop)) {
-      onNavigateToShop ? onNavigateToShop() : onsetCurrentViewToShop?.();
-    } else if (tabName === 'Home' && onNavigateToHome) {
+    if (tabName === 'Home' && onNavigateToHome) {
       onNavigateToHome();
+    } else if (tabName === 'Products' && onNavigateToProducts) {
+      onNavigateToProducts();
+    } else if (tabName === 'AI Coach' && onNavigateToCoach) {
+      onNavigateToCoach();
+    } else if (tabName === 'Booking' && onNavigateToBooking) {
+      onNavigateToBooking();
     }
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto p-3 bg-white shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-20 rounded-t-3xl border-t border-gray-100">
-      <nav className="flex justify-around items-center">
+    <footer
+      className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto p-3 z-50 rounded-t-3xl"
+      style={{
+        background: 'rgba(255,255,255,0.88)',
+        backdropFilter: 'blur(28px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+        borderTop: '1px solid rgba(168,85,247,0.12)',
+        boxShadow:
+          '0 -4px 28px rgba(236,72,153,.08), inset 0 1px 0 rgba(255,255,255,.92)',
+      }}
+    >
+      <nav className="flex justify-around items-end pb-1 pt-2">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
-          const isMirror = item.isMirror;
+          const isCenter = item.isCenter;
 
-          if (isMirror) {
+          if (isCenter) {
             return (
-              <div key={item.id} className="mirror-glow-wrapper w-20 h-20 -mt-8">
-                <div className="mirror-glow-bg"></div>
+              <div
+                key={item.id}
+                className="w-16 h-16 -mt-8 flex flex-col items-center justify-center"
+              >
                 <div
                   onClick={() => handleNavClick(item.id)}
-                  className="bubble w-20 h-20 bg-[#FF99CC] relative z-10 cursor-pointer"
+                  className="nav-tap-btn w-16 h-16 rounded-2xl relative cursor-pointer flex flex-col items-center justify-center"
+                  style={{
+                    background:
+                      'linear-gradient(135deg,#ec4899,#a855f7,#6366f1)',
+                    boxShadow: isActive
+                      ? '0 0 28px rgba(168,85,247,.55), 0 8px 24px rgba(236,72,153,.38)'
+                      : '0 8px 24px rgba(168,85,247,.38)',
+                  }}
                 >
-                  <item.icon className="w-8 h-8 text-white" />
-                  <span className="text-xs mt-1 text-white">{item.label}</span>
+                  <item.icon className="w-7 h-7 text-white" />
+                  <span className="text-[10px] mt-0.5 font-bold text-white tracking-tight">
+                    {item.label}
+                  </span>
                 </div>
               </div>
             );
@@ -70,10 +93,20 @@ export function BottomNav({ onNavigateToMirror, onNavigateToChat, onNavigateToRe
             <div
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`bubble ${isActive ? 'nav-glow-active' : ''}`}
+              className="nav-tap-btn flex flex-col items-center justify-center gap-1 cursor-pointer px-2 py-1"
+              style={{ width: '22%' }}
             >
-              <item.icon className={`w-6 h-6 ${isActive ? 'text-pink-500' : 'text-gray-600'}`} />
-              <span className={`text-xs mt-1 ${isActive ? 'text-pink-500' : 'text-gray-600'}`}>
+              <item.icon
+                className={`w-6 h-6 transition-colors duration-200 ${
+                  isActive ? 'text-purple-600' : 'text-gray-400'
+                }`}
+                strokeWidth={isActive ? 2.3 : 1.8}
+              />
+              <span
+                className={`text-[11px] font-semibold tracking-tight transition-colors duration-200 ${
+                  isActive ? 'text-purple-700' : 'text-gray-400'
+                }`}
+              >
                 {item.label}
               </span>
             </div>

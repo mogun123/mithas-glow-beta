@@ -2233,7 +2233,7 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
       // 🔥 OVERRIDE with CLINICALLY ACCURATE values
       const strictPigment = finalPigmentScore; 
       const strictRedness = finalRednessScore; 
-      const strictBrightness = requireSignal(engineReport.melaninIndex, "brightness");
+      const strictBrightness = requireSignal(100 - engineReport.melaninIndex, "brightness");
       const strictOiliness = requireSignal(engineReport.sebumProduction, "oiliness");
       const strictMoisture = requireSignal(engineReport.hydrationLevel, "moisture");
       const strictTexture = finalTextureScore;
@@ -2241,7 +2241,7 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
       const strictDarkCircle = requireSignal(engineReport.darkCircleScore, "darkCircle");
       const strictSmoothness = requireSignal(engineReport.collagenDensity, "smoothness");
       const strictElasticity = requireSignal(engineReport.elastinFibers, "elasticity");
-      const strictGlassSkin = requireSignal(engineReport.barrierIntegrity, "glass skin");
+      const strictGlassSkin = requireSignal(engineReport.glassSkin, "glass skin");
       
       // 🎯 FIX2: Ensure pores metric uses ZONE-WEIGHTED SEBACEOUS regions!
       // Sebaceous regions = forehead + nose + cheeks (T-zone + cheeks)
@@ -3362,6 +3362,7 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
       { id: "moisture", label: "HYDRATION", value: metricsData.moisture, icon: "💧", special: false },
       { id: "smoothness", label: "SMOOTHNESS", value: metricsData.smoothness, icon: "🍑", special: false },
       { id: "elasticity", label: "ELASTICITY", value: metricsData.elasticity, icon: "🌟", special: false },
+      { id: "brightness", label: "BRIGHTNESS", value: metricsData.brightness, icon: "☀️", special: false },
       { id: "pigment", label: "PIGMENT", value: metricsData.pigment, icon: "🎨", special: false },
       { id: "oiliness", label: "OILINESS", value: metricsData.oiliness, icon: "🛢", special: false },
       { id: "acne", label: "ACNE", value: metricsData.acne, icon: "⚠️", special: false },
@@ -3379,12 +3380,13 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
 
           {/* 1. TOP GRID */}
           <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-lg border border-white/20 p-4 sm:p-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 sm:gap-6">
               {[
                 { label: "Face Shape", value: r.faceShape, icon: "😊" },
                 { label: "Skin Tone", value: r.skinTone, icon: "🎨" },
                 { label: "Undertone", value: r.undertone, icon: "🌟" },
                 { label: "Skin Type", value: r.skinType, icon: "💧" },
+                { label: "Brightness", value: `${Math.round(r.clinicalMetrics.brightness)}%`, icon: "☀️" },
               ].map((item) => (
                 <div key={item.label} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border border-white/30 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
@@ -3475,7 +3477,7 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
                   };
 
                   // Health metrics (higher is better)
-                  if (['moisture', 'smoothness', 'elasticity', 'glassSkin'].includes(id)) {
+                  if (['moisture', 'smoothness', 'elasticity', 'glassSkin', 'brightness'].includes(id)) {
                     let t: number; // Interpolation factor: 0 = worst (VIGIL), 1 = best (GLAZED)
                     if (value <= 60) t = 0;
                     else if (value >= 85) t = 1;

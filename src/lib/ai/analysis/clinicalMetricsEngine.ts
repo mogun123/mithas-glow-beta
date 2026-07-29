@@ -1418,8 +1418,8 @@ let totalFrames = (framesByRegion[region] || allFrames).length;
     // DYNAMIC COLLAGEN: Pure structural ratio using variance-to-mean relationship
     const collagenDensity = (1 - (Math.sqrt(fVL) / fML)) * 100;
 
-    // DYNAMIC ELASTIN: Pure structural ratio using variance-to-mean relationship
-    const elastinFibers = (1 - (Math.sqrt(fVL) / fML)) * 100;
+    // DYNAMIC ELASTIN: Pure structural ratio using variance-to-mean relationship from cheeks (better for sag)
+    const elastinFibers = (1 - (Math.sqrt(cheekVL) / cheekML)) * 100;
 
     // Hydration: overall region hydration
     const hydrationLevel = rOverall.hydration;
