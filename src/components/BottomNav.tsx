@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, ShoppingBag, Calendar, Sparkles } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import { cn } from "@/components/ui/utils";
 
 export function BottomNav() {
   const pathname = usePathname();
