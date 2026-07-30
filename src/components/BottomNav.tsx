@@ -1,49 +1,30 @@
-import { useState } from 'react';
+"use client"
+
+import { usePathname, useRouter } from 'next/navigation';
 import { Home, ShoppingBag, Calendar, Sparkles } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
-interface BottomNavProps {
-  onNavigateToHome?: () => void;
-  onNavigateToProducts?: () => void;
-  onNavigateToCoach?: () => void;
-  onNavigateToBooking?: () => void;
-}
-
-export function BottomNav({
-  onNavigateToHome,
-  onNavigateToProducts,
-  onNavigateToCoach,
-  onNavigateToBooking,
-}: BottomNavProps) {
-  const [activeTab, setActiveTab] = useState('Home');
+export function BottomNav() {
+  const pathname = usePathname();
+  const router = useRouter();
 
   const navItems = [
-    { id: 'Home', icon: Home, label: 'Home' },
-    { id: 'Products', icon: ShoppingBag, label: 'Products' },
+    { href: "/", icon: Home, label: "Home" },
+    { href: "/products", icon: ShoppingBag, label: "Products" },
     {
-      id: 'AI Coach',
+      href: "/coach",
       icon: Sparkles,
-      label: 'AI Coach',
+      label: "AI Coach",
       isCenter: true,
     },
-    { id: 'Booking', icon: Calendar, label: 'Booking' },
+    { href: "/booking", icon: Calendar, label: "Booking" },
   ];
 
-  const handleNavClick = (tabName: string) => {
-    setActiveTab(tabName);
-
+  const handleNavClick = (href: string) => {
     if (navigator.vibrate) {
       navigator.vibrate(50);
     }
-
-    if (tabName === 'Home' && onNavigateToHome) {
-      onNavigateToHome();
-    } else if (tabName === 'Products' && onNavigateToProducts) {
-      onNavigateToProducts();
-    } else if (tabName === 'AI Coach' && onNavigateToCoach) {
-      onNavigateToCoach();
-    } else if (tabName === 'Booking' && onNavigateToBooking) {
-      onNavigateToBooking();
-    }
+    router.push(href);
   };
 
   return (
@@ -60,17 +41,17 @@ export function BottomNav({
     >
       <nav className="flex justify-around items-end pb-1 pt-2">
         {navItems.map((item) => {
-          const isActive = activeTab === item.id;
+          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
           const isCenter = item.isCenter;
 
           if (isCenter) {
             return (
               <div
-                key={item.id}
+                key={item.href}
                 className="w-16 h-16 -mt-8 flex flex-col items-center justify-center"
               >
                 <div
-                  onClick={() => handleNavClick(item.id)}
+                  onClick={() => handleNavClick(item.href)}
                   className="nav-tap-btn w-16 h-16 rounded-2xl relative cursor-pointer flex flex-col items-center justify-center"
                   style={{
                     background:
@@ -91,21 +72,23 @@ export function BottomNav({
 
           return (
             <div
-              key={item.id}
-              onClick={() => handleNavClick(item.id)}
+              key={item.href}
+              onClick={() => handleNavClick(item.href)}
               className="nav-tap-btn flex flex-col items-center justify-center gap-1 cursor-pointer px-2 py-1"
               style={{ width: '22%' }}
             >
               <item.icon
-                className={`w-6 h-6 transition-colors duration-200 ${
-                  isActive ? 'text-purple-600' : 'text-gray-400'
-                }`}
+                className={cn(
+                  "w-6 h-6 transition-colors duration-200",
+                  isActive ? "text-purple-600" : "text-gray-400"
+                )}
                 strokeWidth={isActive ? 2.3 : 1.8}
               />
               <span
-                className={`text-[11px] font-semibold tracking-tight transition-colors duration-200 ${
-                  isActive ? 'text-purple-700' : 'text-gray-400'
-                }`}
+                className={cn(
+                  "text-[11px] font-semibold tracking-tight transition-colors duration-200",
+                  isActive ? "text-purple-700" : "text-gray-400"
+                )}
               >
                 {item.label}
               </span>

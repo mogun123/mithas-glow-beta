@@ -19,7 +19,7 @@ export default function MainLayout({
       style={{ backgroundColor: "#F7F5F0" }}
     >
       <Header />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pt-16 pb-20">{children}</main>
       <BottomNav />
     </div>
   )
