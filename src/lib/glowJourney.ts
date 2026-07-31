@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { toast } from 'sonner';
+import { RewardsService } from '../services/rewardsService';
+import { useRewardsStore } from '../store/useRewardsStore';
 
 export interface AnalysisMetrics {
   // Clinical Metrics
@@ -278,6 +280,21 @@ export const commitGlowJourneyFromReport = async (
       throw new Error(`Journey saved analysis but journey lookup failed: ${refetchError.message}`);
     }
     resolvedJourneyId = journeys?.[0]?.id ?? null;
+  }
+
+  // 🔥 CRITICAL FIX: Update rewards AFTER successful scan save
+  console.log('[GlowJourney] Calling RewardsService.processSuccessfulScan for user:', userId);
+  try {
+    const rewardsResult = await RewardsService.processSuccessfulScan(userId);
+    console.log('[GlowJourney] ✅ Rewards updated successfully:', rewardsResult);
+    
+    // Force refresh the Zustand store to update UI immediately
+    console.log('[GlowJourney] Refreshing rewards store...');
+    await useRewardsStore.getState().refreshRewards(userId);
+    console.log('[GlowJourney] ✅ Rewards store refreshed');
+  } catch (rewardsError) {
+    console.error('[GlowJourney] ⚠️ Rewards update failed (non-critical):', rewardsError);
+    // Don't throw here - the scan was successful, rewards failure is non-critical
   }
 
   return {
