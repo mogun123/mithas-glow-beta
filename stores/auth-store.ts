@@ -18,6 +18,8 @@ import { authService } from "../src/lib/api/index"
 
 import type { Session, User as SupabaseUser } from "@supabase/supabase-js"
 
+import { useRewardsStore } from "../src/store/useRewardsStore"
+
 
 
 // Types
