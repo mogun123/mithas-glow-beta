@@ -35,13 +35,16 @@ export const useRewardsStore = create<RewardsState>()(
        * Fetch rewards data for a user
        */
       fetchRewards: async (userId: string) => {
+        console.log('[RewardsStore] Fetching rewards for user:', userId);
         set({ loading: true, error: null });
         
         try {
           const rewards = await RewardsService.getUserRewards(userId);
+          console.log('[RewardsStore] Fetched rewards:', rewards);
           
           if (rewards) {
             const levelProgress = RewardsService.getLevelProgress(rewards.glow_points);
+            console.log('[RewardsStore] Calculated level progress:', levelProgress);
             
             set({
               rewards,
@@ -49,8 +52,10 @@ export const useRewardsStore = create<RewardsState>()(
               loading: false,
               error: null
             });
+            console.log('[RewardsStore] State updated successfully');
           }
         } catch (error: any) {
+          console.error('[RewardsStore] Error fetching rewards:', error);
           set({
             loading: false,
             error: error.message || 'Failed to fetch rewards'
@@ -62,11 +67,14 @@ export const useRewardsStore = create<RewardsState>()(
        * Update rewards after a successful scan
        */
       updateAfterScan: async (userId: string) => {
+        console.log('[RewardsStore] Updating rewards after scan for user:', userId);
         set({ loading: true, error: null });
         
         try {
           const rewards = await RewardsService.processSuccessfulScan(userId);
+          console.log('[RewardsStore] Updated rewards:', rewards);
           const levelProgress = RewardsService.getLevelProgress(rewards.glow_points);
+          console.log('[RewardsStore] Calculated level progress:', levelProgress);
           
           set({
             rewards,
@@ -74,7 +82,9 @@ export const useRewardsStore = create<RewardsState>()(
             loading: false,
             error: null
           });
+          console.log('[RewardsStore] State updated successfully. New state:', { rewards, levelProgress });
         } catch (error: any) {
+          console.error('[RewardsStore] Error updating rewards:', error);
           set({
             loading: false,
             error: error.message || 'Failed to update rewards after scan'
@@ -86,13 +96,16 @@ export const useRewardsStore = create<RewardsState>()(
        * Refresh rewards data from database
        */
       refreshRewards: async (userId: string) => {
+        console.log('[RewardsStore] Refreshing rewards for user:', userId);
         set({ loading: true, error: null });
         
         try {
           const rewards = await RewardsService.getUserRewards(userId);
+          console.log('[RewardsStore] Refreshed rewards:', rewards);
           
           if (rewards) {
             const levelProgress = RewardsService.getLevelProgress(rewards.glow_points);
+            console.log('[RewardsStore] Calculated level progress:', levelProgress);
             
             set({
               rewards,
@@ -100,8 +113,10 @@ export const useRewardsStore = create<RewardsState>()(
               loading: false,
               error: null
             });
+            console.log('[RewardsStore] State refreshed successfully. New state:', { rewards, levelProgress });
           }
         } catch (error: any) {
+          console.error('[RewardsStore] Error refreshing rewards:', error);
           set({
             loading: false,
             error: error.message || 'Failed to refresh rewards'
