@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { realtimeService } from '../lib/services/realtime.service';
 import { ScheduledScansService, type ScheduledScan } from '../services/scheduledScansService';
 import { toast } from 'sonner';
+import { useRewardsStore } from '@/store/useRewardsStore';
 
 /** Normalize DB row → UI report shape. No filler defaults for missing live metrics. */
 const normalizeSupabaseAnalysis = (row: any): any => {
@@ -44,9 +45,12 @@ const normalizeSupabaseAnalysis = (row: any): any => {
   const glassSkin = requireMetric('glassSkin');
   const brightness = requireMetric('brightness');
 
-  const overallSkinHealthScore = Math.round(
-    (moisture + elasticity + glassSkin + (100 - acne) + (100 - redness)) / 5
-  );
+  // Use the overallSkinHealthScore already calculated and saved in the database row
+  // This ensures consistency with the live scan report calculation
+  const overallSkinHealthScore = row.overall_skin_health_score ?? row.overallSkinHealthScore;
+  if (typeof overallSkinHealthScore !== 'number') {
+    throw new Error('DATA_INTEGRITY_ERROR: clinical_analyses row missing overall_skin_health_score');
+  }
 
   return {
     id: row.id,
@@ -317,6 +321,9 @@ export const EventScreen: React.FC<EventScreenProps> = ({
   latestScanReport,
   setLatestScanReport
 }) => {
+  // Subscribe to global rewards state for reactive points and streak updates
+  const { rewards, fetchRewards } = useRewardsStore();
+  
   const [activeTab, setActiveTab] = useState<'overview' | 'journey' | 'scans' | 'achievements' | 'insights'>('overview');
   const [events, setEvents] = useState<EventData[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -526,6 +533,8 @@ export const EventScreen: React.FC<EventScreenProps> = ({
 
     const refresh = () => {
       void loadDashboard();
+      // Also refresh rewards store to ensure points/streak are up to date
+      void fetchRewards(userId);
     };
 
     // Re-subscribe cleanly so feed updates immediately after inserts
@@ -542,7 +551,14 @@ export const EventScreen: React.FC<EventScreenProps> = ({
       realtimeService.unsubscribe(`glow_journeys_${userId}`);
       realtimeService.unsubscribe(`scheduled_scans_${userId}`);
     };
-  }, [userId, loadDashboard]);
+  }, [userId, loadDashboard, fetchRewards]);
+  
+  // Fetch rewards when userId is available to initialize the store
+  useEffect(() => {
+    if (userId) {
+      void fetchRewards(userId);
+    }
+  }, [userId, fetchRewards]);
 
   const handleScheduleScan = useCallback(async (date: Date, time: string) => {
     try {
@@ -739,7 +755,7 @@ export const EventScreen: React.FC<EventScreenProps> = ({
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="text-xs opacity-75">Streak</span>
           </div>
-          <div className="text-xl sm:text-2xl font-bold">{journeyStats?.streakDays ?? 0}🔥</div>
+          <div className="text-xl sm:text-2xl font-bold">{rewards?.current_streak ?? journeyStats?.streakDays ?? 0}🔥</div>
           <div className="text-xs opacity-75">Days</div>
         </div>
 
@@ -748,7 +764,7 @@ export const EventScreen: React.FC<EventScreenProps> = ({
             <Star className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="text-xs opacity-75">Points</span>
           </div>
-          <div className="text-xl sm:text-2xl font-bold">{journeyStats?.glowPoints ?? 0}</div>
+          <div className="text-xl sm:text-2xl font-bold">{rewards?.glow_points ?? journeyStats?.glowPoints ?? 0}</div>
           <div className="text-xs opacity-75">Glow</div>
         </div>
       </div>
