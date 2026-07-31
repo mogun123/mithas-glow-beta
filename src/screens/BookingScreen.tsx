@@ -103,7 +103,7 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
 
       <main className="flex-grow overflow-y-auto pb-32 px-5" style={{ 
         WebkitOverflowScrolling: "touch", 
-        paddingTop: "20px",
+        paddingTop: "80px",
         display: "flex",
         flexDirection: "column",
         gap: "24px"
