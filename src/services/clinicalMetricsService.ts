@@ -5,6 +5,8 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { RewardsService } from './rewardsService';
+import { useRewardsStore } from '../store/useRewardsStore';
 
 // Clinical Analysis Types
 export interface ClinicalAnalysis {
@@ -280,6 +282,16 @@ export class ClinicalMetricsService {
     // Supabase/PostgREST success for insert+select is typically 201 (or 200)
     if (typeof status === 'number' && status !== 200 && status !== 201) {
       throw new Error(`Failed to save analysis: unexpected status ${status}`);
+    }
+
+    // Process rewards after successful save
+    try {
+      await RewardsService.processSuccessfulScan(analysis.user_id);
+      // Refresh the rewards store to reflect changes
+      useRewardsStore.getState().refreshRewards(analysis.user_id);
+    } catch (rewardError) {
+      // Log but don't throw - the scan itself was successful
+      console.error('Error processing rewards after scan:', rewardError);
     }
 
     return data as ClinicalAnalysis;
