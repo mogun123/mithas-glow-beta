@@ -990,7 +990,7 @@ const coverStyle = {
             </div>
         )}
 
-        <header className={`flex justify-between items-center mb-4 sticky top-0 bg-gray-900 z-20 p-3 border-b border-gray-800 lg:hidden -mx-4 sm:mx-0 ${!isOnline ? 'mt-8' : ''}`}>
+        <header className={`flex justify-between items-center mb-4 sticky top-0 bg-gray-900 z-20 p-3 border-b border-gray-800 lg:hidden -mx-4 sm:mx-0 ${!isOnline ? 'mt-8' : ''}`} style={{ paddingTop: "12px", paddingBottom: "12px" }}>
             <div className="flex items-center space-x-3">
               <button 
                 onClick={onNavigateHome} 

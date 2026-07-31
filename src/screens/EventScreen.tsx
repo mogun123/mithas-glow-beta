@@ -1215,7 +1215,7 @@ export const EventScreen: React.FC<EventScreenProps> = ({
       </div>
 
       {/* Content - Proper Scroll */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ paddingTop: "80px" }}>
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'journey' && renderJourney()}
         {activeTab === 'scans' && renderScans()}

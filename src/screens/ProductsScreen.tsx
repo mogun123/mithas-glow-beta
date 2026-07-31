@@ -45,7 +45,7 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
         <Header onNavigateToProfile={onNavigateToProfile} />
       </div>
 
-      <main className="flex-grow overflow-y-auto pb-32 px-5" style={{ WebkitOverflowScrolling: "touch", paddingTop: "24px" }}>
+      <main className="flex-grow overflow-y-auto pb-32 px-5" style={{ WebkitOverflowScrolling: "touch", paddingTop: "80px" }}>
         <div className="fade-in-up mb-8">
           <h1 className="text-3xl font-extrabold mb-2" style={{ 
             background: "linear-gradient(135deg,#a855f7,#ec4899)", 
