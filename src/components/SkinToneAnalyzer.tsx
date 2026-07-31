@@ -3197,6 +3197,30 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
           }
         }));
       }, 100); // Slightly longer delay to ensure navigation completes
+      
+      // 🔥 CRITICAL FIX: Show visible alert for rewards update on mobile
+      // This helps debug when console is not accessible
+      if (navigationReport.savedToDatabase && user?.id) {
+        setTimeout(async () => {
+          try {
+            const { data: rewardsData } = await supabase
+              .from('profiles')
+              .select('glow_points, current_streak, best_streak')
+              .eq('id', user.id)
+              .single();
+            
+            if (rewardsData) {
+              // Show success alert with current points and streak
+              window.alert(`✅ Points Updated Successfully!\n\nGlow Points: ${rewardsData.glow_points}\nCurrent Streak: ${rewardsData.current_streak} days\nBest Streak: ${rewardsData.best_streak} days`);
+            } else {
+              window.alert('⚠️ Warning: Could not fetch updated rewards data');
+            }
+          } catch (alertError: any) {
+            // Show error alert if rewards fetch fails
+            window.alert(`❌ Error: ${alertError.message || 'Failed to update rewards'}`);
+          }
+        }, 500);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save analysis';
       console.error('❌ Error saving analysis:', error);
