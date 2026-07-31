@@ -1,12 +1,12 @@
 "use client"
 
-import { usePathname, useRouter } from 'next/navigation';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, ShoppingBag, Calendar, Sparkles } from 'lucide-react';
 import { cn } from "@/components/ui/utils";
 
 export function BottomNav() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
@@ -24,7 +24,7 @@ export function BottomNav() {
     if (navigator.vibrate) {
       navigator.vibrate(50);
     }
-    router.push(href);
+    navigate(href);
   };
 
   return (
@@ -41,7 +41,7 @@ export function BottomNav() {
     >
       <nav className="flex justify-around items-end pb-1 pt-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+          const isActive = location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href));
           const isCenter = item.isCenter;
 
           if (isCenter) {
