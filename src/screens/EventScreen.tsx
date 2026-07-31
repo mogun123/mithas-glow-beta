@@ -42,7 +42,7 @@ const normalizeSupabaseAnalysis = (row: any): any => {
   const darkCircle = requireMetric('darkCircle');
   const elasticity = requireMetric('elasticity');
   const glassSkin = requireMetric('glassSkin');
-  const brightness = row.lab_values?.overall?.l ? 100 - row.metrics.pigment : requireMetric('moisture');
+  const brightness = requireMetric('brightness');
 
   const overallSkinHealthScore = Math.round(
     (moisture + elasticity + glassSkin + (100 - acne) + (100 - redness)) / 5
@@ -95,7 +95,7 @@ const normalizeSupabaseAnalysis = (row: any): any => {
       pigment,
       darkCircle,
       acne,
-      brightness: 100 - pigment,
+      brightness,
     },
     labValues: row.lab_values,
     frameData: row.frame_data,
@@ -127,7 +127,7 @@ const getReportMetricCards = (report: any) => {
     { label: 'Glass Skin', value: report.clinicalMetrics?.glassSkin },
     { label: 'Acne', value: report.acne?.score ?? report.clinicalMetrics?.acne },
     { label: 'Redness', value: report.redness?.score ?? report.clinicalMetrics?.redness },
-    { label: 'Oiliness', value: report.oiliness?.score ?? report.clinicalMetrics?.oiliness },
+    { label: 'Oiliness', value: report.clinicalMetrics?.oiliness },
     { label: 'Pigment', value: report.pigment?.score ?? report.clinicalMetrics?.pigment },
     { label: 'Pores', value: report.pores?.score ?? report.clinicalMetrics?.pores },
     { label: 'Dark Circle', value: report.darkCircle?.score ?? report.clinicalMetrics?.darkCircle },

@@ -25,6 +25,7 @@ export interface ClinicalAnalysis {
     darkCircle: number;
     elasticity: number;
     glassSkin: number;
+    brightness: number;
   };
   spatial_data: {
     acneClusters: Array<{x: number, y: number, intensity: number}>;
@@ -234,6 +235,7 @@ export function buildValidatedClinicalPayload(
       darkCircle: darkCircleScore,
       elasticity: requireFiniteNumber(clinicalMetrics.elasticity, 'clinicalMetrics.elasticity'),
       glassSkin: requireFiniteNumber(clinicalMetrics.glassSkin, 'clinicalMetrics.glassSkin'),
+      brightness: requireFiniteNumber(clinicalMetrics.brightness, 'clinicalMetrics.brightness'),
     },
     spatial_data: {
       acneClusters: asSpotArray(report.acne?.spots),
