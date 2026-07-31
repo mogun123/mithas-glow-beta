@@ -2452,7 +2452,7 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
         skinType: skinType,
         oilinessIndex: Math.floor(normalizedMetrics.oiliness),
         rednessIndex: Math.round(Math.abs(averagedLAB.a) * 2),
-        pigmentation: { unevennessIndex: Math.floor(normalizedMetrics.pigment) },
+        pigmentation: { unevennessIndex: Math.round(normalizedMetrics.pigment) },
         overallSkinHealthScore: overallHealth,
         isNormalized: true,
 
@@ -2469,8 +2469,8 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
         },
         pigment: {
           level: normalizedMetrics.pigment > 50 ? "High" : "Normal",
-          score: Math.floor(normalizedMetrics.pigment),
-          intensity: Math.floor(normalizedMetrics.pigment),
+          score: Math.round(normalizedMetrics.pigment),
+          intensity: Math.round(normalizedMetrics.pigment),
           spots: pigmentSpotsAllAngles  // 🎯 Use angle-tagged spots
         },
         oiliness: {
@@ -2480,7 +2480,7 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
         },
         darkCircle: {
           level: darkCircleLevel,
-          score: Math.floor(normalizedMetrics.darkCircle),
+          score: Math.round(normalizedMetrics.darkCircle),
           spots: darkCircleSpotsAllAngles  // 🎯 Use angle-tagged spots
         },
         texture: {
@@ -2490,7 +2490,7 @@ if (avgL < 15) throw new Error("LOW_LIGHT_ENVIRONMENT: Please improve lighting")
         },
         pores: {
           level: normalizedMetrics.pores > 50 ? "Enlarged" : "Normal",
-          score: Math.floor(normalizedMetrics.pores),
+          score: Math.round(normalizedMetrics.pores),
           spots: textureSpotsAllAngles  // 🎯 Use angle-tagged spots (same as texture)
         },
 
