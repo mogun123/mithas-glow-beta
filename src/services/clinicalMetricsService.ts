@@ -260,6 +260,8 @@ export class ClinicalMetricsService {
    * Returns the inserted row. Throws on any failure — never swallows errors.
    */
   static async saveAnalysis(analysis: Omit<ClinicalAnalysis, 'id' | 'created_at' | 'updated_at'>) {
+    console.log('[ClinicalMetricsService] Starting saveAnalysis for user:', analysis.user_id);
+    
     const { data, error, status } = await supabase
       .from('clinical_analyses')
       .insert([{
@@ -271,7 +273,7 @@ export class ClinicalMetricsService {
       .single();
 
     if (error) {
-      console.error('Error saving clinical analysis:', error);
+      console.error('[ClinicalMetricsService] Error saving clinical analysis:', error);
       throw new Error(`Failed to save analysis: ${error.message}`);
     }
 
@@ -284,14 +286,21 @@ export class ClinicalMetricsService {
       throw new Error(`Failed to save analysis: unexpected status ${status}`);
     }
 
+    console.log('[ClinicalMetricsService] Analysis saved successfully, now processing rewards...');
+
     // Process rewards after successful save
     try {
-      await RewardsService.processSuccessfulScan(analysis.user_id);
+      console.log('[ClinicalMetricsService] Calling RewardsService.processSuccessfulScan for user:', analysis.user_id);
+      const rewardsResult = await RewardsService.processSuccessfulScan(analysis.user_id);
+      console.log('[ClinicalMetricsService] Rewards updated successfully:', rewardsResult);
+      
       // Refresh the rewards store to reflect changes
-      useRewardsStore.getState().refreshRewards(analysis.user_id);
+      console.log('[ClinicalMetricsService] Refreshing rewards store...');
+      await useRewardsStore.getState().refreshRewards(analysis.user_id);
+      console.log('[ClinicalMetricsService] Rewards store refreshed. Current state:', useRewardsStore.getState().rewards);
     } catch (rewardError) {
       // Log but don't throw - the scan itself was successful
-      console.error('Error processing rewards after scan:', rewardError);
+      console.error('[ClinicalMetricsService] Error processing rewards after scan:', rewardError);
     }
 
     return data as ClinicalAnalysis;
