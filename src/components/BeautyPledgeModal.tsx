@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
-import { cn } from '../../lib/utils';
+import { cn } from '../../lib/utils/index';
 
 interface BeautyPledgeModalProps {
   isOpen: boolean;
