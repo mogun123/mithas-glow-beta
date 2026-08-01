@@ -371,16 +371,16 @@ export function HomeScreen({
   };
 
   const derivedHealthScore = () => {
-    if (scanReport?.overallSkinHealthScore)
+    // Single source of truth: use ONLY the saved overallSkinHealthScore from database
+    // No recalculation, no fallback formulas, no hardcoded defaults
+    if (scanReport?.overallSkinHealthScore !== undefined && scanReport?.overallSkinHealthScore !== null) {
       return Math.round(scanReport.overallSkinHealthScore);
-    if (latestAnalysis?.metrics) {
-      const m = latestAnalysis.metrics;
-      const mois = typeof m.moisture === "number" ? m.moisture : 0;
-      const acne = typeof m.acne === "number" ? 100 - m.acne : 80;
-      const red = typeof m.redness === "number" ? 100 - m.redness : 80;
-      const elast = typeof m.elasticity === "number" ? m.elasticity : 75;
-      const glass = typeof m.glassSkin === "number" ? m.glassSkin : 70;
-      return Math.round((mois + acne + red + elast + glass) / 5);
+    }
+    if (latestAnalysis?.overall_skin_health_score !== undefined && latestAnalysis?.overall_skin_health_score !== null) {
+      return Math.round(latestAnalysis.overall_skin_health_score);
+    }
+    if (latestAnalysis?.overallSkinHealthScore !== undefined && latestAnalysis?.overallSkinHealthScore !== null) {
+      return Math.round(latestAnalysis.overallSkinHealthScore);
     }
     return null;
   };
@@ -499,18 +499,11 @@ export function HomeScreen({
   const recentActivities: ActivityItem[] = useMemo(() => {
     const items: ActivityItem[] = [];
 
+    // Map ONLY actual database scan history - no fake placeholders
     analysisHistory.slice(0, 3).forEach((row, i) => {
-      const m = row.metrics;
-      const score = m
-        ? Math.round(
-            ((m.moisture || 0) +
-              (100 - (m.acne || 0)) +
-              (100 - (m.redness || 0)) +
-              (m.elasticity || 0) +
-              (m.glassSkin || 0)) /
-              5
-          )
-        : null;
+      // Use the saved overallSkinHealthScore from database - no recalculation
+      const score = row.overall_skin_health_score ?? row.overallSkinHealthScore ?? null;
+      
       items.push({
         id: `scan-${row.id || i}`,
         icon: "📸",
@@ -545,33 +538,9 @@ export function HomeScreen({
       });
     }
 
-    while (items.length < 5) {
-      if (!aiAnalysisComplete) {
-        items.push({
-          id: `cta-${items.length}`,
-          icon: "🤖",
-          title: "AI Skin Scan",
-          subtitle: "30-second clinical analysis",
-          time: "Ready",
-          color: "linear-gradient(135deg,#a855f7,#6366f1)",
-        });
-      } else {
-        items.push({
-          id: `suggest-${items.length}`,
-          icon: "💡",
-          title: "Daily Tip",
-          subtitle:
-            items.length % 2 === 0
-              ? "Sunscreen keeps pigmentation away"
-              : "Hydrate before sleep for best results",
-          time: "Today",
-          color: "linear-gradient(135deg,#10b981,#059669)",
-        });
-      }
-    }
-
-    return items.slice(0, 5);
-  }, [analysisHistory, glowJourney, journeyStats, aiAnalysisComplete]);
+    // Return ONLY actual activities - no padding with fake items
+    return items;
+  }, [analysisHistory, glowJourney, journeyStats]);
 
   // ── Early return guard MUST come AFTER ALL hooks ──
   if (!authReady) {
