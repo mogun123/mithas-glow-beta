@@ -275,8 +275,56 @@ export function HomeScreen({
             .limit(5);
 
           if (history && history.length > 0) {
-            setAnalysisHistory(history);
-            setLatestAnalysis(history[0]);
+            // Normalize the history data to match EventScreen format for consistency
+            const normalizedHistory = history.map((row) => {
+              // Check if row already has clinicalMetrics (normalized) or needs normalization
+              if (row.clinicalMetrics || row.skinType) {
+                return row;
+              }
+              
+              const metrics = row.metrics;
+              if (!metrics || typeof metrics !== 'object') {
+                return row;
+              }
+              
+              const moisture = typeof metrics.moisture === 'number' ? metrics.moisture : 0;
+              const texture = typeof metrics.texture === 'number' ? metrics.texture : 0;
+              const acne = typeof metrics.acne === 'number' ? metrics.acne : 0;
+              const redness = typeof metrics.redness === 'number' ? metrics.redness : 0;
+              const oiliness = typeof metrics.oiliness === 'number' ? metrics.oiliness : 0;
+              const pigment = typeof metrics.pigment === 'number' ? metrics.pigment : 0;
+              const pores = typeof metrics.pores === 'number' ? metrics.pores : 0;
+              const darkCircle = typeof metrics.darkCircle === 'number' ? metrics.darkCircle : 0;
+              const elasticity = typeof metrics.elasticity === 'number' ? metrics.elasticity : 0;
+              const glassSkin = typeof metrics.glassSkin === 'number' ? metrics.glassSkin : 0;
+              const brightness = typeof metrics.brightness === 'number' ? metrics.brightness : 0;
+              
+              const overallSkinHealthScore = Math.round(
+                (moisture + elasticity + glassSkin + (100 - acne) + (100 - redness)) / 5
+              );
+              
+              return {
+                ...row,
+                overallSkinHealthScore,
+                clinicalMetrics: {
+                  moisture,
+                  texture,
+                  elasticity,
+                  pores,
+                  glassSkin,
+                  oiliness,
+                  redness,
+                  pigment,
+                  darkCircle,
+                  acne,
+                  brightness,
+                },
+                skinType: row.skin_type,
+              };
+            });
+            
+            setAnalysisHistory(normalizedHistory);
+            setLatestAnalysis(normalizedHistory[0]);
           }
         }
       } catch (e) {
