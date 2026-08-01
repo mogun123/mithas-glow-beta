@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "../lib/supabase";
 import { useRewardsStore } from "../store/useRewardsStore";
+import { useVerifiedArtists } from "../../hooks/use-booking";
 
 const GLOBAL_CSS = `
 :root {
@@ -135,37 +136,10 @@ type ArtistPreview = {
   distance?: string;
   price: string;
   tag: "⭐ Top Rated" | "📍 Nearby" | "🔥 Trending";
-  avatar: string;
+  avatar?: string;
+  avatar_url?: string;
+  shop_name?: string;
 };
-
-const ARTIST_PREVIEWS: ArtistPreview[] = [
-  {
-    id: "a1",
-    name: "Priya Sharma",
-    rating: 4.9,
-    distance: "1.2 km",
-    price: "₹2,500+",
-    tag: "⭐ Top Rated",
-    avatar: "👰",
-  },
-  {
-    id: "a2",
-    name: "Ananya Patel",
-    rating: 4.8,
-    distance: "2.4 km",
-    price: "₹1,800+",
-    tag: "📍 Nearby",
-    avatar: "💄",
-  },
-  {
-    id: "a3",
-    name: "Riya Kapoor",
-    rating: 4.7,
-    price: "₹3,200+",
-    tag: "🔥 Trending",
-    avatar: "✨",
-  },
-];
 
 const getTimeGreeting = () => {
   const h = new Date().getHours();
@@ -184,6 +158,9 @@ export function HomeScreen({
 }: HomeScreenProps) {
   // Subscribe to rewards store for real-time streak and points from database
   const { rewards, fetchRewards } = useRewardsStore();
+  
+  // Fetch verified makeup artists from Supabase
+  const { artists: verifiedArtists, loading: artistsLoading } = useVerifiedArtists({ limit: 3 });
   
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   const [showSkinToneAnalyzer, setShowSkinToneAnalyzer] = useState(false);
@@ -1102,88 +1079,115 @@ export function HomeScreen({
                   msOverflowStyle: "none",
                 }}
               >
-                {ARTIST_PREVIEWS.map((artist) => (
-                  <div
-                    key={artist.id}
-                    className="artist-card dashboard-card nav-tap-btn"
-                    onClick={() => onNavigateToBooking?.()}
-                    style={{ cursor: "pointer", flexShrink: 0 }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: "#ec4899",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      {artist.tag}
-                    </div>
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: "14px",
-                        background:
-                          "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(168,85,247,0.14))",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 22,
-                        marginBottom: "10px",
-                      }}
-                    >
-                      {artist.avatar}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: "#111827",
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {artist.name}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        marginTop: "4px",
-                        fontSize: 11,
-                        color: "#6b7280",
-                      }}
-                    >
-                      <Star
-                        className="w-3 h-3 fill-current"
-                        style={{ color: "#f59e0b" }}
-                      />
-                      <span style={{ fontWeight: 700, color: "#374151" }}>
-                        {artist.rating}
-                      </span>
-                      {artist.distance && (
-                        <>
-                          <span style={{ color: "#d1d5db" }}>·</span>
-                          <MapPin className="w-3 h-3" />
-                          {artist.distance}
-                        </>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "#a855f7",
-                        marginTop: "6px",
-                        paddingTop: "6px",
-                        borderTop: "1px solid rgba(168,85,247,0.08)",
-                      }}
-                    >
-                      From {artist.price}
-                    </div>
+                {artistsLoading ? (
+                  <div style={{ padding: "20px", textAlign: "center", color: "#6b7280" }}>
+                    Loading artists...
                   </div>
-                ))}
+                ) : verifiedArtists && verifiedArtists.length > 0 ? (
+                  verifiedArtists.map((artist, index) => {
+                    // Assign tags based on sort order
+                    const tag = index === 0 ? "⭐ Top Rated" : index === 1 ? "📍 Nearby" : "🔥 Trending";
+                    const displayName = artist.shop_name || artist.full_name || artist.username || "Artist";
+                    const displayPrice = artist.starting_price ? `₹${artist.starting_price}+` : "Price on request";
+                    const displayDistance = artist.distance_km ? `${artist.distance_km.toFixed(1)} km` : undefined;
+                    
+                    return (
+                      <div
+                        key={artist.id}
+                        className="artist-card dashboard-card nav-tap-btn"
+                        onClick={() => onNavigateToBooking?.()}
+                        style={{ cursor: "pointer", flexShrink: 0 }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: "#ec4899",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          {tag}
+                        </div>
+                        <div
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: "14px",
+                            background:
+                              "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(168,85,247,0.14))",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 22,
+                            marginBottom: "10px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {artist.avatar_url ? (
+                            <img
+                              src={artist.avatar_url}
+                              alt={displayName}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          ) : (
+                            "💄"
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: "#111827",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {displayName}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            marginTop: "4px",
+                            fontSize: 11,
+                            color: "#6b7280",
+                          }}
+                        >
+                          <Star
+                            className="w-3 h-3 fill-current"
+                            style={{ color: "#f59e0b" }}
+                          />
+                          <span style={{ fontWeight: 700, color: "#374151" }}>
+                            {artist.average_rating?.toFixed(1) || "N/A"}
+                          </span>
+                          {displayDistance && (
+                            <>
+                              <span style={{ color: "#d1d5db" }}>·</span>
+                              <MapPin className="w-3 h-3" />
+                              {displayDistance}
+                            </>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#a855f7",
+                            marginTop: "6px",
+                            paddingTop: "6px",
+                            borderTop: "1px solid rgba(168,85,247,0.08)",
+                          }}
+                        >
+                          From {displayPrice}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ padding: "20px", textAlign: "center", color: "#6b7280" }}>
+                    No verified artists available yet
+                  </div>
+                )}
               </div>
             </section>
 
