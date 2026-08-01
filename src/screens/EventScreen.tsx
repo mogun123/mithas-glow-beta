@@ -48,8 +48,17 @@ const normalizeSupabaseAnalysis = (row: any): any => {
   const brightness = requireMetric('brightness');
 
   // Use the overallSkinHealthScore already calculated and saved in the database row
-  // This ensures consistency with the live scan report calculation
-  const overallSkinHealthScore = row.overall_skin_health_score ?? row.overallSkinHealthScore;
+  // This ensures consistency with the live scan report calculation from clinicalMetricsEngine
+  // Priority: 1) explicit column, 2) top-level field, 3) inside metrics JSONB (where saveLiveReport puts it)
+  const overallSkinHealthScore = 
+    typeof row.overall_skin_health_score === 'number'
+      ? row.overall_skin_health_score
+      : typeof row.overallSkinHealthScore === 'number'
+        ? row.overallSkinHealthScore
+        : typeof metrics.overallSkinHealthScore === 'number'
+          ? metrics.overallSkinHealthScore
+          : null;
+  
   if (typeof overallSkinHealthScore !== 'number') {
     throw new Error('DATA_INTEGRITY_ERROR: clinical_analyses row missing overall_skin_health_score');
   }

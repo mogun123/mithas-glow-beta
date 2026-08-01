@@ -299,9 +299,15 @@ export function HomeScreen({
               const glassSkin = typeof metrics.glassSkin === 'number' ? metrics.glassSkin : 0;
               const brightness = typeof metrics.brightness === 'number' ? metrics.brightness : 0;
               
-              const overallSkinHealthScore = Math.round(
-                (moisture + elasticity + glassSkin + (100 - acne) + (100 - redness)) / 5
-              );
+              // Use the saved overallSkinHealthScore from the database row (single source of truth)
+              // This ensures consistency with the live scan report calculation from clinicalMetricsEngine
+              const overallSkinHealthScore = typeof row.overall_skin_health_score === 'number'
+                ? row.overall_skin_health_score
+                : typeof row.overallSkinHealthScore === 'number'
+                  ? row.overallSkinHealthScore
+                  : typeof metrics.overallSkinHealthScore === 'number'
+                    ? metrics.overallSkinHealthScore
+                    : null;
               
               return {
                 ...row,

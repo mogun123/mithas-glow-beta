@@ -226,6 +226,7 @@ export function buildValidatedClinicalPayload(
     skin_tone: resolveSkinLabel(report.skinTone, 'skinTone'),
     undertone: resolveSkinLabel(report.undertone, 'undertone'),
     skin_type: resolveSkinLabel(report.skinType, 'skinType'),
+    overall_skin_health_score: report.overallSkinHealthScore,
     metrics: {
       acne: acneScore,
       redness: rednessScore,
@@ -238,6 +239,7 @@ export function buildValidatedClinicalPayload(
       elasticity: requireFiniteNumber(clinicalMetrics.elasticity, 'clinicalMetrics.elasticity'),
       glassSkin: requireFiniteNumber(clinicalMetrics.glassSkin, 'clinicalMetrics.glassSkin'),
       brightness: requireFiniteNumber(clinicalMetrics.brightness, 'clinicalMetrics.brightness'),
+      overallSkinHealthScore: report.overallSkinHealthScore,
     },
     spatial_data: {
       acneClusters: asSpotArray(report.acne?.spots),
