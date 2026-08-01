@@ -231,6 +231,9 @@ export function HomeScreen({
             setAiAnalysisComplete(!!(p.skin_tone || p.skin_analysis_at));
           }
 
+          // Fetch rewards from profiles table to ensure streak and points are populated in global store
+          await fetchRewards(user.id);
+
           const { data: journeyData } = await supabase.rpc(
             "get_active_glow_journey",
             { p_user_id: user.id }
@@ -1349,7 +1352,7 @@ export function HomeScreen({
                         lineHeight: 1,
                       }}
                     >
-                      {journeyStats?.streakDays || (aiAnalysisComplete ? 1 : 0)}
+                      {rewards?.current_streak ?? journeyStats?.streakDays ?? 0}
                     </div>
                     <div
                       style={{
@@ -1388,8 +1391,7 @@ export function HomeScreen({
                         lineHeight: 1,
                       }}
                     >
-                      {journeyStats?.glowPoints ||
-                        (aiAnalysisComplete ? 50 : 0)}
+                      {rewards?.glow_points ?? journeyStats?.glowPoints ?? 0}
                     </div>
                     <div
                       style={{

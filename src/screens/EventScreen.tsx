@@ -853,11 +853,11 @@ export const EventScreen: React.FC<EventScreenProps> = ({
             <div className="text-xs opacity-75">Total Scans</div>
           </div>
           <div className="text-center">
-            <div className="text-lg sm:text-2xl font-bold">{journeyStats?.streakDays ?? 0}🔥</div>
+            <div className="text-lg sm:text-2xl font-bold">{rewards?.current_streak ?? journeyStats?.streakDays ?? 0}🔥</div>
             <div className="text-xs opacity-75">Current Streak</div>
           </div>
           <div className="text-center">
-            <div className="text-lg sm:text-2xl font-bold">{journeyStats?.glowPoints ?? 0}</div>
+            <div className="text-lg sm:text-2xl font-bold">{rewards?.glow_points ?? journeyStats?.glowPoints ?? 0}</div>
             <div className="text-xs opacity-75">Glow Points</div>
           </div>
         </div>
@@ -1114,7 +1114,7 @@ export const EventScreen: React.FC<EventScreenProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl p-4 text-white text-center">
           <div className="text-3xl mb-2">🔥</div>
-          <div className="font-bold">{journeyStats?.streakDays ?? 0} Days</div>
+          <div className="font-bold">{rewards?.current_streak ?? journeyStats?.streakDays ?? 0} Days</div>
           <div className="text-xs opacity-75">Current Streak</div>
         </div>
         
@@ -1126,7 +1126,7 @@ export const EventScreen: React.FC<EventScreenProps> = ({
 
         <div className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl p-4 text-white text-center">
           <div className="text-3xl mb-2">⭐</div>
-          <div className="font-bold">{journeyStats?.glowPoints ?? 0}</div>
+          <div className="font-bold">{rewards?.glow_points ?? journeyStats?.glowPoints ?? 0}</div>
           <div className="text-xs opacity-75">Glow Points</div>
         </div>
 
