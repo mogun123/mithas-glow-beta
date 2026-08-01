@@ -806,9 +806,12 @@ CREATE TABLE public.clinical_analyses (
   undertone TEXT NOT NULL,
   skin_type TEXT NOT NULL,
   
+  -- Overall Skin Health Score (single source of truth from clinicalMetricsEngine)
+  overall_skin_health_score INTEGER NOT NULL,
+  
   -- Clinical Metrics (0-100 scale)
   metrics JSONB NOT NULL DEFAULT '{}',
-  -- Structure: { acne: 0-100, redness: 0-100, oiliness: 0-100, moisture: 0-100, texture: 0-100, pores: 0-100, pigment: 0-100, darkCircle: 0-100, elasticity: 0-100, glassSkin: 0-100 }
+  -- Structure: { acne: 0-100, redness: 0-100, oiliness: 0-100, moisture: 0-100, texture: 0-100, pores: 0-100, pigment: 0-100, darkCircle: 0-100, elasticity: 0-100, glassSkin: 0-100, overallSkinHealthScore: 0-100 }
   
   -- Spatial Data (coordinates for spot visualization)
   spatial_data JSONB NOT NULL DEFAULT '{}',
@@ -883,6 +886,7 @@ CREATE TABLE public.user_skin_profiles (
 CREATE INDEX idx_clinical_analyses_user_id ON public.clinical_analyses(user_id);
 CREATE INDEX idx_clinical_analyses_session_id ON public.clinical_analyses(session_id);
 CREATE INDEX idx_clinical_analyses_created_at ON public.clinical_analyses(created_at DESC);
+CREATE INDEX idx_clinical_analyses_health_score ON public.clinical_analyses(overall_skin_health_score DESC);
 
 -- Clinical Metrics History Indexes
 CREATE INDEX idx_clinical_metrics_history_user_id ON public.clinical_metrics_history(user_id);
