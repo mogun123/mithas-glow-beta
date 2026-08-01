@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../lib/supabase";
+import { useRewardsStore } from "../store/useRewardsStore";
 
 const GLOBAL_CSS = `
 :root {
@@ -181,6 +182,9 @@ export function HomeScreen({
   onNavigateToCoach,
   onNavigateToBooking,
 }: HomeScreenProps) {
+  // Subscribe to rewards store for real-time streak and points from database
+  const { rewards, fetchRewards } = useRewardsStore();
+  
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   const [showSkinToneAnalyzer, setShowSkinToneAnalyzer] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);

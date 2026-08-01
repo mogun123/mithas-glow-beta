@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Database } from './database.types';
+import { supabase } from './supabase';
 
 // Type aliases for cleaner code
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -30,12 +31,13 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
   logout: () => void;
   setProfileCompleted: (value: boolean) => void;
+  fetchProfile: (userId: string) => Promise<void>;
 }
                                        
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       session: null,
       isAuthenticated: false,
@@ -44,6 +46,35 @@ export const useAuthStore = create<AuthState>()(
       profile: null as any,
 
       setProfile: (profile: any) => set({ profile }),
+
+      // Fetch profile with glow_points and current_streak from database
+      fetchProfile: async (userId: string) => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*, glow_points, current_streak, best_streak')
+            .eq('id', userId)
+            .single();
+
+          if (error) throw error;
+          
+          if (data) {
+            set({ 
+              user: data,
+              profile: data,
+              isAuthenticated: !!data,
+            });
+            
+            // Update last login
+            await supabase
+              .from('profiles')
+              .update({ last_login_at: new Date().toISOString() })
+              .eq('id', userId);
+          }
+        } catch (err: any) {
+          console.error('Error fetching profile:', err.message || JSON.stringify(err));
+        }
+      },
 
       setUser: (user) =>
         set({

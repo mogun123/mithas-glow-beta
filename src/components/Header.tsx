@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Gem, User, Settings, LogOut, Bell, BarChart3 } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
+import { useRewardsStore } from '../store/useRewardsStore';
 
 interface HeaderProps {
   onNavigateToProfile?: () => void;
@@ -13,9 +14,23 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const profile = useAuthStore((state) => state.profile);
   const user = useAuthStore((state) => state.user);
-
+  
+  // Subscribe to rewards store for real-time streak and points
+  const { rewards, fetchRewards } = useRewardsStore();
+  
+  // Get user ID for fetching rewards
+  const userId = user?.id || profile?.id;
+  
+  // Fetch rewards when user is available
+  useEffect(() => {
+    if (userId) {
+      fetchRewards(userId);
+    }
+  }, [userId]);
+  
   // Strictly use real glow_points from database - NO mock/fallback values
-  const glowCoins = profile?.glow_points ?? user?.glow_points ?? 0;
+  // Priority: 1) rewards store (from profiles table), 2) profile.glow_points, 3) 0
+  const glowCoins = rewards?.glow_points ?? profile?.glow_points ?? user?.glow_points ?? 0;
   const hasUnreadNotifications = true;
 
   const authLogout = useAuthStore((state) => state.logout);
