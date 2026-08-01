@@ -28,16 +28,16 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<'rating' | 'price' | 'trending'>('rating');
-  
+
   // Fetch all verified artists or filtered by category
-  const { artists: allArtists, loading: artistsLoading } = useVerifiedArtists({ 
+  const { artists: allArtists, loading: artistsLoading } = useVerifiedArtists({
     sortBy,
-    category: selectedCategory 
+    category: selectedCategory
   });
-  
+
   // Search functionality
   const { artists: searchResults, loading: searchLoading } = useSearchArtists(searchTerm);
-  
+
   // Use search results if searching, otherwise use filtered artists
   const displayArtists = searchTerm.trim() ? searchResults : allArtists;
   const isLoading = searchTerm.trim() ? searchLoading : artistsLoading;
@@ -91,8 +91,8 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
         <Header onNavigateToProfile={onNavigateToProfile} />
       </div>
 
-      <main className="flex-grow overflow-y-auto pb-32 px-5" style={{ 
-        WebkitOverflowScrolling: "touch", 
+      <main className="flex-grow overflow-y-auto pb-32 px-5" style={{
+        WebkitOverflowScrolling: "touch",
         paddingTop: "80px",
         display: "flex",
         flexDirection: "column",
@@ -100,9 +100,9 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
       }}>
         {/* Header Title */}
         <div className="fade-in-booking">
-          <h1 className="text-3xl font-extrabold mb-1" style={{ 
-            background: "linear-gradient(135deg,#ec4899,#a855f7)", 
-            WebkitBackgroundClip: "text", 
+          <h1 className="text-3xl font-extrabold mb-1" style={{
+            background: "linear-gradient(135deg,#ec4899,#a855f7)",
+            WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             lineHeight: 1.1
           }}>
@@ -132,9 +132,9 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
                 cursor: "pointer"
               }}
             >
-              <div style={{ 
-                width: "56px", 
-                height: "56px", 
+              <div style={{
+                width: "56px",
+                height: "56px",
                 borderRadius: "18px",
                 background: section.color,
                 display: "flex",
@@ -217,8 +217,8 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
                   padding: "8px 14px",
                   borderRadius: "10px",
                   border: "none",
-                  background: sortBy === sort 
-                    ? "linear-gradient(135deg,#ec4899,#a855f7)" 
+                  background: sortBy === sort
+                    ? "linear-gradient(135deg,#ec4899,#a855f7)"
                     : "rgba(255,255,255,0.8)",
                   color: sortBy === sort ? "#fff" : "#6b7280",
                   fontSize: "12px",
@@ -274,9 +274,9 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
                       cursor: "pointer"
                     }}
                   >
-                    <div style={{ 
-                      width: "52px", 
-                      height: "52px", 
+                    <div style={{
+                      width: "52px",
+                      height: "52px",
                       borderRadius: "18px",
                       background: "linear-gradient(135deg, rgba(236,72,153,0.1), rgba(168,85,247,0.12))",
                       border: "1px solid rgba(168,85,247,0.15)",
@@ -327,9 +327,9 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
-                      <span style={{ 
-                        fontSize: "13px", 
-                        fontWeight: 800, 
+                      <span style={{
+                        fontSize: "13px",
+                        fontWeight: 800,
                         color: "#1f2937",
                         letterSpacing: "-0.01em"
                       }}>
@@ -362,8 +362,8 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
               </div>
             )}
           </div>
-</div>
- main
+        </div>
+      </main>
 
       <div className="glass-nav sticky bottom-0" style={{ zIndex: 30 }}>
         <BottomNav
