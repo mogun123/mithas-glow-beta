@@ -181,7 +181,7 @@ export function UserProfileMenu({
         setUserProfile(globalUser);
         setWalletBalance(globalUser.wallet_balance || 0);
         
-        // Calculate Glow DNA based on activity
+        // Calculate Glow DNA based on activity - STRICTLY use real database values only
         const dna = Math.min(100, Math.round(
           ((globalUser.glow_points || 0) / 100) * 0.4 +
           (globalUser.orders_count || 0) * 5 +
@@ -189,7 +189,7 @@ export function UserProfileMenu({
         ));
         setGlowDNA(dna);
         
-        // Determine rank based on glow points
+        // Determine rank based on glow points - STRICTLY use real database values
         const points = globalUser.glow_points || 0;
         if (points > 5000) setNeuralRank('Quantum');
         else if (points > 2000) setNeuralRank('Gold');
@@ -202,7 +202,7 @@ export function UserProfileMenu({
         setUserProfile(authStoreProfile);
         setWalletBalance(authStoreProfile.wallet_balance || 0);
         
-        // Calculate Glow DNA based on activity
+        // Calculate Glow DNA based on activity - STRICTLY use real database values only
         const dna = Math.min(100, Math.round(
           ((authStoreProfile.glow_points || 0) / 100) * 0.4 +
           (authStoreProfile.orders_count || 0) * 5 +
@@ -210,42 +210,16 @@ export function UserProfileMenu({
         ));
         setGlowDNA(dna);
         
-        // Determine rank based on glow points
+        // Determine rank based on glow points - STRICTLY use real database values
         const points = authStoreProfile.glow_points || 0;
         if (points > 5000) setNeuralRank('Quantum');
         else if (points > 2000) setNeuralRank('Gold');
         else setNeuralRank('Silver');
       }
       
+      // NO MOCK DATA FALLBACK - If no real data exists, show loading state or empty state
       if (!isSupabaseReady) {
-        // Demo data (only if auth store didn't have profile)
-        if (!authStoreProfile || authStoreProfile.id !== userId) {
-          setUserProfile({
-            full_name: 'Priya Kumar',
-            email: 'priya@mithas.glow',
-            avatar_url: 'https://i.pravatar.cc/150?u=priya',
-            node_name: 'Karamadai Node',
-            created_at: new Date().toISOString()
-          });
-        }
-        setOrders([
-          { id: 1, status: 'in_transit', total: 8500, created_at: new Date().toISOString(), items_count: 2 },
-          { id: 2, status: 'delivered', total: 2499, created_at: new Date(Date.now() - 86400000).toISOString(), items_count: 1 }
-        ]);
-        setWishlistCount(5);
-        setCartCount(3);
-        setTryOnHistory([
-          { id: 1, product_name: 'Kanchipuram Silk Saree', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=200', occasion: 'Wedding', rating: 4.5 },
-          { id: 2, product_name: 'Golden Choker', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=200', occasion: 'Festive', rating: 5.0 }
-        ]);
-        setAchievements([
-          { id: 1, name: 'Early Adopter', icon: '🚀', earned: true },
-          { id: 2, name: 'Style Pioneer', icon: '✨', earned: true },
-          { id: 3, name: 'Quantum Shopper', icon: '⚡', earned: false }
-        ]);
-        setWalletBalance(2500);
-        setGlowDNA(87);
-        setNeuralRank('Gold');
+        // Do NOT set any demo/mock data
         setIsLoading(false);
         return;
       }
