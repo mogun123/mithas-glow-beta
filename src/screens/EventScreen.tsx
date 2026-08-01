@@ -12,7 +12,9 @@ import { useRewardsStore } from '@/store/useRewardsStore';
 /** Normalize DB row → UI report shape. No filler defaults for missing live metrics. */
 const normalizeSupabaseAnalysis = (row: any): any => {
   if (!row) return null;
-  if (row.clinicalMetrics || row.skinType) {
+  
+  // Check if already normalized (has clinicalMetrics or skinType as object)
+  if (row.clinicalMetrics || (row.skinType && typeof row.skinType === 'object')) {
     return {
       ...row,
       savedAnalysisId: row.savedAnalysisId ?? row.id,
@@ -20,7 +22,7 @@ const normalizeSupabaseAnalysis = (row: any): any => {
     };
   }
 
-  const metrics = row.metrics;
+  const metrics = row.metrics || row.clinical_metrics;
   if (!metrics || typeof metrics !== 'object') {
     throw new Error('DATA_INTEGRITY_ERROR: clinical_analyses row missing metrics');
   }
@@ -337,13 +339,13 @@ export const EventScreen: React.FC<EventScreenProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const scanHistory = [
-    scanReport,
+    ...(scanReport ? [scanReport] : []),
     ...previousReports.filter(
       (report) =>
         report?.savedAnalysisId !== scanReport?.savedAnalysisId &&
         report?.id !== scanReport?.id
     ),
-  ].filter(Boolean);
+  ];
 
   const rebuildEvents = useCallback((
     analyses: any[],
@@ -362,13 +364,6 @@ export const EventScreen: React.FC<EventScreenProps> = ({
   const loadDashboard = useCallback(async (preferredReport?: any) => {
     setIsLoading(true);
     setLoadError(null);
-
-    // Clear existing state before fetching to prevent ghost data
-    setPreviousReports([]);
-    setScanReport(null);
-    setGlowJourney(null);
-    setJourneyStats(null);
-    setEvents([]);
 
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -398,9 +393,11 @@ export const EventScreen: React.FC<EventScreenProps> = ({
           return [];
         }
       });
-      setPreviousReports(normalizedHistory);
       
       console.log('📊 Scan history loaded:', normalizedHistory.length, 'analyses');
+      
+      // Always update previousReports with the full history from DB
+      setPreviousReports(normalizedHistory);
 
       let nextScanReport: any = null;
       if (preferredReport?.savedToDatabase && preferredReport?.id) {
@@ -416,9 +413,9 @@ export const EventScreen: React.FC<EventScreenProps> = ({
           nextScanReport = normalizeSupabaseAnalysis(freshRow);
           console.log('📊 Using fresh preferred scan report from DB:', nextScanReport.savedAnalysisId);
         } catch (preferredError) {
-          console.warn('Failed to load preferred scan report from DB; not using fallback to prevent ghost data', preferredError);
-          // Don't fall back to DB history to prevent ghost data
-          nextScanReport = null;
+          console.warn('Failed to load preferred scan report from DB; falling back to history', preferredError);
+          // Fall back to history if preferred report fetch fails
+          nextScanReport = normalizedHistory.length > 0 ? normalizedHistory[0] : null;
         }
       } else if (normalizedHistory.length > 0) {
         nextScanReport = normalizedHistory[0];
@@ -427,23 +424,18 @@ export const EventScreen: React.FC<EventScreenProps> = ({
 
       setScanReport(nextScanReport);
       console.log('📊 Current scan report set:', nextScanReport?.savedAnalysisId, 'Available history:', normalizedHistory.length);
-      // Do not write back to parent here — avoids navigate/load feedback loops
-
+      
+      // Load journey data
       const { data: journeyRows, error: journeyError } = await supabase
         .rpc('get_active_glow_journey', { p_user_id: user.id });
-
-      if (journeyError && !String(journeyError.message || '').includes('no rows')) {
-        throw journeyError;
-      }
 
       let nextJourney: any = null;
       let nextStats: any = null;
 
-      if (journeyRows && journeyRows.length > 0) {
+      if (journeyRows && journeyRows.length > 0 && !String(journeyError?.message || '').includes('no rows')) {
         const j = journeyRows[0];
         nextJourney = j;
-        setGlowJourney(j);
-
+        
         const today = new Date();
         const startDate = new Date(j.start_date);
         const diffDays = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -453,21 +445,20 @@ export const EventScreen: React.FC<EventScreenProps> = ({
           .select('id')
           .eq('journey_id', j.id);
 
-        if (faceError) throw faceError;
-
-        nextStats = {
-          currentDay: diffDays + 1,
-          totalScans: analyses?.length ?? 0,
-          streakDays: typeof j.streak_days === 'number' ? j.streak_days : 0,
-          glowPoints: typeof j.glow_points === 'number' ? j.glow_points : 0,
-          xpEarned: typeof j.xp_earned === 'number' ? j.xp_earned : 0,
-        };
-        setJourneyStats(nextStats);
-      } else {
-        setGlowJourney(null);
-        setJourneyStats(null);
+        if (!faceError) {
+          nextStats = {
+            currentDay: diffDays + 1,
+            totalScans: analyses?.length ?? 0,
+            streakDays: typeof j.streak_days === 'number' ? j.streak_days : 0,
+            glowPoints: typeof j.glow_points === 'number' ? j.glow_points : 0,
+            xpEarned: typeof j.xp_earned === 'number' ? j.xp_earned : 0,
+          };
+        }
       }
-
+      
+      setGlowJourney(nextJourney);
+      setJourneyStats(nextStats);
+      
       const schedules = await ScheduledScansService.listUpcoming(user.id);
       setScheduledScans(schedules);
 
