@@ -11,11 +11,11 @@ interface HeaderProps {
 export function Header({ onNavigateToProfile }: HeaderProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const profile = useAuthStore((state) => (state as any).profile) || {}; 
+  const profile = useAuthStore((state) => state.profile);
+  const user = useAuthStore((state) => state.user);
 
-
-
-  const glowCoins = 450;
+  // Strictly use real glow_points from database - NO mock/fallback values
+  const glowCoins = profile?.glow_points ?? user?.glow_points ?? 0;
   const hasUnreadNotifications = true;
 
   const authLogout = useAuthStore((state) => state.logout);

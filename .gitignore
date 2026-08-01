@@ -1,18 +1,48 @@
-```
-# Database migrations
-supabase/migrations/*.sql
-
+```gitignore
 # Dependencies
 node_modules/
-.yarn/
-npm-debug.log*
-pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+target/
 
 # Environment variables
 .env
 .env.local
-.env.*
-!.env.example
+*.env.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+*.tmp
+
+# Compiled and binary files
+*.class
+*.o
+*.so
+*.a
+*.dll
+*.exe
+*.out
+*.swp
+*.swo
 
 # IDE specific
 .vscode/
@@ -20,21 +50,18 @@ pnpm-debug.log*
 *.swp
 *.swo
 
-# Build outputs
-dist/
-build/
-coverage/
-.nyc_output/
-.eslintcache
-
-# Logs
-*.log
-!README.md
-
-# OS generated files
+# OS specific
 .DS_Store
 Thumbs.db
 
-# Runtime data
-.pnp.cjs
+# Testing
+coverage/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Distribution / packaging
+*.tar.gz
+*.whl
+*.egg-info/
 ```

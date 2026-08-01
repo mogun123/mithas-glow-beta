@@ -10,6 +10,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { RewardsData, GlowLevel, LevelProgress, RewardRedemption } from '@/types/rewards.types';
+import { useAuthStore } from '@/lib/store';
 
 // Glow level definitions
 export const GLOW_LEVELS: GlowLevel[] = [
@@ -160,6 +161,19 @@ export class RewardsService {
     }
 
     console.log('[RewardsService] Rewards updated successfully:', data);
+    
+    // CRITICAL: Force refresh global auth store to sync Header and UI immediately
+    const currentProfile = useAuthStore.getState().profile;
+    if (currentProfile) {
+      useAuthStore.getState().setUser({
+        ...currentProfile,
+        glow_points: newGlowPoints,
+        current_streak: newCurrentStreak,
+        best_streak: newBestStreak,
+        last_scan_date: today.toISOString().split('T')[0]
+      });
+    }
+    
     return data as RewardsData;
   }
 
