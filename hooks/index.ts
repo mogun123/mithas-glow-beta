@@ -26,15 +26,13 @@ export { useSkinAnalysis, useVirtualTryOn, useStyleRecommendations, useAIChat, u
 
 // Booking
 export {
-  useSalons,
-  useNearbySalons,
-  useSalon,
-  useSalonServices,
+  useVerifiedArtists,
+  useArtistProfile,
   useAvailableSlots,
-  useBookingSlots,
-  useMyBookings,
   useCreateBooking,
+  useMyBookings,
   useCancelBooking,
+  useSearchArtists,
 } from "./use-booking"
 
 // Wallet

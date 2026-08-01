@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
 import { BottomNav } from "../components/BottomNav";
-import { Star, MapPin, Clock, ChevronRight } from "lucide-react";
+import { Star, MapPin, Clock, ChevronRight, BadgeCheck } from "lucide-react";
+import { useVerifiedArtists, useSearchArtists } from "../../hooks/use-booking";
 
 type BookingScreenProps = {
   onNavigateToMirror: () => void;
@@ -24,6 +25,22 @@ const BOOKING_CSS = `
 
 export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavigateHome }: BookingScreenProps) {
   const [styleId, setStyleId] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<'rating' | 'price' | 'trending'>('rating');
+  
+  // Fetch all verified artists or filtered by category
+  const { artists: allArtists, loading: artistsLoading } = useVerifiedArtists({ 
+    sortBy,
+    category: selectedCategory 
+  });
+  
+  // Search functionality
+  const { artists: searchResults, loading: searchLoading } = useSearchArtists(searchTerm);
+  
+  // Use search results if searching, otherwise use filtered artists
+  const displayArtists = searchTerm.trim() ? searchResults : allArtists;
+  const isLoading = searchTerm.trim() ? searchLoading : artistsLoading;
 
   useEffect(() => {
     const id = "booking-screen-css";
@@ -47,6 +64,7 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
       desc: "Wedding & special events",
       color: "linear-gradient(135deg,#ec4899,#f472b6)",
       tag: "Most Popular",
+      category: "bridal",
     },
     {
       icon: "🎉",
@@ -54,6 +72,7 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
       desc: "Cocktails & celebrations",
       color: "linear-gradient(135deg,#a855f7,#c084fc)",
       tag: "Trending",
+      category: "party",
     },
     {
       icon: "🏠",
@@ -61,36 +80,7 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
       desc: "At your doorstep",
       color: "linear-gradient(135deg,#22d3ee,#06b6d4)",
       tag: "Premium",
-    },
-  ];
-
-  const nearbyArtists = [
-    {
-      name: "Priya Sharma",
-      rating: 4.9,
-      distance: "1.2 km",
-      experience: "8+ yrs",
-      specialty: "Bridal Makeup",
-      avatar: "💄",
-      price: "₹2,500+",
-    },
-    {
-      name: "Ananya Patel",
-      rating: 4.8,
-      distance: "2.4 km",
-      experience: "6+ yrs",
-      specialty: "HD Makeup",
-      avatar: "✨",
-      price: "₹1,800+",
-    },
-    {
-      name: "Riya Kapoor",
-      rating: 4.7,
-      distance: "3.8 km",
-      experience: "10+ yrs",
-      specialty: "Celebrity Style",
-      avatar: "🌟",
-      price: "₹3,200+",
+      category: "home_service",
     },
   ];
 
@@ -198,126 +188,181 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
           ))}
         </div>
 
+        {/* Search and Filter Bar */}
+        <div className="fade-in-booking-d2" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {/* Search Input */}
+          <input
+            type="text"
+            placeholder="Search artists by name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              padding: "12px 16px",
+              borderRadius: "14px",
+              border: "1px solid rgba(148,163,184,0.2)",
+              background: "rgba(255,255,255,0.9)",
+              fontSize: "14px",
+              fontWeight: 500,
+              outline: "none",
+            }}
+          />
+          
+          {/* Sort Buttons */}
+          <div style={{ display: "flex", gap: "8px", overflowX: "auto" }}>
+            {(['rating', 'price', 'trending'] as const).map((sort) => (
+              <button
+                key={sort}
+                onClick={() => setSortBy(sort)}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: sortBy === sort 
+                    ? "linear-gradient(135deg,#ec4899,#a855f7)" 
+                    : "rgba(255,255,255,0.8)",
+                  color: sortBy === sort ? "#fff" : "#6b7280",
+                  fontSize: "12px",
+                  fontWeight: sortBy === sort ? 700 : 500,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {sort === 'rating' ? '⭐ Top Rated' : sort === 'price' ? '💰 Lowest Price' : '🔥 Trending'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Nearby Artists */}
         <div className="fade-in-booking-d4">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
             <div>
               <h2 className="text-lg font-extrabold mb-0.5" style={{ color: "#1f2937", margin: 0 }}>
-                Nearby Artists
+                {searchTerm.trim() ? 'Search Results' : 'All Artists'}
               </h2>
               <p className="text-xs" style={{ color: "#9ca3af", margin: 0 }}>
-                Top-rated professionals near you
+                {isLoading ? 'Loading...' : `${displayArtists?.length || 0} verified professionals`}
               </p>
             </div>
-            <button style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "2px",
-              background: "transparent",
-              border: "none",
-              color: "#a855f7",
-              fontSize: "12px",
-              fontWeight: 700,
-              cursor: "pointer"
-            }}>
-              See all <ChevronRight className="w-4 h-4" />
-            </button>
           </div>
 
           <div className="flex flex-col gap-3">
-            {nearbyArtists.map((artist, idx) => (
-              <div
-                key={artist.name}
-                className={`nav-tap-btn fade-in-booking-d${idx + 3}`}
-                style={{
-                  padding: "16px",
-                  background: "rgba(255,255,255,0.88)",
-                  backdropFilter: "blur(20px)",
-                  borderRadius: "20px",
-                  border: "1px solid rgba(148,163,184,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "14px",
-                  boxShadow: "0 4px 16px rgba(15,23,42,0.04)",
-                  cursor: "pointer"
-                }}
-              >
-                <div style={{ 
-                  width: "52px", 
-                  height: "52px", 
-                  borderRadius: "18px",
-                  background: "linear-gradient(135deg, rgba(236,72,153,0.1), rgba(168,85,247,0.12))",
-                  border: "1px solid rgba(168,85,247,0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "26px",
-                  flexShrink: 0
-                }}>
-                  {artist.avatar}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
-                    <h4 className="text-sm font-bold" style={{ color: "#1f2937", margin: 0 }}>
-                      {artist.name}
-                    </h4>
-                    <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                      <Star className="w-3.5 h-3.5" fill="#facc15" color="#facc15" />
-                      <span style={{ fontSize: "12px", fontWeight: 700, color: "#92400e" }}>
-                        {artist.rating}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs font-semibold mb-1" style={{ color: "#a855f7", margin: 0 }}>
-                    {artist.specialty} · {artist.experience}
-                  </p>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                      <MapPin className="w-3 h-3" style={{ color: "#6b7280" }} />
-                      <span style={{ fontSize: "11px", color: "#6b7280" }}>
-                        {artist.distance}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                      <Clock className="w-3 h-3" style={{ color: "#6b7280" }} />
-                      <span style={{ fontSize: "11px", color: "#6b7280" }}>
-                        Available today
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
-                  <span style={{ 
-                    fontSize: "13px", 
-                    fontWeight: 800, 
-                    color: "#1f2937",
-                    letterSpacing: "-0.01em"
-                  }}>
-                    {artist.price}
-                  </span>
-                  <button
-                    className="nav-tap-btn"
+            {isLoading ? (
+              <div style={{ padding: "40px", textAlign: "center", color: "#6b7280" }}>
+                Loading artists...
+              </div>
+            ) : displayArtists && displayArtists.length > 0 ? (
+              displayArtists.map((artist, idx) => {
+                const displayName = artist.shop_name || artist.full_name || artist.username || "Artist";
+                const displayPrice = artist.starting_price ? `₹${artist.starting_price}+` : "Price on request";
+                const displayDistance = artist.distance_km ? `${artist.distance_km.toFixed(1)} km` : "Distance N/A";
+                
+                return (
+                  <div
+                    key={artist.id}
+                    className={`nav-tap-btn fade-in-booking-d${idx + 3}`}
                     style={{
-                      padding: "7px 13px",
-                      borderRadius: "10px",
-                      background: "linear-gradient(135deg,#ec4899,#a855f7)",
-                      color: "#fff",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      whiteSpace: "nowrap",
-                      boxShadow: "0 2px 10px rgba(236,72,153,0.3)"
+                      padding: "16px",
+                      background: "rgba(255,255,255,0.88)",
+                      backdropFilter: "blur(20px)",
+                      borderRadius: "20px",
+                      border: "1px solid rgba(148,163,184,0.1)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "14px",
+                      boxShadow: "0 4px 16px rgba(15,23,42,0.04)",
+                      cursor: "pointer"
                     }}
                   >
-                    Book Now
-                  </button>
-                </div>
+                    <div style={{ 
+                      width: "52px", 
+                      height: "52px", 
+                      borderRadius: "18px",
+                      background: "linear-gradient(135deg, rgba(236,72,153,0.1), rgba(168,85,247,0.12))",
+                      border: "1px solid rgba(168,85,247,0.15)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "26px",
+                      flexShrink: 0,
+                      overflow: "hidden"
+                    }}>
+                      {artist.avatar_url ? (
+                        <img src={artist.avatar_url} alt={displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        "💄"
+                      )}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
+                        <h4 className="text-sm font-bold" style={{ color: "#1f2937", margin: 0 }}>
+                          {displayName}
+                        </h4>
+                        <BadgeCheck className="w-4 h-4" style={{ color: "#22d3ee" }} />
+                        <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                          <Star className="w-3.5 h-3.5" fill="#facc15" color="#facc15" />
+                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#92400e" }}>
+                            {artist.average_rating?.toFixed(1) || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs font-semibold mb-1" style={{ color: "#a855f7", margin: 0 }}>
+                        {artist.experience || "Professional"} · {artist.industry || "Makeup Artist"}
+                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                          <MapPin className="w-3 h-3" style={{ color: "#6b7280" }} />
+                          <span style={{ fontSize: "11px", color: "#6b7280" }}>
+                            {displayDistance}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                          <Clock className="w-3 h-3" style={{ color: "#6b7280" }} />
+                          <span style={{ fontSize: "11px", color: "#6b7280" }}>
+                            Available
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+                      <span style={{ 
+                        fontSize: "13px", 
+                        fontWeight: 800, 
+                        color: "#1f2937",
+                        letterSpacing: "-0.01em"
+                      }}>
+                        {displayPrice}
+                      </span>
+                      <button
+                        className="nav-tap-btn"
+                        style={{
+                          padding: "7px 13px",
+                          borderRadius: "10px",
+                          background: "linear-gradient(135deg,#ec4899,#a855f7)",
+                          color: "#fff",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                          boxShadow: "0 2px 10px rgba(236,72,153,0.3)"
+                        }}
+                      >
+                        Book Now
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: "40px", textAlign: "center", color: "#6b7280" }}>
+                {searchTerm.trim() ? 'No artists found matching your search' : 'No verified artists available yet'}
               </div>
-            ))}
+            )}
           </div>
+        </div>
         </div>
       </main>
 
