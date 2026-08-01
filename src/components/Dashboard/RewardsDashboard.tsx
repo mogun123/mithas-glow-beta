@@ -81,7 +81,7 @@ const RewardsDashboard: React.FC = () => {
             <div className="mr-4 text-3xl">🔥</div>
             <div>
               <p className="text-sm opacity-80">Current Streak</p>
-              <p className="text-3xl font-bold">{rewards?.current_streak || 0} Days</p>
+              <p className="text-3xl font-bold">{rewards?.current_streak ?? 0} Days</p>
             </div>
           </div>
         </motion.div>
@@ -97,7 +97,7 @@ const RewardsDashboard: React.FC = () => {
             <div className="mr-4 text-3xl">🏆</div>
             <div>
               <p className="text-sm opacity-80">Best Streak</p>
-              <p className="text-3xl font-bold">{rewards?.best_streak || 0} Days</p>
+              <p className="text-3xl font-bold">{rewards?.best_streak ?? 0} Days</p>
             </div>
           </div>
         </motion.div>
@@ -113,7 +113,7 @@ const RewardsDashboard: React.FC = () => {
             <div className="mr-4 text-3xl">⭐</div>
             <div>
               <p className="text-sm opacity-80">Glow Points</p>
-              <p className="text-3xl font-bold">{rewards?.glow_points || 0} Points</p>
+              <p className="text-3xl font-bold">{rewards?.glow_points ?? 0} Points</p>
             </div>
           </div>
         </motion.div>
@@ -170,8 +170,8 @@ const RewardsDashboard: React.FC = () => {
           <div className="flex justify-between text-sm text-gray-600 mb-1">
             <span>{levelProgress?.currentLevel.name}</span>
             <span>
-              {rewards?.glow_points || 0} / {levelProgress?.pointsToNextLevel !== undefined ? 
-                (rewards?.glow_points || 0) + (levelProgress.pointsToNextLevel || 0) : 
+              {rewards?.glow_points ?? 0} / {levelProgress?.pointsToNextLevel !== undefined ? 
+                (rewards?.glow_points ?? 0) + (levelProgress.pointsToNextLevel ?? 0) : 
                 '∞'} Points
             </span>
           </div>
@@ -181,7 +181,7 @@ const RewardsDashboard: React.FC = () => {
             <motion.div 
               className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"
               initial={{ width: 0 }}
-              animate={{ width: `${levelProgress?.progressPercentage || 0}%` }}
+              animate={{ width: `${levelProgress?.progressPercentage ?? 0}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </div>

@@ -48,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) =>
         set({
           user,
+          profile: user, // Sync profile with user for immediate UI updates
           isAuthenticated: !!user,
         }),
 
@@ -55,6 +56,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           session,
           user: session?.user ?? null,
+          profile: session?.user ?? null, // Sync profile with session
           isAuthenticated: !!session?.user,
         }),
 
@@ -67,6 +69,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () =>
         set({
           user: null,
+          profile: null,
           session: null,
           isAuthenticated: false,
           profileCompleted: false,
