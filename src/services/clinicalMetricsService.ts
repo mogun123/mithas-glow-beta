@@ -268,11 +268,7 @@ export class ClinicalMetricsService {
     
     const { data, error, status } = await supabase
       .from('clinical_analyses')
-      .insert([{
-        ...analysis,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
+      .insert([analysis])
       .select()
       .single();
 
@@ -377,10 +373,7 @@ export class ClinicalMetricsService {
   static async updateAnalysis(analysisId: string, updates: Partial<ClinicalAnalysis>) {
     const { data, error } = await supabase
       .from('clinical_analyses')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
+      .update(updates)
       .eq('id', analysisId)
       .select()
       .single();
