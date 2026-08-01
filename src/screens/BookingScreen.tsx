@@ -363,7 +363,6 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
             )}
           </div>
         </div>
-        </div>
       </main>
 
       <div className="glass-nav sticky bottom-0" style={{ zIndex: 30 }}>
