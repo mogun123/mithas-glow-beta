@@ -16,6 +16,7 @@ export interface ClinicalAnalysis {
   skin_tone: string;
   undertone: string;
   skin_type: string;
+  overall_skin_health_score: number;
   metrics: {
     acne: number;
     redness: number;
@@ -28,6 +29,7 @@ export interface ClinicalAnalysis {
     elasticity: number;
     glassSkin: number;
     brightness: number;
+    overallSkinHealthScore: number;
   };
   spatial_data: {
     acneClusters: Array<{x: number, y: number, intensity: number}>;
