@@ -20,10 +20,12 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   profileCompleted: boolean;
+  profile: Profile | null;
 
   
   // Actions
   setUser: (user: Profile | null) => void;
+  setProfile: (profile: Profile | null) => void;
   setSession: (session: any | null) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
