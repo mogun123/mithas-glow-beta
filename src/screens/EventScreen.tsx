@@ -483,16 +483,15 @@ export const EventScreen: React.FC<EventScreenProps> = ({
   }, [rebuildEvents]);
 
   useEffect(() => {
+    // Always load dashboard when component mounts or when latestScanReport changes significantly
     void loadDashboard(latestScanReport);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when parent passes a newly saved report
-  }, [latestScanReport?.savedAnalysisId, latestScanReport?.id]);
+  }, [latestScanReport?.savedAnalysisId, latestScanReport?.id, loadDashboard]);
 
-  // Also load dashboard on mount to ensure scan history is always available
+  // Load dashboard on mount to ensure scan history is always available from database
   useEffect(() => {
-    if (!latestScanReport) {
-      void loadDashboard();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load on mount when no latest report
+    void loadDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load on mount
   }, []);
 
   // Explicit refresh after Done & Apply (and any external trigger)
