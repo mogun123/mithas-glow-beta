@@ -186,11 +186,13 @@ export const useAuthStore = create<AuthState>()(
 
 
 
+    // Fetch profile with glow_points and current_streak for proper hydration
+
     const { data: profile } = await supabase
 
       .from("profiles")
 
-      .select("*")
+      .select("*, glow_points, current_streak, best_streak")
 
       .eq("id", session.user.id)
 
@@ -264,9 +266,9 @@ export const useAuthStore = create<AuthState>()(
 
             if (data.session && data.user) {
 
-              // Fetch profile
+              // Fetch profile with glow_points and current_streak for proper hydration
 
-              const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single()
+              const { data: profile } = await supabase.from("profiles").select("*, glow_points, current_streak, best_streak").eq("id", data.user.id).single()
 
 
 
