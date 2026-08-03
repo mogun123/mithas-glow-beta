@@ -31,11 +31,10 @@ import { EventScreen } from "./screens/EventScreen";
 import { ProductsScreen } from "./screens/ProductsScreen";
 import { CoachScreen } from "./screens/CoachScreen";
 import { BookingScreen } from "./screens/BookingScreen";
+import ProfessionalDashboard from "./components/ProfessionalDashboard";
 
 // Lazy load heavy components for better performance
-
-import { MirrorScreen } from "./screens/MirrorScreen";
-import ProfessionalDashboard from "./components/ProfessionalDashboard";
+const MirrorScreen = React.lazy(() => import("./screens/MirrorScreen"));
 
 type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "professional";
 
