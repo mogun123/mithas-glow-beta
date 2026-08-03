@@ -150,7 +150,7 @@ const { data: { session } } = await supabase.auth.getSession();
 
 if (session) {
 
-const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed, account_type, industry').eq('id', session.user.id).single();
+const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed, role, industry').eq('id', session.user.id).single();
 
 if (!profileError) {
   authStore.setProfileCompleted(!!profile?.profile_completed);
@@ -165,8 +165,8 @@ const savedView = localStorage.getItem("currentView") as View;
 
 const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "professional"];
 
-// Check if professional makeup artist - should go to professional view
-const isProfessionalMakeupArtist = profile?.account_type === 'professional' && profile?.industry === 'makeup_artist';
+// CRITICAL SCHEMA FIX: Check role instead of account_type
+const isProfessionalMakeupArtist = profile?.role === 'professional' && profile?.industry === 'makeup_artist';
 
 if (isProfessionalMakeupArtist && profile?.profile_completed) {
   // Professional makeup artists should be redirected to professional view
@@ -286,10 +286,10 @@ if (view) {
   return;
 }
 
-// Fallback: Fetch the complete profile to check account_type and industry
+// Fallback: Fetch the complete profile to check role and industry (CRITICAL SCHEMA FIX)
 const { data: profile, error: profileError } = await supabase
   .from('profiles')
-  .select('account_type, industry, profile_completed')
+  .select('role, industry, profile_completed')
   .eq('id', currentUser.id)
   .single();
 
@@ -299,8 +299,8 @@ if (profileError) {
 
 authStore.setProfileCompleted(true);
 
-// Route based on account type and industry
-if (profile?.account_type === 'professional' && profile?.industry === 'makeup_artist') {
+// Route based on role and industry
+if (profile?.role === 'professional' && profile?.industry === 'makeup_artist') {
   // Professional makeup artist - route to professional dashboard view
   navigate("professional");
 } else {
@@ -324,14 +324,14 @@ const handleLogin = async (userData: any) => {
 
 authStore.setSession(userData.session);
 
-const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed, account_type, industry').eq('id', userData.user.id).single();
+const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed, role, industry').eq('id', userData.user.id).single();
 
 if (!profileError && profile?.profile_completed) {
 
 authStore.setProfileCompleted(true);
 
-// Route based on account type and industry for existing users
-if (profile?.account_type === 'professional' && profile?.industry === 'makeup_artist') {
+// CRITICAL SCHEMA FIX: Route based on role and industry for existing users
+if (profile?.role === 'professional' && profile?.industry === 'makeup_artist') {
   navigate("professional");
 } else {
   setCurrentView("home");

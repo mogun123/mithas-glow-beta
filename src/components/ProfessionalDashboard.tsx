@@ -96,7 +96,7 @@ export default function ProfessionalDashboard({
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .eq('account_type', 'professional')
+          .eq('role', 'professional')  // CRITICAL SCHEMA FIX
           .eq('industry', 'makeup_artist')
           .single();
 

@@ -111,7 +111,7 @@ export const useGlobalStore = create<GlobalState>()(
           const { data: { user: authUser } } = await supabase.auth.getUser();
           if (!authUser) throw new Error('No authenticated user');
 
-          // Prepare profile data with account_type and industry for professionals
+          // Prepare profile data with role and industry for professionals
           const profileUpdate: any = {
             id: authUser.id,
             email: authUser.email,
@@ -120,12 +120,12 @@ export const useGlobalStore = create<GlobalState>()(
             updated_at: new Date().toISOString()
           };
 
-          // Set account_type and industry based on user_type
+          // Set role based on user_type (CRITICAL SCHEMA FIX)
           if (profileData.user_type === 'pro') {
-            profileUpdate.account_type = 'professional';
+            profileUpdate.role = 'professional';
             profileUpdate.industry = profileData.industry || '';
           } else {
-            profileUpdate.account_type = 'personal';
+            profileUpdate.role = 'customer';
             profileUpdate.industry = null;
           }
 
