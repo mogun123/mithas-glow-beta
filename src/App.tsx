@@ -115,12 +115,23 @@ useEffect(() => {
       navigate("events");
     };
 
+    // Handle navigation to profile setup after registration
+    const handleNavigateToProfileSetup = (event: CustomEvent) => {
+      // Store display name in localStorage for ProfileSetupView to use
+      if (event.detail?.displayName) {
+        localStorage.setItem('pendingDisplayName', event.detail.displayName);
+      }
+      navigate("profile");
+    };
+
     window.addEventListener("popstate", handlePopState);
     window.addEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
+    window.addEventListener("navigateToProfileSetup", handleNavigateToProfileSetup as EventListener);
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
+      window.removeEventListener("navigateToProfileSetup", handleNavigateToProfileSetup as EventListener);
     };
   }, []);
 
@@ -137,7 +148,7 @@ const { data: { session } } = await supabase.auth.getSession();
 
 if (session) {
 
-const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed').eq('id', session.user.id).single();
+const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed, account_type, industry').eq('id', session.user.id).single();
 
 if (!profileError) {
   authStore.setProfileCompleted(!!profile?.profile_completed);
@@ -151,6 +162,15 @@ if (!profileError) {
 const savedView = localStorage.getItem("currentView") as View;
 
 const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking"];
+
+// Check if professional makeup artist - should go to /professional
+const isProfessionalMakeupArtist = profile?.account_type === 'professional' && profile?.industry === 'makeup_artist';
+
+if (isProfessionalMakeupArtist && profile?.profile_completed) {
+  // Professional makeup artists should be redirected to /professional
+  window.location.href = '/professional';
+  return;
+}
 
 if (savedView && validViews.includes(savedView)) {
 
@@ -255,9 +275,27 @@ return;
 
 }
 
+// Fetch the complete profile to check account_type and industry
+const { data: profile, error: profileError } = await supabase
+  .from('profiles')
+  .select('account_type, industry, profile_completed')
+  .eq('id', currentUser.id)
+  .single();
+
+if (profileError) {
+  console.error('Profile fetch error:', profileError);
+}
+
 authStore.setProfileCompleted(true);
 
-navigate("home");
+// Route based on account type and industry
+if (profile?.account_type === 'professional' && profile?.industry === 'makeup_artist') {
+  // Professional makeup artist - route to professional dashboard
+  window.location.href = '/professional';
+} else {
+  // Regular user - route to home
+  navigate("home");
+}
 
 toast.success("Profile saved and synced! ✨");
 
@@ -275,13 +313,18 @@ const handleLogin = async (userData: any) => {
 
 authStore.setSession(userData.session);
 
-const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed').eq('id', userData.user.id).single();
+const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed, account_type, industry').eq('id', userData.user.id).single();
 
 if (!profileError && profile?.profile_completed) {
 
 authStore.setProfileCompleted(true);
 
-setCurrentView("home");
+// Route based on account type and industry for existing users
+if (profile?.account_type === 'professional' && profile?.industry === 'makeup_artist') {
+  window.location.href = '/professional';
+} else {
+  setCurrentView("home");
+}
 
 } else {
 

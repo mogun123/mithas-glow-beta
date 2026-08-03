@@ -96,8 +96,11 @@ export function RegisterView({ onSendOTP }: RegisterViewProps) {
 
       if (result.success) {
         toast.success('Account created! Please check your email to verify.');
-        // Note: You might want to navigate to profile setup or home
-        // The useAuth hook handles the session, so user will be logged in automatically
+        // Navigate to profile setup immediately after successful registration
+        // This ensures new users complete their profile before accessing the app
+        window.dispatchEvent(new CustomEvent('navigateToProfileSetup', {
+          detail: { displayName: formData.displayName }
+        }));
       }
     } else {
       // Phone registration - send OTP

@@ -103,7 +103,7 @@ export const useGlobalStore = create<GlobalState>()(
       },
 
       // Complete profile setup
-      completeProfileSetup: async (profileData: any) => {
+      completeProfileSetup: async (profileData: any, shopData?: any) => {
         try {
           set({ isLoading: true, error: null });
 
@@ -111,20 +111,48 @@ export const useGlobalStore = create<GlobalState>()(
           const { data: { user: authUser } } = await supabase.auth.getUser();
           if (!authUser) throw new Error('No authenticated user');
 
+          // Prepare profile data with account_type and industry for professionals
+          const profileUpdate: any = {
+            id: authUser.id,
+            email: authUser.email,
+            ...profileData,
+            profile_completed: true,
+            updated_at: new Date().toISOString()
+          };
+
+          // Set account_type and industry based on user_type
+          if (profileData.user_type === 'pro') {
+            profileUpdate.account_type = 'professional';
+            profileUpdate.industry = profileData.industry || '';
+          } else {
+            profileUpdate.account_type = 'personal';
+            profileUpdate.industry = null;
+          }
+
           // Save profile data
           const { data: savedProfile, error: profileError } = await supabase
             .from('profiles')
-            .upsert({
-              id: authUser.id,
-              email: authUser.email,
-              ...profileData,
-              profile_completed: true,
-              updated_at: new Date().toISOString()
-            })
+            .upsert(profileUpdate)
             .select()
             .single();
 
           if (profileError) throw profileError;
+
+          // If pro user with shop data, save shop details
+          if (shopData && profileData.user_type === 'pro') {
+            const { error: shopError } = await supabase
+              .from('shops')
+              .insert({
+                owner_id: authUser.id,
+                ...shopData,
+                is_active: true
+              });
+            
+            if (shopError) {
+              console.warn('Shop creation warning:', shopError);
+              // Don't throw - profile was saved successfully
+            }
+          }
 
           // Update global state
           set({

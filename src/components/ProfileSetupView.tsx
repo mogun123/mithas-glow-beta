@@ -94,6 +94,49 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
   const lang = (profile.language as 'en' | 'ta') || 'en';
   const storageKey = userEmail ? `mithub_profile_${userEmail}` : 'mithub_profile';
 
+  // Load display name from registration metadata or Supabase profile
+  useEffect(() => {
+    const loadInitialData = async () => {
+      // First, check if we have a pending display name from registration
+      const pendingDisplayName = localStorage.getItem('pendingDisplayName');
+      if (pendingDisplayName && !profile.displayName) {
+        setProfile(prev => ({ ...prev, displayName: pendingDisplayName }));
+        localStorage.removeItem('pendingDisplayName'); // Clean up after use
+      }
+
+      // Also try to fetch from Supabase if user is authenticated
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Try to get display name from user metadata first
+          if (user.user_metadata?.display_name && !profile.displayName) {
+            setProfile(prev => ({ ...prev, displayName: user.user_metadata.display_name }));
+          } else if (user.user_metadata?.full_name && !profile.displayName) {
+            setProfile(prev => ({ ...prev, displayName: user.user_metadata.full_name }));
+          }
+          
+          // Then try to fetch from profiles table
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('display_name, full_name')
+            .eq('id', user.id)
+            .single();
+          
+          if (profileData && !profile.displayName) {
+            const nameFromProfile = profileData.display_name || profileData.full_name;
+            if (nameFromProfile) {
+              setProfile(prev => ({ ...prev, displayName: nameFromProfile }));
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Could not load user profile data:', error);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
