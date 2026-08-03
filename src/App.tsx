@@ -34,9 +34,10 @@ import { BookingScreen } from "./screens/BookingScreen";
 
 // Lazy load heavy components for better performance
 
-const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
+import { MirrorScreen } from "./screens/MirrorScreen";
+import ProfessionalDashboard from "./components/ProfessionalDashboard";
 
-type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking";
+type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "professional";
 
 // Loading component
 
@@ -68,7 +69,7 @@ register: "mithas-theme", login: "mithas-theme", otp: "mithas-theme", profile: "
 
 home: "glow-home-theme", mirror: "glow-mirror-theme", userprofile: "glow-profile-theme", events: "glow-home-theme",
 
-products: "glow-home-theme", coach: "glow-home-theme", booking: "glow-home-theme",
+products: "glow-home-theme", coach: "glow-home-theme", booking: "glow-home-theme", professional: "glow-home-theme",
 
 };
 
@@ -158,14 +159,14 @@ if (!profileError) {
 
 const savedView = localStorage.getItem("currentView") as View;
 
-const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking"];
+const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "professional"];
 
-// Check if professional makeup artist - should go to /professional
+// Check if professional makeup artist - should go to professional view
 const isProfessionalMakeupArtist = profile?.account_type === 'professional' && profile?.industry === 'makeup_artist';
 
 if (isProfessionalMakeupArtist && profile?.profile_completed) {
-  // Professional makeup artists should be redirected to /professional
-  window.location.href = '/professional';
+  // Professional makeup artists should be redirected to professional view
+  navigate("professional");
   return;
 }
 
@@ -287,8 +288,8 @@ authStore.setProfileCompleted(true);
 
 // Route based on account type and industry
 if (profile?.account_type === 'professional' && profile?.industry === 'makeup_artist') {
-  // Professional makeup artist - route to professional dashboard
-  window.location.href = '/professional';
+  // Professional makeup artist - route to professional dashboard view
+  navigate("professional");
 } else {
   // Regular user - route to home
   navigate("home");
@@ -318,7 +319,7 @@ authStore.setProfileCompleted(true);
 
 // Route based on account type and industry for existing users
 if (profile?.account_type === 'professional' && profile?.industry === 'makeup_artist') {
-  window.location.href = '/professional';
+  navigate("professional");
 } else {
   setCurrentView("home");
 }
@@ -363,6 +364,10 @@ if (currentView === "coach") {
 
 if (currentView === "booking") {
   return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><BookingScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
+}
+
+if (currentView === "professional") {
+  return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfessionalDashboard onNavigateHome={() => navigate("home")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToMirror={() => navigate("mirror")} /></Suspense></ErrorBoundary></AuthGuard>;
 }
 
 if (currentView === "home") {
