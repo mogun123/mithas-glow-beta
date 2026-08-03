@@ -3,6 +3,7 @@ import { Mail, Phone, Lock, ShieldCheck, MailCheck, CircleDot, Apple, User, Eye,
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 import { useAuth } from '../lib/hooks/useAuth';
 import { toast } from 'sonner@2.0.3';
+import { supabase } from '../lib/supabase';
 
 interface RegisterViewProps {
   onSendOTP: (identifier: string, type: 'email' | 'phone') => void;
@@ -88,6 +89,7 @@ export function RegisterView({ onSendOTP }: RegisterViewProps) {
 
     if (inputType === 'email') {
       // Email registration with Supabase
+      console.log('RegisterView: Starting signup with full_name:', formData.displayName);
       const result = await signUp(formData.email, formData.password, {
         full_name: formData.displayName,
         gender: formData.gender as 'female' | 'male',
@@ -95,12 +97,18 @@ export function RegisterView({ onSendOTP }: RegisterViewProps) {
       });
 
       if (result.success) {
-        toast.success('Account created! Please check your email to verify.');
-        // Navigate to profile setup immediately after successful registration
-        // This ensures new users complete their profile before accessing the app
-        window.dispatchEvent(new CustomEvent('navigateToProfileSetup', {
-          detail: { displayName: formData.displayName }
-        }));
+        console.log('RegisterView: Signup successful, waiting for session...');
+        // Wait briefly for Supabase session to be established
+        setTimeout(async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          console.log('RegisterView: Session check after signup:', session?.user?.id ? 'Session exists' : 'No session');
+          if (session) {
+            // Dispatch navigation event to App.tsx
+            window.dispatchEvent(new CustomEvent('navigateToProfileSetup', {
+              detail: { displayName: formData.displayName }
+            }));
+          }
+        }, 500);
       }
     } else {
       // Phone registration - send OTP

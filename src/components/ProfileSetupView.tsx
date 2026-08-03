@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
 
-import { 
-  Camera, Sparkles, AtSign, MapPin, 
-  ChevronRight, Heart, Palette, Scissors, 
-  Shirt, Gem, Stethoscope, Video, 
+import {
+  Camera, Sparkles, AtSign, MapPin,
+  ChevronRight, Heart, Palette, Scissors,
+  Shirt, Gem, Stethoscope, Video,
   Store, CheckCircle2, Building2,
   Package, Clock, Link as LinkIcon, Calendar, AlertCircle, ChevronDown
 } from 'lucide-react';
@@ -27,47 +27,21 @@ interface ProfileInput {
   businessType?: string;
   experience?: string;
   operatingHours?: string;
-  // Pro user additional fields
   shop_name?: string;
   business_address?: string;
   professional_bio?: string;
   gst_number?: string;
 }
 
-interface ProfileData {
-    accountType: string;
-      industry: string;
-        profilePic: string | null;
-          displayName: string;
-            username: string;
-              bio: string;
-                gender: string;
-                  dob: string;
-                    businessName: string;
-                      portfolioLink: string;
-                        city: string;
-                          storeAddress: string;
-                            specialties: string;
-                              businessType: string;
-                                experience: string;
-                                  operatingHours: string;
-                                    glowPoints: number;
-                                      language: 'en' | 'ta';
-                                        profileCompleted: boolean;
-                                          phone?: string;   // ✅ ADD THIS
-
-                                          }
-
-
-// ProfileSetupView.tsx - Line 38
 export default function ProfileSetupView({ onComplete, userEmail }: { onComplete?: (data: any) => void, userEmail?: string }) {
   const { completeProfileSetup, setUser, setShop } = useGlobalStore();
   const safeOnComplete = onComplete ?? (() => {});
   const [step, setStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>(''); 
+  const [error, setError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const [isHydrating, setIsHydrating] = useState<boolean>(true);
+
   const [profile, setProfile] = useState<ProfileInput>({
     username: '',
     displayName: '',
@@ -92,64 +66,69 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
   });
 
   const lang = (profile.language as 'en' | 'ta') || 'en';
-  const storageKey = userEmail ? `mithub_profile_${userEmail}` : 'mithub_profile';
 
-  // Load display name from registration metadata or Supabase profile
+  // Load display name from Supabase Auth metadata or profiles table ONLY
+  // NO localStorage fallbacks - strict real-world Supabase state only
   useEffect(() => {
     const loadInitialData = async () => {
-      // First, check if we have a pending display name from registration
-      const pendingDisplayName = localStorage.getItem('pendingDisplayName');
-      if (pendingDisplayName && !profile.displayName) {
-        setProfile(prev => ({ ...prev, displayName: pendingDisplayName }));
-        localStorage.removeItem('pendingDisplayName'); // Clean up after use
-      }
+      console.log('ProfileSetupView: Starting hydration from Supabase...');
+      setIsHydrating(true);
 
-      // Also try to fetch from Supabase if user is authenticated
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Try to get display name from user metadata first
-          if (user.user_metadata?.display_name && !profile.displayName) {
-            setProfile(prev => ({ ...prev, displayName: user.user_metadata.display_name }));
-          } else if (user.user_metadata?.full_name && !profile.displayName) {
-            setProfile(prev => ({ ...prev, displayName: user.user_metadata.full_name }));
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError) {
+          console.warn('ProfileSetupView: Auth error:', authError.message);
+          setIsHydrating(false);
+          return;
+        }
+
+        if (!user) {
+          console.warn('ProfileSetupView: No authenticated user found');
+          setIsHydrating(false);
+          return;
+        }
+
+        console.log('ProfileSetupView: User authenticated, id:', user.id);
+
+        const metadataName = user.user_metadata?.display_name || user.user_metadata?.full_name;
+        if (metadataName) {
+          console.log('ProfileSetupView: Found name in user_metadata:', metadataName);
+          setProfile(prev => ({ ...prev, displayName: metadataName }));
+        }
+
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('display_name, full_name, username, bio, city, phone, dob')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          console.warn('ProfileSetupView: Profile fetch error:', profileError.message);
+        } else if (profileData) {
+          console.log('ProfileSetupView: Profile data fetched:', profileData);
+
+          const nameFromProfile = profileData.display_name || profileData.full_name;
+          if (nameFromProfile && !profile.displayName) {
+            setProfile(prev => ({ ...prev, displayName: nameFromProfile }));
           }
-          
-          // Then try to fetch from profiles table
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('display_name, full_name')
-            .eq('id', user.id)
-            .single();
-          
-          if (profileData && !profile.displayName) {
-            const nameFromProfile = profileData.display_name || profileData.full_name;
-            if (nameFromProfile) {
-              setProfile(prev => ({ ...prev, displayName: nameFromProfile }));
-            }
-          }
+
+          if (profileData.username) setProfile(prev => ({ ...prev, username: profileData.username }));
+          if (profileData.bio) setProfile(prev => ({ ...prev, bio: profileData.bio }));
+          if (profileData.city) setProfile(prev => ({ ...prev, city: profileData.city }));
+          if (profileData.phone) setProfile(prev => ({ ...prev, phone: profileData.phone }));
+          if (profileData.dob) setProfile(prev => ({ ...prev, dob: profileData.dob }));
         }
       } catch (error) {
-        console.warn('Could not load user profile data:', error);
+        console.error('ProfileSetupView: Hydration error:', error);
+      } finally {
+        setIsHydrating(false);
+        console.log('ProfileSetupView: Hydration complete');
       }
     };
 
     loadInitialData();
   }, []);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        const parsed: ProfileData = JSON.parse(saved);
-        if (parsed.profileCompleted) {
-          safeOnComplete();
-        } else {
-          setProfile(parsed);
-        }
-      } catch (e) { console.error("Parse error"); }
-    }
-  }, [safeOnComplete, storageKey]);
 
   const t = {
     en: {

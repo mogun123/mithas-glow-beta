@@ -117,10 +117,7 @@ useEffect(() => {
 
     // Handle navigation to profile setup after registration
     const handleNavigateToProfileSetup = (event: CustomEvent) => {
-      // Store display name in localStorage for ProfileSetupView to use
-      if (event.detail?.displayName) {
-        localStorage.setItem('pendingDisplayName', event.detail.displayName);
-      }
+      // No localStorage - display name will be fetched from Supabase Auth metadata/profiles table
       navigate("profile");
     };
 

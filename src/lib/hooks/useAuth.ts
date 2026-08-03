@@ -1,7 +1,7 @@
 
 
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '../../../stores/auth-store';
+import { useAuthStore } from '../store';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { toast } from 'sonner';
 import type { Database } from '../database.types';
