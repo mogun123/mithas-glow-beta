@@ -17,7 +17,7 @@ interface ProfessionalProfile {
   experience: string | null;
   city: string | null;
   avatar_url: string | null;
-  account_type: string | null;
+  role: string | null;  // CRITICAL SCHEMA FIX: Use 'role' instead of 'account_type'
   industry: string | null;
   seller_status: string | null;
   is_active: boolean;

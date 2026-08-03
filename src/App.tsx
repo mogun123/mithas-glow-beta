@@ -126,14 +126,21 @@ useEffect(() => {
       navigate("profile");
     };
 
+    // Handle navigation to home (for logout)
+    const handleNavigateToHome = () => {
+      navigate("home");
+    };
+
     window.addEventListener("popstate", handlePopState);
     window.addEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
     window.addEventListener("navigateToProfileSetup", handleNavigateToProfileSetup as EventListener);
+    window.addEventListener("navigateToHome", handleNavigateToHome as EventListener);
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
       window.removeEventListener("navigateToProfileSetup", handleNavigateToProfileSetup as EventListener);
+      window.removeEventListener("navigateToHome", handleNavigateToHome as EventListener);
     };
   }, []);
 

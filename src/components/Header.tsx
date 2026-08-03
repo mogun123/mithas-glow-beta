@@ -39,7 +39,8 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
     try {
       await supabase.auth.signOut();
       authLogout();
-      window.location.href = "/";
+      // Navigate to home using custom event instead of window.location.href
+      window.dispatchEvent(new CustomEvent('navigateToHome'));
     } catch (err) {
       console.error("Logout failed", err);
     }
