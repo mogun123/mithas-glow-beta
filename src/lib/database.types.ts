@@ -69,7 +69,7 @@ export interface Database {
 
           date_of_birth: string | null;
 
-          role: 'buyer' | 'seller' | 'admin';
+          role: 'customer' | 'professional' | 'buyer' | 'seller' | 'admin';
 
           preferred_language: string;
 
@@ -110,7 +110,7 @@ export interface Database {
           shop_type: string | null;
           gender: 'female' | 'male' | 'other' | null;
           date_of_birth: string | null;
-          role: 'buyer' | 'seller' | 'admin';
+          role: 'customer' | 'professional' | 'buyer' | 'seller' | 'admin';
           preferred_language: string;
           theme: string;
           notifications_enabled: boolean;
@@ -143,7 +143,7 @@ export interface Database {
           shop_type?: string | null;
           gender?: 'female' | 'male' | 'other' | null;
           date_of_birth?: string | null;
-          role?: 'buyer' | 'seller' | 'admin';
+          role?: 'customer' | 'professional' | 'buyer' | 'seller' | 'admin';
           preferred_language?: string;
           theme?: string;
           notifications_enabled?: boolean;
@@ -2891,7 +2891,7 @@ export interface Database {
 
     Enums: {
 
-      user_role: 'buyer' | 'seller' | 'admin';
+      user_role: 'customer' | 'professional' | 'buyer' | 'seller' | 'admin';
 
       gender_type: 'female' | 'male' | 'other';
 
