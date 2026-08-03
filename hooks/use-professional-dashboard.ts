@@ -278,4 +278,129 @@ export const useUpdateBookingStatus = () => {
  */
 export const useArtistServices = (artistId: string) => {
   const [services, setServices] = useState<ArtistService[]>([]);
-  const [loading, setLoading] = useState(tr
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchServices = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error: queryError } = await supabase
+        .from('artist_services')
+        .select('*')
+        .eq('artist_id', artistId)
+        .order('created_at', { ascending: false });
+
+      if (queryError) throw queryError;
+      setServices(data || []);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [artistId]);
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
+
+  return { services, loading, error, refetch: fetchServices };
+};
+
+/**
+ * Add a new artist service
+ */
+export const useAddArtistService = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const addService = useCallback(async (
+    artistId: string,
+    service: Omit<ArtistService, 'id' | 'created_at'>
+  ) => {
+    try {
+      setLoading(true);
+      const { data, error: insertError } = await supabase
+        .from('artist_services')
+        .insert({
+          ...service,
+          artist_id: artistId,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      return data;
+    } catch (err: any) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { addService, loading, error };
+};
+
+/**
+ * Update an existing artist service
+ */
+export const useUpdateArtistService = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateService = useCallback(async (
+    serviceId: string,
+    updates: Partial<ArtistService>
+  ) => {
+    try {
+      setLoading(true);
+      const { data, error: updateError } = await supabase
+        .from('artist_services')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', serviceId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+      return data;
+    } catch (err: any) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { updateService, loading, error };
+};
+
+/**
+ * Delete an artist service
+ */
+export const useDeleteArtistService = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deleteService = useCallback(async (serviceId: string) => {
+    try {
+      setLoading(true);
+      const { error: deleteError } = await supabase
+        .from('artist_services')
+        .delete()
+        .eq('id', serviceId);
+
+      if (deleteError) throw deleteError;
+      return true;
+    } catch (err: any) {
+      setError(err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { deleteService, loading, error };
+};
