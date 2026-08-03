@@ -2,6 +2,7 @@
  * Database Type Definitions
  * Auto-generated types for Supabase tables
  * Updated with Advanced Inventory Management System
+ * Updated with Professional Makeup Artist Dashboard
  */
 
 export type Json =
@@ -150,6 +151,370 @@ export interface Database {
           updated_at?: string;
           last_login_at?: string | null;
           is_active?: boolean;
+        };
+
+      };
+
+      bookings: {
+        Row: {
+          id: string;
+          customer_id: string;
+          artist_id: string;
+          service_id: string | null;
+          service_name: string | null;
+          total_price: number | null;
+          booking_date: string;
+          booking_time: string;
+          status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+          payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+          payment_id: string | null;
+          special_notes: string | null;
+          location_type: 'studio' | 'home' | null;
+          customer_address: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          artist_id: string;
+          service_id?: string | null;
+          service_name?: string | null;
+          total_price?: number | null;
+          booking_date: string;
+          booking_time: string;
+          status?: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
+          payment_id?: string | null;
+          special_notes?: string | null;
+          location_type?: 'studio' | 'home' | null;
+          customer_address?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          artist_id?: string;
+          service_id?: string | null;
+          service_name?: string | null;
+          total_price?: number | null;
+          booking_date?: string;
+          booking_time?: string;
+          status?: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
+          payment_id?: string | null;
+          special_notes?: string | null;
+          location_type?: 'studio' | 'home' | null;
+          customer_address?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+
+      artist_services: {
+        Row: {
+          id: string;
+          artist_id: string;
+          title: string;
+          description: string | null;
+          price: number;
+          duration_minutes: number;
+          category: 'bridal' | 'party' | 'home_service' | 'reception' | 'hd_makeup' | 'airbrush' | null;
+          is_active: boolean;
+          images: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          artist_id: string;
+          title: string;
+          description?: string | null;
+          price: number;
+          duration_minutes: number;
+          category?: 'bridal' | 'party' | 'home_service' | 'reception' | 'hd_makeup' | 'airbrush' | null;
+          is_active?: boolean;
+          images?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          artist_id?: string;
+          title?: string;
+          description?: string | null;
+          price?: number;
+          duration_minutes?: number;
+          category?: 'bridal' | 'party' | 'home_service' | 'reception' | 'hd_makeup' | 'airbrush' | null;
+          is_active?: boolean;
+          images?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+
+      artist_availability: {
+        Row: {
+          id: string;
+          artist_id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          is_working_day: boolean;
+          break_start: string | null;
+          break_end: string | null;
+          slot_duration_minutes: number;
+          max_bookings_per_day: number;
+          is_blocked: boolean;
+          block_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          artist_id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          is_working_day?: boolean;
+          break_start?: string | null;
+          break_end?: string | null;
+          slot_duration_minutes?: number;
+          max_bookings_per_day?: number;
+          is_blocked?: boolean;
+          block_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          artist_id?: string;
+          day_of_week?: number;
+          start_time?: string;
+          end_time?: string;
+          is_working_day?: boolean;
+          break_start?: string | null;
+          break_end?: string | null;
+          slot_duration_minutes?: number;
+          max_bookings_per_day?: number;
+          is_blocked?: boolean;
+          block_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+
+      artist_portfolio: {
+        Row: {
+          id: string;
+          artist_id: string;
+          title: string;
+          description: string | null;
+          image_url: string;
+          category: 'bridal' | 'party' | 'fashion' | 'celebrity' | 'editorial' | null;
+          tags: string[] | null;
+          is_featured: boolean;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          artist_id: string;
+          title: string;
+          description?: string | null;
+          image_url: string;
+          category?: 'bridal' | 'party' | 'fashion' | 'celebrity' | 'editorial' | null;
+          tags?: string[] | null;
+          is_featured?: boolean;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          artist_id?: string;
+          title?: string;
+          description?: string | null;
+          image_url?: string;
+          category?: 'bridal' | 'party' | 'fashion' | 'celebrity' | 'editorial' | null;
+          tags?: string[] | null;
+          is_featured?: boolean;
+          display_order?: number;
+          created_at?: string;
+        };
+      };
+
+      reviews: {
+        Row: {
+          id: string;
+          booking_id: string;
+          customer_id: string;
+          artist_id: string;
+          rating: number;
+          comment: string | null;
+          response: string | null;
+          response_at: string | null;
+          is_verified: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          customer_id: string;
+          artist_id: string;
+          rating: number;
+          comment?: string | null;
+          response?: string | null;
+          response_at?: string | null;
+          is_verified?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          customer_id?: string;
+          artist_id?: string;
+          rating?: number;
+          comment?: string | null;
+          response?: string | null;
+          response_at?: string | null;
+          is_verified?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+
+      artist_verification: {
+        Row: {
+          id: string;
+          artist_id: string;
+          government_id_url: string | null;
+          business_proof_url: string | null;
+          certificate_url: string | null;
+          selfie_url: string | null;
+          status: 'pending' | 'verified' | 'rejected';
+          rejection_reason: string | null;
+          verified_at: string | null;
+          verified_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          artist_id: string;
+          government_id_url?: string | null;
+          business_proof_url?: string | null;
+          certificate_url?: string | null;
+          selfie_url?: string | null;
+          status?: 'pending' | 'verified' | 'rejected';
+          rejection_reason?: string | null;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          artist_id?: string;
+          government_id_url?: string | null;
+          business_proof_url?: string | null;
+          certificate_url?: string | null;
+          selfie_url?: string | null;
+          status?: 'pending' | 'verified' | 'rejected';
+          rejection_reason?: string | null;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+
+      face_analyses: {
+
+        Row: {
+
+          id: string;
+
+          user_id: string;
+
+          image_url: string;
+
+          skin_type: string | null;
+
+          undertone: string | null;
+
+          hydration_level: string | null;
+
+          sensitivity: string | null;
+
+          acne_level: string | null;
+
+          pigmentation: string | null;
+
+          analysis_data: Json | null;
+
+          recommendations: Json | null;
+
+          created_at: string;
+
+        };
+
+        Insert: {
+
+          id?: string;
+
+          user_id: string;
+
+          image_url: string;
+
+          skin_type?: string | null;
+
+          undertone?: string | null;
+
+          hydration_level?: string | null;
+
+          sensitivity?: string | null;
+
+          acne_level?: string | null;
+
+          pigmentation?: string | null;
+
+          analysis_data?: Json | null;
+
+          recommendations?: Json | null;
+
+          created_at?: string;
+
+        };
+
+        Update: {
+
+          id?: string;
+
+          user_id?: string;
+
+          image_url?: string;
+
+          skin_type?: string | null;
+
+          undertone?: string | null;
+
+          hydration_level?: string | null;
+
+          sensitivity?: string | null;
+
+          acne_level?: string | null;
+
+          pigmentation?: string | null;
+
+          analysis_data?: Json | null;
+
+          recommendations?: Json | null;
+
+          created_at?: string;
+
         };
 
       };
