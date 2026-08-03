@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Mithas Glow AR</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico" />
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <script src="TemplateData/UnityProgress.js"></script>
+    <script src="TemplateData/unityloader.js"></script>
+    <script>
+      var unityInstance = null;
+      var gameInstance = null;
+
+      // 🎯 Unity WebGL Bridge for React Communication
+      window.addEventListener('load', function() {
+        // Initialize Unity
+        gameInstance = UnityLoader.instantiate("unityContainer", "Build/mithas-glow-ar.json", {
+          onProgress: UnityProgress,
+          Module: {
+            // Custom module configuration
+            onRuntimeInitialized: function() {
+              console.log('✅ Unity WebGL runtime initialized');
+              // Make Unity instance available to React
+              window.unityInstance = gameInstance;
+              
+              // Dispatch custom event for React
+              window.dispatchEvent(new CustomEvent('unityLoaded', {
+                detail: { unityInstance: gameInstance }
+              }));
+            }
+          }
+        });
+      });
+
+      // 📨 Handle messages from React
+      window.addEventListener('message', function(event) {
+        try {
+          var command = JSON.parse(event.data);
+          if (gameInstance && gameInstance.SendMessage) {
+            gameInstance.SendMessage('UnityARBridge', 'ProcessCommand', JSON.stringify(command));
+          }
+        } catch (e) {
+          console.error('Error processing React message:', e);
+        }
+      });
+
+      // 📤 Send messages to React
+      function sendToReact(type, payload) {
+        var message = {
+          type: type,
+          payload: payload,
+          timestamp: Date.now()
+        };
+        
+        // Send via custom event
+        window.dispatchEvent(new CustomEvent('unityMessage', {
+          detail: message
+        }));
+        
+        // Also send via postMessage for compatibility
+        if (window.parent !== window) {
+          window.parent.postMessage(message, '*');
+        }
+      }
+
+      // 🎯 Unity AR Bridge Functions (called from Unity C#)
+      function OnFaceDataReceived(faceData) {
+        sendToReact('faceData', faceData);
+      }
+
+      function OnMeshUpdateReceived(meshData) {
+        sendToReact('meshUpdate', meshData);
+      }
+
+      function OnTrackingStatusChanged(status) {
+        sendToReact('trackingStatus', status);
+      }
+
+      function OnLipFittingApplied(result) {
+        sendToReact('lipFittingApplied', result);
+      }
+
+      // 🔄 Error handling
+      window.addEventListener('error', function(e) {
+        console.error('Unity WebGL error:', e);
+        sendToReact('unityError', { error: e.message });
+      });
+
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unity WebGL unhandled promise rejection:', e);
+        sendToReact('unityError', { error: e.reason });
+      });
+    </script>
+  </head>
+  <body class="template">
+    <div class="template-wrap clear">
+      <canvas class="unity-canvas" id="unityContainer" width="960" height="600"></canvas>
+      <div class="template-full clear">
+        <h1 class="template-title">Mithas Glow AR</h1>
+        <p class="template-description">High-precision AR makeup visualization</p>
+        <div class="template-progress">
+          <div class="template-progress-bar-empty">
+            <div class="template-progress-bar-full" id="progress-bar"></div>
+          </div>
+          <div class="template-progress-text" id="progress-text">Loading... 0%</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
