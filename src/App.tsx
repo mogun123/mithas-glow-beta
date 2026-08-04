@@ -18,6 +18,8 @@ import { AuthGuard } from "./components/AuthGuard";
 
 import { useAuthStore } from "./lib/store";
 
+import { useGlobalStore } from "./lib/globalStore"; // DUAL-MODE IMPORT
+
 // 🎯 FIX 1: SPEED OPTIMIZATION
 
 // முக்கியமான ஸ்கிரீன்களை மட்டும் Direct Import செய்கிறோம்.
@@ -82,6 +84,9 @@ export default function App() {
   const profileCompleted = authStore.profileCompleted;
   const isAuthenticated = authStore.isAuthenticated;
   const authLoading = false;
+
+  // DUAL-MODE STATE (CRITICAL FOR PROFESSIONALS)
+  const { appViewMode, refreshProfile, isProUser } = useGlobalStore();
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>(() => {
@@ -389,9 +394,16 @@ if (currentView === "booking") {
 }
 
 if (currentView === "professional") {
+  // DUAL-MODE LOGIC: If professional is in Self Mode, show Customer Home instead
+  if (isProUser() && appViewMode === 'self') {
+    // Professional in Self Mode -> Show Customer Home
+    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><HomeScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToEvents={() => navigate("events")} onNavigateToProducts={() => navigate("products")} onNavigateToCoach={() => navigate("coach")} onNavigateToBooking={() => navigate("booking")} /></Suspense></ErrorBoundary></AuthGuard>;
+  }
+  // Professional in Pro Mode -> Show Professional Dashboard
   return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfessionalDashboard onNavigateHome={() => navigate("home")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToMirror={() => navigate("mirror")} /></Suspense></ErrorBoundary></AuthGuard>;
 }
 
+// DUAL-MODE LOGIC: For normal users or professionals in self mode
 if (currentView === "home") {
 
 return (

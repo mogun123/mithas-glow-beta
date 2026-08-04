@@ -14,7 +14,8 @@ export interface UserProfile {
   bio: string | null;
   phone: string | null;
   city: string | null;
-  user_type: 'normal' | 'pro';
+  role: 'buyer' | 'seller' | 'admin'; // CRITICAL: Must match DB constraint
+  industry?: string | null;
   profile_completed: boolean;
   created_at: string;
   updated_at: string;
@@ -25,14 +26,20 @@ interface GlobalState {
   user: UserProfile | null;
   isLoading: boolean;
   error: string | null;
+  
+  // DUAL-MODE STATE (CRITICAL FOR PROFESSIONALS)
+  appViewMode: 'pro' | 'self';
 
   // Actions
   setUser: (user: UserProfile | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setAppViewMode: (mode: 'pro' | 'self') => void;
+  toggleAppViewMode: () => void;
 
   // Data operations
   fetchUserProfile: (userId: string) => Promise<void>;
+  refreshProfile: () => Promise<void>; // NEW: Force refresh from DB
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   completeProfileSetup: (profileData: any) => Promise<void>;
 
@@ -49,11 +56,19 @@ export const useGlobalStore = create<GlobalState>()(
       user: null,
       isLoading: false,
       error: null,
+      appViewMode: 'self', // Default to self mode
 
       // Basic setters
       setUser: (user) => set({ user }),
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
+      
+      // DUAL-MODE ACTIONS
+      setAppViewMode: (mode) => set({ appViewMode: mode }),
+      toggleAppViewMode: () => {
+        const current = get().appViewMode;
+        set({ appViewMode: current === 'pro' ? 'self' : 'pro' });
+      },
 
       // Fetch user profile
       fetchUserProfile: async (userId: string) => {
@@ -68,10 +83,28 @@ export const useGlobalStore = create<GlobalState>()(
 
           if (error) throw error;
 
-          set({ user: data as UserProfile, isLoading: false });
+          // Set appViewMode based on role
+          const isPro = data?.role === 'seller';
+          set({ 
+            user: data as UserProfile, 
+            isLoading: false,
+            appViewMode: isPro ? 'pro' : 'self'
+          });
         } catch (error: any) {
           console.error('Error fetching user profile:', error);
           set({ error: error.message, isLoading: false });
+        }
+      },
+      
+      // NEW: Force refresh profile from DB (FIXES AUTH REFRESH BUG)
+      refreshProfile: async () => {
+        try {
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          if (!authUser) return;
+          
+          await get().fetchUserProfile(authUser.id);
+        } catch (error) {
+          console.error('Error refreshing profile:', error);
         }
       },
 
@@ -174,7 +207,7 @@ export const useGlobalStore = create<GlobalState>()(
       // Utility functions
       isProUser: () => {
         const user = get().user;
-        return user?.user_type === 'pro';
+        return user?.role === 'seller'; // CRITICAL: Check role, not user_type
       },
 
       getDisplayName: () => {
@@ -191,7 +224,8 @@ export const useGlobalStore = create<GlobalState>()(
         set({
           user: null,
           error: null,
-          isLoading: false
+          isLoading: false,
+          appViewMode: 'self'
         });
       }
     }),
