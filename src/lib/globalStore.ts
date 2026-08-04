@@ -112,22 +112,25 @@ export const useGlobalStore = create<GlobalState>()(
           if (!authUser) throw new Error('No authenticated user');
 
           // Prepare profile data with role and industry for professionals
+          // CRITICAL FIX: Only send fields that exist in database schema
           const profileUpdate: any = {
             id: authUser.id,
             email: authUser.email,
-            ...profileData,
             profile_completed: true,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            // Map user_type to role (database enum)
+            role: profileData.user_type === 'pro' ? 'professional' : 'customer',
+            // Only include industry for professionals
+            industry: profileData.user_type === 'pro' ? (profileData.industry || '') : null,
+            // Copy only valid profile fields
+            username: profileData.username,
+            display_name: profileData.display_name,
+            bio: profileData.bio,
+            city: profileData.city,
+            phone: profileData.phone,
+            is_seller: profileData.is_seller ?? (profileData.user_type === 'pro'),
+            seller_status: profileData.seller_status ?? (profileData.user_type === 'pro' ? 'pending' : null)
           };
-
-          // Set role based on user_type (CRITICAL SCHEMA FIX)
-          if (profileData.user_type === 'pro') {
-            profileUpdate.role = 'professional';
-            profileUpdate.industry = profileData.industry || '';
-          } else {
-            profileUpdate.role = 'customer';
-            profileUpdate.industry = null;
-          }
 
           // Save profile data
           const { data: savedProfile, error: profileError } = await supabase

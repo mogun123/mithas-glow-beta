@@ -18,7 +18,6 @@ interface ProfileInput {
   phone: string;
   user_type: 'normal' | 'pro';
   language?: 'en' | 'ta';
-  accountType?: string;
   industry?: string;
   profilePic?: string | null;
   dob?: string;
@@ -54,7 +53,6 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
     professional_bio: '',
     gst_number: '',
     language: 'en',
-    accountType: '',
     industry: '',
     businessType: '',
     profilePic: null,
@@ -176,7 +174,7 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
       </div>
       
       <div className="grid grid-cols-1 gap-3 max-h-[440px] overflow-y-auto pr-2 custom-scrollbar">
-        <button onClick={() => { setProfile({...profile, accountType: 'normal'}); setStep(2); }} className="p-5 rounded-[2rem] border-2 border-pink-100 bg-white hover:border-pink-300 transition-all text-left flex items-center group">
+        <button onClick={() => { setProfile({...profile, user_type: 'normal'}); setStep(2); }} className="p-5 rounded-[2rem] border-2 border-pink-100 bg-white hover:border-pink-300 transition-all text-left flex items-center group">
           <div className="bg-white p-3.5 rounded-2xl shadow-sm group-hover:bg-pink-500 group-hover:text-white transition-all duration-300"><Heart className="w-6 h-6" /></div>
           <div className="ml-4">
             <span className="block font-black text-gray-900 text-lg tracking-tight italic">{t[lang as keyof typeof t].member}</span>
@@ -192,7 +190,7 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
 
         <div className="grid grid-cols-2 gap-3 pb-4">
           {industries.map((ind) => (
-            <button key={ind.id} onClick={() => { setProfile({...profile, accountType: 'pro', industry: ind.id, businessType: ind.type}); setStep(2); }} className="p-4 rounded-3xl border-2 border-gray-50 bg-gray-50/50 flex flex-col items-center text-center hover:border-pink-400 hover:bg-white transition-all group">
+            <button key={ind.id} onClick={() => { setProfile({...profile, user_type: 'pro', industry: ind.id, businessType: ind.type}); setStep(2); }} className="p-4 rounded-3xl border-2 border-gray-50 bg-gray-50/50 flex flex-col items-center text-center hover:border-pink-400 hover:bg-white transition-all group">
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-pink-500 shadow-sm mb-2 group-hover:bg-pink-500 group-hover:text-white transition-all"><ind.icon className="w-6 h-6" /></div>
               <span className="text-[11px] font-black text-gray-800 leading-tight uppercase tracking-tighter">{ind.label}</span>
               <span className="text-[9px] text-gray-400 mt-1 italic">{ind.desc}</span>
@@ -210,7 +208,7 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
           {profile.profilePic ? <img src={profile.profilePic} className="w-full h-full object-cover" /> : <Camera className="w-8 h-8 text-pink-300" />}
         </div>
         <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
-        <h3 className="mt-4 font-black text-gray-900 text-lg uppercase tracking-tighter italic">{profile.accountType} Profile</h3>
+        <h3 className="mt-4 font-black text-gray-900 text-lg uppercase tracking-tighter italic">{profile.user_type === 'pro' ? 'Professional' : 'Personal'} Profile</h3>
       </div>
 
       <div className="space-y-3">
@@ -230,7 +228,7 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
             return;
           }
 
-          if (profile.accountType === "pro") {
+          if (profile.user_type === "pro") {
             setStep(3);
             return;
           }
@@ -262,7 +260,7 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
         }}
         className="w-full mt-6 py-4 bg-pink-500 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-all text-lg shadow-pink-100 uppercase italic tracking-tighter"
       >
-        {profile.accountType === 'pro' ? t[lang as keyof typeof t].next : t[lang as keyof typeof t].start}
+        {profile.user_type === 'pro' ? t[lang as keyof typeof t].next : t[lang as keyof typeof t].start}
       </button>
       <button onClick={() => setStep(1)} className="w-full mt-2 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Back</button>
     </div>
