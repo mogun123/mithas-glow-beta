@@ -83,16 +83,19 @@ export const useGlobalStore = create<GlobalState>()(
 
           if (error) throw error;
 
-          // Set appViewMode based on role
+          // Set appViewMode based on role - CRITICAL FOR DUAL-MODE
           const isPro = data?.role === 'seller';
           set({ 
             user: data as UserProfile, 
             isLoading: false,
-            appViewMode: isPro ? 'pro' : 'self'
+            appViewMode: isPro ? 'pro' : 'self'  // Professionals default to 'pro', customers to 'self'
           });
+          
+          return data;
         } catch (error: any) {
           console.error('Error fetching user profile:', error);
           set({ error: error.message, isLoading: false });
+          return null;
         }
       },
       
@@ -191,10 +194,12 @@ export const useGlobalStore = create<GlobalState>()(
             }
           }
 
-          // Update global state
+          // Update global state with correct appViewMode based on role
+          const isPro = savedProfile?.role === 'seller';
           set({
             user: savedProfile as UserProfile,
-            isLoading: false
+            isLoading: false,
+            appViewMode: isPro ? 'pro' : 'self'  // CRITICAL: Set mode immediately after profile setup
           });
 
         } catch (error: any) {

@@ -86,7 +86,8 @@ export default function App() {
   const authLoading = false;
 
   // DUAL-MODE STATE (CRITICAL FOR PROFESSIONALS)
-  const { appViewMode, refreshProfile, isProUser } = useGlobalStore();
+  const globalStore = useGlobalStore();
+  const { appViewMode, refreshProfile, isProUser, setAppViewMode } = globalStore;
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>(() => {
@@ -171,6 +172,9 @@ if (!profileError) {
   authStore.setProfileCompleted(false);
 }
 
+// CRITICAL FIX: Sync global store with user profile for dual-mode
+await globalStore.fetchUserProfile(session.user.id);
+
 // If there's a saved view and it's valid for authenticated user, use it
 
 const savedView = localStorage.getItem("currentView") as View;
@@ -183,7 +187,8 @@ const validViews: View[] = ["home", "mirror", "userprofile", "events", "products
 const isProfessionalMakeupArtist = profile?.role === 'seller' && profile?.industry === 'makeup_artist';
 
 if (isProfessionalMakeupArtist && profile?.profile_completed) {
-  // Professional makeup artists should be redirected to professional view
+  // Professional makeup artists should be redirected to professional view INSTANTLY
+  globalStore.setAppViewMode('pro');  // Force Pro Mode
   navigate("professional");
   return;
 }
@@ -295,6 +300,8 @@ return;
 if (view) {
   console.log("[App] Navigation hint received:", view);
   authStore.setProfileCompleted(true);
+  // CRITICAL FIX: Sync global store for dual-mode
+  await globalStore.fetchUserProfile(currentUser.id);
   navigate(view);
   toast.success("Profile saved and synced! ✨");
   return;
@@ -313,12 +320,17 @@ if (profileError) {
 
 authStore.setProfileCompleted(true);
 
+// CRITICAL FIX: Sync global store with user profile for dual-mode
+await globalStore.fetchUserProfile(currentUser.id);
+
 // Route based on role and industry
 if (profile?.role === 'seller' && profile?.industry === 'makeup_artist') {
-  // Professional makeup artist - route to professional dashboard view
+  // Professional makeup artist - route to professional dashboard view INSTANTLY
+  globalStore.setAppViewMode('pro');  // Force Pro Mode
   navigate("professional");
 } else {
   // Regular user - route to home
+  globalStore.setAppViewMode('self');  // Force Self Mode
   navigate("home");
 }
 
@@ -344,10 +356,15 @@ if (!profileError && profile?.profile_completed) {
 
 authStore.setProfileCompleted(true);
 
+// CRITICAL FIX: Sync global store with user profile for dual-mode
+await globalStore.fetchUserProfile(userData.user.id);
+
 // CRITICAL SCHEMA FIX: Route based on role and industry for existing users
 if (profile?.role === 'seller' && profile?.industry === 'makeup_artist') {
+  globalStore.setAppViewMode('pro');  // Force Pro Mode for professionals
   navigate("professional");
 } else {
+  globalStore.setAppViewMode('self');  // Force Self Mode for customers
   setCurrentView("home");
 }
 

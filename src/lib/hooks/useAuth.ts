@@ -52,9 +52,23 @@ export function useAuth() {
       
       if (event === 'SIGNED_IN' && session) {
         await fetchProfile(session.user.id);
+        // CRITICAL FIX: Sync global store for dual-mode architecture
+        try {
+          const globalStore = await import('../globalStore').then(m => m.useGlobalStore.getState());
+          await globalStore.fetchUserProfile(session.user.id);
+        } catch (e) {
+          console.error('Error syncing global store:', e);
+        }
         toast.success('Welcome to MITHAS Glow! ✨');
       } else if (event === 'SIGNED_OUT') {
         logoutStore();
+        // Clear global store on logout
+        try {
+          const globalStore = await import('../globalStore').then(m => m.useGlobalStore.getState());
+          globalStore.clearData();
+        } catch (e) {
+          console.error('Error clearing global store:', e);
+        }
         toast.info('Signed out successfully');
       }
     });
