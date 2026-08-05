@@ -363,8 +363,11 @@ export default function ProfessionalDashboard({
               {/* Artist Mode Toggle - Uses global store for unified state */}
               <button
                 onClick={() => {
+                  const previousMode = globalStore.appViewMode;
                   globalStore.toggleAppViewMode();
-                  toast.success(`Switched to ${globalStore.appViewMode === 'self' ? 'Self' : 'Pro'} Mode`);
+                  // Read the new value after toggle using getState() since the destructured value is stale
+                  const newMode = useGlobalStore.getState().appViewMode;
+                  toast.success(`Switched to ${newMode === 'self' ? 'Self' : 'Pro'} Mode`);
                 }}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
                   globalStore.appViewMode === 'pro' 

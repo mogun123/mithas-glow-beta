@@ -132,14 +132,19 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
         blockedDates,
       };
 
-      // Try to update availability_settings column (may not exist in all schemas)
-      await supabase
+      // Update availability_settings column (added in 20260805120000_professional_features.sql)
+      const { error: settingsError } = await supabase
         .from('profiles')
         .update({
           availability_settings: JSON.stringify(availabilitySettings),
           updated_at: new Date().toISOString(),
         })
         .eq('id', artistId);
+
+      if (settingsError) {
+        console.warn('Failed to save availability_settings:', settingsError.message);
+        // Don't throw - operating_hours was saved successfully
+      }
 
       toast.success('Availability settings saved!');
     } catch (error: any) {
@@ -155,9 +160,9 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
       const newBlockedDates = [...blockedDates, date];
       setBlockedDates(newBlockedDates);
       
-      // Persist to Supabase
+      // Persist to Supabase availability_settings column
       try {
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .update({
             availability_settings: JSON.stringify({
@@ -169,8 +174,11 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
             updated_at: new Date().toISOString(),
           })
           .eq('id', artistId);
+        
+        if (error) throw error;
         toast.success('Date blocked');
       } catch (err: any) {
+        console.warn('Failed to persist blocked date:', err.message);
         toast.error('Failed to block date');
       }
     }
@@ -180,9 +188,9 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
     const newBlockedDates = blockedDates.filter(d => d !== date);
     setBlockedDates(newBlockedDates);
     
-    // Persist to Supabase
+    // Persist to Supabase availability_settings column
     try {
-      await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           availability_settings: JSON.stringify({
@@ -194,8 +202,11 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
           updated_at: new Date().toISOString(),
         })
         .eq('id', artistId);
+      
+      if (error) throw error;
       toast.success('Date unblocked');
     } catch (err: any) {
+      console.warn('Failed to persist unblocked date:', err.message);
       toast.error('Failed to unblock date');
     }
   };

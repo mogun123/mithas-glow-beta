@@ -74,8 +74,16 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
         const acceptanceRate = totalBookings > 0 ? ((completedBookings + pendingBookings) / totalBookings) * 100 : 0;
         const completionRate = (completedBookings + pendingBookings) > 0 ? (completedBookings / (completedBookings + pendingBookings)) * 100 : 0;
 
-        // Mock retention rate (would need repeat customer tracking)
-        const customerRetentionRate = 68;
+        // Calculate retention rate: % of customers who have booked more than once
+        const customerBookings: Record<string, number> = {};
+        allBookings?.forEach(booking => {
+          if (booking.status === 'completed' && booking.customer_id) {
+            customerBookings[booking.customer_id] = (customerBookings[booking.customer_id] || 0) + 1;
+          }
+        });
+        const totalCustomers = Object.keys(customerBookings).length;
+        const repeatCustomers = Object.values(customerBookings).filter(count => count > 1).length;
+        const customerRetentionRate = totalCustomers > 0 ? Math.round((repeatCustomers / totalCustomers) * 100) : 0;
 
         setAnalytics({
           todayEarnings,
