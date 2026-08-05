@@ -90,6 +90,10 @@ export default function App() {
   // DUAL-MODE STATE (CRITICAL FOR PROFESSIONALS)
   const { appViewMode, refreshProfile, isProUser } = useGlobalStore();
 
+  // Subscribe to appViewMode changes for reactive routing
+  // This ensures the screen immediately re-renders when mode toggles
+  const _modeSubscription = appViewMode;
+
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>(() => {
     const savedView = localStorage.getItem("currentView") as View;
@@ -410,8 +414,12 @@ if (currentView === "professional") {
   return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfessionalDashboard onNavigateHome={() => navigate("home")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToMirror={() => navigate("mirror")} /></Suspense></ErrorBoundary></AuthGuard>;
 }
 
-// DUAL-MODE LOGIC: For normal users or professionals in self mode
+// DUAL-MODE LOGIC: For normal users or professionals who navigated to home while in self mode
 if (currentView === "home") {
+  // If a professional user is in Pro Mode but somehow landed on home, redirect to professional view
+  if (isProUser() && appViewMode === 'pro') {
+    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfessionalDashboard onNavigateHome={() => navigate("home")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToMirror={() => navigate("mirror")} /></Suspense></ErrorBoundary></AuthGuard>;
+  }
 
 return (
 

@@ -241,6 +241,7 @@ export const useGlobalStore = create<GlobalState>()(
       name: 'mithas-glow-storage',
       partialize: (state) => ({
         user: state.user,
+        appViewMode: state.appViewMode, // Persist appViewMode for instant mode switching
       }),
     }
   )

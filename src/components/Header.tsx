@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
 import { useRewardsStore } from '../store/useRewardsStore';
 import { useGlobalStore } from '../lib/globalStore';
+import { toast } from 'sonner';
 
 interface HeaderProps {
   onNavigateToProfile?: () => void;
@@ -53,7 +54,14 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
   
   // DUAL-MODE TOGGLE HANDLER
   const handleModeToggle = () => {
+    const previousMode = appViewMode;
     toggleAppViewMode();
+    const newMode = useGlobalStore.getState().appViewMode;
+    if (newMode === 'self') {
+      toast.success('Switched to Self Mode');
+    } else {
+      toast.success('Switched to Pro Mode');
+    }
   };
 
   const handleProfileAction = (action: string) => {

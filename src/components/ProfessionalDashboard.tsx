@@ -367,7 +367,11 @@ export default function ProfessionalDashboard({
                   globalStore.toggleAppViewMode();
                   // Read the new value after toggle using getState() since the destructured value is stale
                   const newMode = useGlobalStore.getState().appViewMode;
-                  toast.success(`Switched to ${newMode === 'self' ? 'Self' : 'Pro'} Mode`);
+                  if (newMode === 'self') {
+                    toast.success('Switched to Self Mode');
+                  } else {
+                    toast.success('Switched to Pro Mode');
+                  }
                 }}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
                   globalStore.appViewMode === 'pro' 
