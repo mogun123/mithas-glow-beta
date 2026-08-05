@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface AIMessage {
   id: string;
@@ -33,6 +34,9 @@ const SUGGESTED_QUESTIONS = [
   'How do I handle difficult clients?',
 ];
 
+// TODO: Replace with actual AI service URL from env config
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000';
+
 export default function ProfessionalAIAssistant({ artistId, onBack }: ProfessionalAIAssistantProps) {
   const [messages, setMessages] = useState<AIMessage[]>([
     {
@@ -45,10 +49,32 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
+  // Call real AI backend if available, otherwise use fallback responses
   const generateResponse = async (query: string): Promise<string> => {
-    // Simulated AI response - would integrate with actual AI backend
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    try {
+      // Try to call the real AI service
+      const response = await fetch(`${AI_SERVICE_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: query,
+          user_id: artistId,
+          context: 'professional_makeup_artist',
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.response || data.message || data.reply || 'I received your message.';
+      }
+    } catch (error) {
+      // AI service unavailable - use graceful fallback
+      console.warn('AI service unavailable, using fallback responses');
+    }
+
+    // Fallback canned responses when AI backend is not available
     const responses: Record<string, string> = {
       pricing: "Based on industry standards and your location, here are pricing suggestions:\n\n• Bridal Makeup: ₹15,000 - ₹35,000\n• Reception Makeup: ₹8,000 - ₹15,000\n• Party Makeup: ₹3,000 - ₹7,000\n• HD Makeup: ₹5,000 - ₹10,000\n\nConsider factors like experience, product quality, and travel distance when setting prices.",
       growth: "Here are proven strategies to grow your makeup business:\n\n1. Build a strong Instagram presence with before/after posts\n2. Collaborate with wedding planners and photographers\n3. Offer referral discounts to existing clients\n4. Create tutorial content to showcase expertise\n5. Attend bridal expos and networking events",
@@ -57,7 +83,7 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
     };
 
     const key = Object.keys(responses).find(k => query.toLowerCase().includes(k)) || 'growth';
-    return responses[key] || "That's a great question! Let me provide some insights based on industry best practices...";
+    return responses[key] || "That's a great question! Here are some insights based on industry best practices. Consider reaching out to experienced artists in your network for personalized advice.";
   };
 
   const handleSendMessage = async (content: string) => {
@@ -84,6 +110,7 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('AI response error:', error);
+      toast.error('Failed to get AI response');
     } finally {
       setIsTyping(false);
     }

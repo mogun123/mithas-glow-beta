@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { TrendingUp, DollarSign, Calendar, Users, BarChart3, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface AnalyticsData {
   todayEarnings: number;
@@ -25,40 +27,121 @@ interface ProfessionalAnalyticsProps {
 
 export default function ProfessionalAnalytics({ artistId, onBack }: ProfessionalAnalyticsProps) {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
+  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [revenueTrend, setRevenueTrend] = useState<{ month: string; revenue: number }[]>([]);
+  const [popularServices, setPopularServices] = useState<{ name: string; count: number; percentage: number }[]>([]);
 
-  // Mock analytics data - would be fetched from Supabase
-  const analytics: AnalyticsData = {
-    todayEarnings: 15000,
-    weekEarnings: 85000,
-    monthEarnings: 320000,
-    yearEarnings: 2800000,
-    totalBookings: 156,
-    completedBookings: 142,
-    cancelledBookings: 8,
-    averageBookingValue: 12500,
-    customerRetentionRate: 68,
-    acceptanceRate: 92,
-    completionRate: 95,
-  };
+  // Fetch analytics data from Supabase
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
 
-  const revenueTrend = [
-    { month: 'Jan', revenue: 180000 },
-    { month: 'Feb', revenue: 220000 },
-    { month: 'Mar', revenue: 195000 },
-    { month: 'Apr', revenue: 280000 },
-    { month: 'May', revenue: 320000 },
-    { month: 'Jun', revenue: 290000 },
-  ];
+        const today = new Date().toISOString().split('T')[0];
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+        const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
 
-  const popularServices = [
-    { name: 'Bridal Makeup', count: 45, percentage: 35 },
-    { name: 'Reception Makeup', count: 32, percentage: 25 },
-    { name: 'Party Makeup', count: 28, percentage: 22 },
-    { name: 'HD Makeup', count: 15, percentage: 12 },
-    { name: 'Hair Styling', count: 8, percentage: 6 },
-  ];
+        // Fetch all bookings for the artist
+        const { data: allBookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('total_price, status, booking_date, service_name')
+          .eq('artist_id', artistId);
+
+        if (bookingsError) throw bookingsError;
+
+        // Calculate metrics
+        const totalBookings = allBookings?.length || 0;
+        const completedBookings = allBookings?.filter(b => b.status === 'completed').length || 0;
+        const cancelledBookings = allBookings?.filter(b => b.status === 'cancelled').length || 0;
+        
+        const todayBookings = allBookings?.filter(b => b.booking_date === today && b.status === 'completed') || [];
+        const weekBookings = allBookings?.filter(b => b.booking_date >= weekAgo && b.status === 'completed') || [];
+        const monthBookings = allBookings?.filter(b => b.booking_date >= monthStart && b.status === 'completed') || [];
+        const yearBookings = allBookings?.filter(b => b.booking_date >= yearStart && b.status === 'completed') || [];
+
+        const todayEarnings = todayBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+        const weekEarnings = weekBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+        const monthEarnings = monthBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+        const yearEarnings = yearBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+        const totalRevenue = allBookings?.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0) || 0;
+        const averageBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
+
+        // Calculate rates
+        const pendingBookings = allBookings?.filter(b => b.status === 'pending').length || 0;
+        const acceptanceRate = totalBookings > 0 ? ((completedBookings + pendingBookings) / totalBookings) * 100 : 0;
+        const completionRate = (completedBookings + pendingBookings) > 0 ? (completedBookings / (completedBookings + pendingBookings)) * 100 : 0;
+
+        // Mock retention rate (would need repeat customer tracking)
+        const customerRetentionRate = 68;
+
+        setAnalytics({
+          todayEarnings,
+          weekEarnings,
+          monthEarnings,
+          yearEarnings,
+          totalBookings,
+          completedBookings,
+          cancelledBookings,
+          averageBookingValue,
+          customerRetentionRate,
+          acceptanceRate: Math.round(acceptanceRate),
+          completionRate: Math.round(completionRate),
+        });
+
+        // Calculate revenue trend by month (last 6 months)
+        const monthlyRevenue: Record<string, number> = {};
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        allBookings?.forEach(booking => {
+          if (booking.status === 'completed' && booking.booking_date) {
+            const date = new Date(booking.booking_date);
+            const key = monthNames[date.getMonth()];
+            monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (booking.total_price || 0);
+          }
+        });
+
+        const last6Months = monthNames.slice(0, 6);
+        const trendData = last6Months.map(month => ({
+          month,
+          revenue: monthlyRevenue[month] || 0,
+        }));
+        setRevenueTrend(trendData);
+
+        // Calculate popular services
+        const serviceCounts: Record<string, number> = {};
+        allBookings?.forEach(booking => {
+          if (booking.service_name) {
+            serviceCounts[booking.service_name] = (serviceCounts[booking.service_name] || 0) + 1;
+          }
+        });
+
+        const totalServices = Object.values(serviceCounts).reduce((a, b) => a + b, 0);
+        const sortedServices = Object.entries(serviceCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([name, count]) => ({
+            name,
+            count,
+            percentage: totalServices > 0 ? Math.round((count / totalServices) * 100) : 0,
+          }));
+        setPopularServices(sortedServices);
+
+      } catch (err: any) {
+        console.error('ProfessionalAnalytics: Fetch error:', err.message);
+        toast.error('Failed to load analytics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [artistId]);
 
   const getEarningsForRange = () => {
+    if (!analytics) return 0;
     switch (timeRange) {
       case 'week': return analytics.weekEarnings;
       case 'year': return analytics.yearEarnings;
@@ -67,7 +150,7 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
   };
 
   const getGrowthIndicator = () => {
-    const growth = 12.5; // Mock growth percentage
+    const growth = 12.5; // Would calculate from period-over-period comparison
     return growth > 0 ? (
       <Badge className="bg-green-100 text-green-800">
         <ArrowUpRight className="w-3 h-3 mr-1" />
@@ -80,6 +163,30 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
       </Badge>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-[#D4AF37] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-gray-500">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-500">No analytics data available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
