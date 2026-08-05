@@ -67,10 +67,12 @@ interface ProfessionalDashboardProps {
 }
 
 // Lazy load professional components
+const ProfessionalBookings = lazy(() => import('./professional/ProfessionalBookings'));
 const ProfessionalPortfolio = lazy(() => import('./professional/ProfessionalPortfolio'));
 const ProfessionalAvailability = lazy(() => import('./professional/ProfessionalAvailability'));
 const ProfessionalAIAssistant = lazy(() => import('./professional/ProfessionalAIAssistant'));
 const ProfessionalAnalytics = lazy(() => import('./professional/ProfessionalAnalytics'));
+const ProfessionalProfile = lazy(() => import('./professional/ProfessionalProfile'));
 
 export default function ProfessionalDashboard({ 
   onNavigateHome, 
@@ -640,7 +642,7 @@ export default function ProfessionalDashboard({
 
         {activeTab === 'bookings' && (
           <Suspense fallback={<div className="p-8 text-center text-white/70">Loading bookings...</div>}>
-            <ProfessionalAvailability artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+            <ProfessionalBookings artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
           </Suspense>
         )}
 
@@ -664,10 +666,7 @@ export default function ProfessionalDashboard({
 
         {activeTab === 'profile' && (
           <Suspense fallback={<div className="p-8 text-center text-white/70">Loading Profile...</div>}>
-            <ProfessionalPortfolio 
-              artistId={profile.id}
-              onBack={() => setActiveTab('dashboard')}
-            />
+            <ProfessionalProfile artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
           </Suspense>
         )}
       </main>

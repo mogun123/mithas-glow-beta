@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { Calendar, Clock, Moon, Sun, Coffee, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,8 @@ interface ProfessionalAvailabilityProps {
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ProfessionalAvailability({ artistId, onBack }: ProfessionalAvailabilityProps) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isVacationMode, setIsVacationMode] = useState(false);
   const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // Mon-Sat
   const [startTime, setStartTime] = useState('09:00');
@@ -33,6 +36,60 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
   const [slotDuration, setSlotDuration] = useState(60);
   const [maxBookingsPerDay, setMaxBookingsPerDay] = useState(5);
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
+
+  // Load availability settings from Supabase on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('operating_hours')
+          .eq('id', artistId)
+          .single();
+
+        if (error) throw error;
+
+        if (data?.operating_hours) {
+          const hours = typeof data.operating_hours === 'string' 
+            ? JSON.parse(data.operating_hours) 
+            : data.operating_hours;
+          
+          // Parse operating_hours JSONB format: { "monday": {"start": "09:00", "end": "18:00"}, ... }
+          if (hours.monday?.start) setStartTime(hours.monday.start);
+          if (hours.monday?.end) setEndTime(hours.monday.end);
+          
+          // Extract working days from operating_hours
+          const days: number[] = [];
+          const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          dayNames.forEach((day, idx) => {
+            if (hours[day]) days.push(idx);
+          });
+          if (days.length > 0) setWorkingDays(days);
+        }
+
+        // Load additional availability settings if stored as JSONB
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('availability_settings')
+          .eq('id', artistId)
+          .single();
+
+        if (profileData?.availability_settings) {
+          const settings = profileData.availability_settings;
+          if (settings.slotDuration) setSlotDuration(settings.slotDuration);
+          if (settings.maxBookingsPerDay) setMaxBookingsPerDay(settings.maxBookingsPerDay);
+          if (settings.vacationMode !== undefined) setIsVacationMode(settings.vacationMode);
+          if (settings.blockedDates) setBlockedDates(settings.blockedDates);
+        }
+      } catch (err: any) {
+        console.error('ProfessionalAvailability: Load error:', err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [artistId]);
 
   const handleToggleWorkingDay = (dayIndex: number) => {
     setWorkingDays(prev => 
@@ -44,24 +101,118 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
 
   const handleSaveSettings = async () => {
     try {
-      // Would save to Supabase
+      setSaving(true);
+      
+      // Build operating_hours JSONB object matching get_available_slots SQL function format
+      const operatingHours: Record<string, any> = {};
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      
+      dayNames.forEach((day, idx) => {
+        if (workingDays.includes(idx)) {
+          operatingHours[day] = { start: startTime, end: endTime };
+        }
+      });
+
+      // Update profiles table with operating_hours
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          operating_hours: JSON.stringify(operatingHours),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', artistId);
+
+      if (profileError) throw profileError;
+
+      // Save additional settings as availability_settings JSONB column
+      const availabilitySettings = {
+        slotDuration,
+        maxBookingsPerDay,
+        vacationMode: isVacationMode,
+        blockedDates,
+      };
+
+      // Try to update availability_settings column (may not exist in all schemas)
+      await supabase
+        .from('profiles')
+        .update({
+          availability_settings: JSON.stringify(availabilitySettings),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', artistId);
+
       toast.success('Availability settings saved!');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('ProfessionalAvailability: Save error:', error.message);
       toast.error('Failed to save settings');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleBlockDate = (date: string) => {
+  const handleBlockDate = async (date: string) => {
     if (!blockedDates.includes(date)) {
-      setBlockedDates([...blockedDates, date]);
-      toast.success('Date blocked');
+      const newBlockedDates = [...blockedDates, date];
+      setBlockedDates(newBlockedDates);
+      
+      // Persist to Supabase
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            availability_settings: JSON.stringify({
+              blockedDates: newBlockedDates,
+              vacationMode: isVacationMode,
+              slotDuration,
+              maxBookingsPerDay,
+            }),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', artistId);
+        toast.success('Date blocked');
+      } catch (err: any) {
+        toast.error('Failed to block date');
+      }
     }
   };
 
-  const handleUnblockDate = (date: string) => {
-    setBlockedDates(blockedDates.filter(d => d !== date));
-    toast.success('Date unblocked');
+  const handleUnblockDate = async (date: string) => {
+    const newBlockedDates = blockedDates.filter(d => d !== date);
+    setBlockedDates(newBlockedDates);
+    
+    // Persist to Supabase
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          availability_settings: JSON.stringify({
+            blockedDates: newBlockedDates,
+            vacationMode: isVacationMode,
+            slotDuration,
+            maxBookingsPerDay,
+          }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', artistId);
+      toast.success('Date unblocked');
+    } catch (err: any) {
+      toast.error('Failed to unblock date');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-[#D4AF37] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-gray-500">Loading availability...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -73,8 +224,12 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
               <h1 className="text-xl font-black text-gray-900">Availability</h1>
               <p className="text-xs text-gray-500">Manage your schedule</p>
             </div>
-            <Button onClick={handleSaveSettings} className="bg-[#D4AF37] hover:bg-[#B8962E] text-white">
-              Save Settings
+            <Button 
+              onClick={handleSaveSettings} 
+              disabled={saving}
+              className="bg-[#D4AF37] hover:bg-[#B8962E] text-white"
+            >
+              {saving ? 'Saving...' : 'Save Settings'}
             </Button>
           </div>
         </div>

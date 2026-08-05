@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Camera, Trash2, Edit2, Star, Heart, MapPin, Calendar, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
+import { Camera, Trash2, Edit2, Star, Heart, MapPin, Calendar, Clock, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +9,11 @@ import { toast } from 'sonner';
 interface PortfolioItem {
   id: string;
   type: 'before' | 'after' | 'bridal' | 'reception' | 'party' | 'hd' | 'airbrush' | 'hair';
-  imageUrl: string;
+  image_url: string;
   caption?: string;
-  isCover?: boolean;
-  createdAt: string;
+  is_cover?: boolean;
+  artist_id: string;
+  created_at: string;
 }
 
 interface ProfessionalPortfolioProps {
@@ -22,32 +24,8 @@ interface ProfessionalPortfolioProps {
 export default function ProfessionalPortfolio({ artistId, onBack }: ProfessionalPortfolioProps) {
   const [activeFilter, setActiveFilter] = useState<'all' | 'before' | 'after' | 'bridal' | 'reception' | 'party' | 'hd' | 'airbrush' | 'hair'>('all');
   const [isUploading, setIsUploading] = useState(false);
-
-  // Mock portfolio items - would be fetched from Supabase
-  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([
-    {
-      id: '1',
-      type: 'bridal',
-      imageUrl: 'https://images.unsplash.com/photo-1595476108011-b9e41c96d1ea?w=400',
-      caption: 'Traditional Bridal Makeup',
-      isCover: true,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      type: 'reception',
-      imageUrl: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=400',
-      caption: 'Reception Glam Look',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '3',
-      type: 'hd',
-      imageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400',
-      caption: 'HD Makeup for Photoshoot',
-      createdAt: new Date().toISOString(),
-    },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
 
   const filters = [
     { id: 'all', label: 'All' },
@@ -61,14 +39,118 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
     { id: 'after', label: 'After' },
   ];
 
-  const handleUpload = async () => {
+  // Load portfolio items from Supabase on mount
+  useEffect(() => {
+    const loadPortfolio = async () => {
+      try {
+        setLoading(true);
+        
+        // First try to fetch from artist_portfolio_items table if it exists
+        const { data: portfolioData, error: portfolioError } = await supabase
+          .from('artist_portfolio_items')
+          .select('*')
+          .eq('artist_id', artistId)
+          .order('created_at', { ascending: false });
+
+        if (!portfolioError && portfolioData) {
+          setPortfolioItems(portfolioData);
+          return;
+        }
+
+        // Fallback: Try to fetch from shops table as JSONB array
+        const { data: shopData, error: shopError } = await supabase
+          .from('shops')
+          .select('portfolio_items')
+          .eq('user_id', artistId)
+          .single();
+
+        if (!shopError && shopData?.portfolio_items) {
+          const items = typeof shopData.portfolio_items === 'string' 
+            ? JSON.parse(shopData.portfolio_items) 
+            : shopData.portfolio_items;
+          setPortfolioItems(items);
+        }
+      } catch (err: any) {
+        console.error('ProfessionalPortfolio: Load error:', err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPortfolio();
+  }, [artistId]);
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
     setIsUploading(true);
     try {
-      // Simulate upload - would integrate with Supabase Storage
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success('Image uploaded successfully!');
-      // Would add new item to portfolio
-    } catch (error) {
+      // Upload to Supabase Storage bucket 'portfolio-images'
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${artistId}-${Date.now()}.${fileExt}`;
+      const filePath = `portfolio/${fileName}`;
+
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('portfolio-images')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('portfolio-images')
+        .getPublicUrl(filePath);
+
+      const imageUrl = urlData.publicUrl;
+
+      // Save metadata to database
+      const newItem: Partial<PortfolioItem> = {
+        artist_id: artistId,
+        image_url: imageUrl,
+        type: 'party', // default type
+        caption: file.name.split('.')[0],
+        created_at: new Date().toISOString(),
+      };
+
+      // Try artist_portfolio_items table first
+      const { data: insertedItem, error: insertError } = await supabase
+        .from('artist_portfolio_items')
+        .insert(newItem)
+        .select()
+        .single();
+
+      if (!insertError && insertedItem) {
+        setPortfolioItems(prev => [insertedItem, ...prev]);
+        toast.success('Image uploaded successfully!');
+      } else {
+        // Fallback: Update shops table JSONB array
+        const { data: shopData } = await supabase
+          .from('shops')
+          .select('portfolio_items')
+          .eq('user_id', artistId)
+          .single();
+
+        const currentItems = shopData?.portfolio_items 
+          ? (typeof shopData.portfolio_items === 'string' ? JSON.parse(shopData.portfolio_items) : shopData.portfolio_items)
+          : [];
+
+        const newItemWithId = { ...newItem, id: Date.now().toString() };
+        const updatedItems = [newItemWithId, ...currentItems];
+
+        await supabase
+          .from('shops')
+          .update({
+            portfolio_items: JSON.stringify(updatedItems),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', artistId);
+
+        setPortfolioItems(prev => [newItemWithId, ...prev]);
+        toast.success('Image uploaded successfully!');
+      }
+    } catch (error: any) {
+      console.error('ProfessionalPortfolio: Upload error:', error.message);
       toast.error('Failed to upload image');
     } finally {
       setIsUploading(false);
@@ -79,23 +161,100 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
     if (!confirm('Are you sure you want to delete this image?')) return;
     
     try {
-      // Would delete from Supabase Storage and database
+      // Delete from artist_portfolio_items table
+      const { error: deleteError } = await supabase
+        .from('artist_portfolio_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (!deleteError) {
+        setPortfolioItems(prev => prev.filter(item => item.id !== itemId));
+        toast.success('Image deleted');
+        return;
+      }
+
+      // Fallback: Remove from shops JSONB array
+      const { data: shopData } = await supabase
+        .from('shops')
+        .select('portfolio_items')
+        .eq('user_id', artistId)
+        .single();
+
+      const currentItems = shopData?.portfolio_items 
+        ? (typeof shopData.portfolio_items === 'string' ? JSON.parse(shopData.portfolio_items) : shopData.portfolio_items)
+        : [];
+
+      const updatedItems = currentItems.filter((item: any) => item.id !== itemId);
+
+      await supabase
+        .from('shops')
+        .update({
+          portfolio_items: JSON.stringify(updatedItems),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', artistId);
+
       setPortfolioItems(prev => prev.filter(item => item.id !== itemId));
       toast.success('Image deleted');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('ProfessionalPortfolio: Delete error:', error.message);
       toast.error('Failed to delete image');
     }
   };
 
   const handleSetCover = async (itemId: string) => {
     try {
-      // Would update cover in database
+      // Update artist_portfolio_items table
+      await supabase
+        .from('artist_portfolio_items')
+        .update({ is_cover: false })
+        .eq('artist_id', artistId);
+
+      const { error } = await supabase
+        .from('artist_portfolio_items')
+        .update({ is_cover: true })
+        .eq('id', itemId);
+
+      if (!error) {
+        setPortfolioItems(prev => prev.map(item => ({
+          ...item,
+          is_cover: item.id === itemId,
+        })));
+        toast.success('Cover image updated');
+        return;
+      }
+
+      // Fallback: Update shops JSONB array
+      const { data: shopData } = await supabase
+        .from('shops')
+        .select('portfolio_items')
+        .eq('user_id', artistId)
+        .single();
+
+      const currentItems = shopData?.portfolio_items 
+        ? (typeof shopData.portfolio_items === 'string' ? JSON.parse(shopData.portfolio_items) : shopData.portfolio_items)
+        : [];
+
+      const updatedItems = currentItems.map((item: any) => ({
+        ...item,
+        is_cover: item.id === itemId,
+      }));
+
+      await supabase
+        .from('shops')
+        .update({
+          portfolio_items: JSON.stringify(updatedItems),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', artistId);
+
       setPortfolioItems(prev => prev.map(item => ({
         ...item,
-        isCover: item.id === itemId,
+        is_cover: item.id === itemId,
       })));
       toast.success('Cover image updated');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('ProfessionalPortfolio: Set cover error:', error.message);
       toast.error('Failed to set cover image');
     }
   };
@@ -103,6 +262,20 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
   const filteredItems = activeFilter === 'all' 
     ? portfolioItems 
     : portfolioItems.filter(item => item.type === activeFilter);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-[#D4AF37] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-gray-500">Loading portfolio...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -160,13 +333,13 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
                 <CardContent className="p-0">
                   <div className="aspect-square relative">
                     <img
-                      src={item.imageUrl}
+                      src={item.image_url}
                       alt={item.caption || 'Portfolio item'}
                       className="w-full h-full object-cover"
                     />
                     
                     {/* Cover Badge */}
-                    {item.isCover && (
+                    {item.is_cover && (
                       <Badge className="absolute top-2 left-2 bg-[#D4AF37]">
                         <Star className="w-3 h-3 mr-1" />
                         Cover
