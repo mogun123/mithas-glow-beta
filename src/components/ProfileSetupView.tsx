@@ -247,9 +247,7 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
             };
             await completeProfileSetup(profileData);
             
-            // Small delay to ensure DB propagation
-            await new Promise(resolve => setTimeout(resolve, 600));
-            
+            // No delay needed - we already have the fresh data from the upsert().select() call
             safeOnComplete("home");
           } catch (err) {
             console.error(err);
@@ -308,7 +306,7 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
               portfolio_link: profile.portfolioLink
             };
             
-            // Await profile completion
+            // Await profile completion - returns fresh data from upsert().select()
             await completeProfileSetup(profileData, shopData);
             
             // CRITICAL FIX: Check industry directly from local state for navigation
@@ -320,9 +318,7 @@ export default function ProfileSetupView({ onComplete, userEmail }: { onComplete
               industry: profile.industry 
             });
             
-            // Small delay to ensure DB propagation
-            await new Promise(resolve => setTimeout(resolve, 600));
-            
+            // No delay needed - we already have the fresh data from the upsert().select() call
             if (isMakeupArtist) {
               safeOnComplete("professional");
             } else {

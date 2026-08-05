@@ -79,7 +79,7 @@ export const useProfessionalStatus = (userId: string) => {
           .from('profiles')
           .select('*')
           .eq('id', userId)
-          .eq('role', 'professional')
+          .eq('role', 'seller')  // Fixed: use 'seller' instead of 'professional'
           .eq('industry', 'makeup_artist')
           .single();
 

@@ -41,7 +41,7 @@ interface GlobalState {
   fetchUserProfile: (userId: string) => Promise<void>;
   refreshProfile: () => Promise<void>; // NEW: Force refresh from DB
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
-  completeProfileSetup: (profileData: any) => Promise<void>;
+  completeProfileSetup: (profileData: any, shopData?: any) => Promise<{ profile: any; shop: any | null }>;
 
   // Utility functions
   isProUser: () => boolean;
@@ -176,18 +176,23 @@ export const useGlobalStore = create<GlobalState>()(
           if (profileError) throw profileError;
 
           // If pro user with shop data, save shop details
+          let savedShop = null;
           if (shopData && profileData.user_type === 'pro') {
-            const { error: shopError } = await supabase
+            const { data: shopResult, error: shopError } = await supabase
               .from('shops')
               .insert({
                 owner_id: authUser.id,
                 ...shopData,
                 is_active: true
-              });
+              })
+              .select()
+              .single();
             
             if (shopError) {
               console.warn('Shop creation warning:', shopError);
               // Don't throw - profile was saved successfully
+            } else {
+              savedShop = shopResult;
             }
           }
 
@@ -196,6 +201,9 @@ export const useGlobalStore = create<GlobalState>()(
             user: savedProfile as UserProfile,
             isLoading: false
           });
+
+          // Return the saved profile and shop data for immediate use
+          return { profile: savedProfile, shop: savedShop };
 
         } catch (error: any) {
           console.error('Error completing profile setup:', error);
