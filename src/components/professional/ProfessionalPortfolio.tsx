@@ -61,7 +61,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
         const { data: shopData, error: shopError } = await supabase
           .from('shops')
           .select('portfolio_items')
-          .eq('user_id', artistId)
+          .eq('owner_id', artistId)
           .single();
 
         if (!shopError && shopData?.portfolio_items) {
@@ -128,7 +128,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
         const { data: shopData } = await supabase
           .from('shops')
           .select('portfolio_items')
-          .eq('user_id', artistId)
+          .eq('owner_id', artistId)
           .single();
 
         const currentItems = shopData?.portfolio_items 
@@ -144,7 +144,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
             portfolio_items: JSON.stringify(updatedItems),
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', artistId);
+          .eq('owner_id', artistId);
 
         setPortfolioItems(prev => [newItemWithId, ...prev]);
         toast.success('Image uploaded successfully!');
@@ -177,7 +177,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
       const { data: shopData } = await supabase
         .from('shops')
         .select('portfolio_items')
-        .eq('user_id', artistId)
+        .eq('owner_id', artistId)
         .single();
 
       const currentItems = shopData?.portfolio_items 
@@ -192,7 +192,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
           portfolio_items: JSON.stringify(updatedItems),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', artistId);
+        .eq('owner_id', artistId);
 
       setPortfolioItems(prev => prev.filter(item => item.id !== itemId));
       toast.success('Image deleted');
@@ -228,7 +228,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
       const { data: shopData } = await supabase
         .from('shops')
         .select('portfolio_items')
-        .eq('user_id', artistId)
+        .eq('owner_id', artistId)
         .single();
 
       const currentItems = shopData?.portfolio_items 
@@ -246,7 +246,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
           portfolio_items: JSON.stringify(updatedItems),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', artistId);
+        .eq('owner_id', artistId);
 
       setPortfolioItems(prev => prev.map(item => ({
         ...item,
