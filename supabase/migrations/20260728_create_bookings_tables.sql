@@ -2,6 +2,13 @@
 -- Mirrors app/models/booking.py column structure.
 -- In Supabase, application users are stored in public.profiles(id),
 -- so user_id and artist_id map there instead of a local users table.
+--
+-- NOTE: This migration is SUPERSEDED by 20260805051114_fix_bookings_schema.sql
+-- which reconciles schema conflicts with 20260729_complete_booking_flow.sql.
+-- The newer migration handles: renaming user_id→customer_id, converting booking_date
+-- from TIMESTAMPTZ to DATE, adding booking_time/service_name columns, and creating
+-- the explicit bookings_customer_id_fkey foreign key constraint.
+-- This file is preserved for migration history but should not be relied upon alone.
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
