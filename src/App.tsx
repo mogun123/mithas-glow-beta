@@ -8,11 +8,8 @@ import { Toaster, toast } from "sonner";
 import { supabase } from "./lib/supabase";
 import { AuthGuard } from "./components/AuthGuard";
 import { useAuthStore } from "./lib/store";
-import { useGlobalStore } from "./lib/globalStore"; // DUAL-MODE IMPORT
+import { useGlobalStore } from "./lib/globalStore";
 
-// 🎯 FIX 1: SPEED OPTIMIZATION
-// முக்கியமான ஸ்கிரீன்களை மட்டும் Direct Import செய்கிறோம்.
-// அப்போதுதான் Back அழுத்தினால் 'Loading' லேக் இல்லாமல் இன்ஸ்டாகிராம் போல வேகமாக வரும்.
 import { HomeScreen } from "./screens/HomeScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { EventScreen } from "./screens/EventScreen";
@@ -22,24 +19,21 @@ import { BookingScreen } from "./screens/BookingScreen";
 import { ArtistDetailScreen } from "./screens/ArtistDetailScreen";
 import ProfessionalDashboard from "./components/ProfessionalDashboard";
 
-// Lazy load heavy components for better performance
 const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
 
 type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "artist-detail" | "professional";
 
-// Loading component
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-yellow-50">
-      <div className="text-center">
-        <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading...</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-white">
+      <div className="text-center p-8 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white">
+        <div className="w-16 h-16 border-4 border-purple-100 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-slate-700 font-extrabold tracking-wide">Starting Mithas Glow...</p>
       </div>
     </div>
   );
 }
 
-// Theme configuration
 const THEME_MAP: Record<View, string> = {
   register: "mithas-theme", login: "mithas-theme", otp: "mithas-theme", profile: "mithas-theme",
   home: "glow-home-theme", mirror: "glow-mirror-theme", userprofile: "glow-profile-theme", events: "glow-home-theme",
@@ -50,20 +44,14 @@ export default function App() {
   const authStore = useAuthStore();
   const globalStore = useGlobalStore();
 
-  // CRITICAL: Subscribe to global store state for reactive rendering
   const user = globalStore.user;
   const appViewMode = globalStore.appViewMode;
   const currentUserRole = globalStore.currentUserRole;
   const isProUserFn = globalStore.isProUser;
 
-  // Derive auth state from global store
-  const isAuthenticated = !!user;
+  const [session, setSession] = useState<any>(null);
+  const isAuthenticated = !!session;
   const profileCompleted = user?.profile_completed ?? false;
-  const authLoading = globalStore.isLoading;
-
-  // Subscribe to appViewMode changes for reactive routing
-  // This ensures the screen immediately re-renders when mode toggles
-  const _modeSubscription = appViewMode;
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>(() => {
@@ -80,123 +68,102 @@ export default function App() {
     window.history.pushState({ view }, "");
   };
 
-  // 🎯 FIX 2: BROWSER BACK BUTTON SYNC (Back அழுத்தினால் ஸ்கிரீன் மாறும்)
+  // 🚀 MASTER FIX: Bulletproof Fallback Timer
+  // நெட்வொர்க் கட் ஆனாலும், 3.5 விநாடிகளில் லோடிங் ஸ்க்ரீன் தானாகவே மறைந்துவிடும்!
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 3500);
+    return () => clearTimeout(fallbackTimer);
+  }, []);
+
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       if (event.state?.view) setCurrentView(event.state.view);
     };
 
     const handleNavigateToEvents = (event: CustomEvent) => {
-      // Only set latestScanReport if it's actually saved to database
       if (event.detail?.scanReport && event.detail?.savedToDatabase === true) {
         setLatestScanReport(event.detail.scanReport);
       } else {
-        // Clear any previous scan report to prevent ghost data
         setLatestScanReport(null);
       }
       navigate("events");
     };
 
-    // Handle navigation to profile setup after registration
-    const handleNavigateToProfileSetup = (event: CustomEvent) => {
-      // No localStorage - display name will be fetched from Supabase Auth metadata/profiles table
-      navigate("profile");
-    };
-
-    // Handle navigation to home (for logout and mode toggle)
-    const handleNavigateToHome = () => {
-      navigate("home");
-    };
-
-    // Handle navigation to professional dashboard (for mode toggle)
-    const handleNavigateToProfessional = () => {
-      navigate("professional");
-    };
-
     window.addEventListener("popstate", handlePopState);
     window.addEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
-    window.addEventListener("navigateToProfileSetup", handleNavigateToProfileSetup as EventListener);
-    window.addEventListener("navigateToHome", handleNavigateToHome as EventListener);
-    window.addEventListener("navigateToProfessional", handleNavigateToProfessional as EventListener);
+    window.addEventListener("navigateToProfileSetup", () => navigate("profile"));
+    window.addEventListener("navigateToHome", () => navigate("home"));
+    window.addEventListener("navigateToProfessional", () => navigate("professional"));
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
-      window.removeEventListener("navigateToProfileSetup", handleNavigateToProfileSetup as EventListener);
-      window.removeEventListener("navigateToHome", handleNavigateToHome as EventListener);
-      window.removeEventListener("navigateToProfessional", handleNavigateToProfessional as EventListener);
+      window.removeEventListener("navigateToProfileSetup", () => navigate("profile"));
+      window.removeEventListener("navigateToHome", () => navigate("home"));
+      window.removeEventListener("navigateToProfessional", () => navigate("professional"));
     };
   }, []);
 
-  // CRITICAL: Authentication State Listener - Immediately updates UI on login/logout
   useEffect(() => {
+    let mounted = true;
+
     const initApp = async () => {
       try {
-        // Clear any previous scan report to prevent ghost data
         setLatestScanReport(null);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-        // Get initial session (FIXED SYNTAX)
-        const { data: { session } } = await supabase.auth.getSession();
+        if (currentSession && mounted) {
+          setSession(currentSession);
+          
+          // Force fetch limit to 2 seconds to avoid freezing
+          await Promise.race([
+            globalStore.fetchUserProfile(currentSession.user.id),
+            new Promise(resolve => setTimeout(resolve, 2000))
+          ]);
 
-        if (session) {
-          // Fetch profile immediately and update global store
-          await globalStore.fetchUserProfile(session.user.id);
-
-          // Get the updated user from store
-          const updatedUser = globalStore.getState().user;
-          const isProf = updatedUser?.role === 'seller';
-
-          // If there's a saved view and it's valid for authenticated user, use it
-          const savedView = localStorage.getItem("currentView") as View;
+          const updatedUser = useGlobalStore.getState().user;
           const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
+          const savedView = localStorage.getItem("currentView") as View;
 
-          // CRITICAL SCHEMA FIX: Check role instead of account_type
-          // CRITICAL SCHEMA FIX: Database constraint is role IN ('buyer', 'seller', 'admin')
-          // Mapping: 'seller' = professional, 'buyer' = customer
-          const isProfessionalMakeupArtist = updatedUser?.role === 'seller' && updatedUser?.industry === 'makeup_artist';
-
-          if (isProfessionalMakeupArtist && updatedUser?.profile_completed) {
-            // Professional makeup artists should be redirected to professional view
-            navigate("professional");
-            return;
-          }
-
-          if (savedView && validViews.includes(savedView)) {
-            setCurrentView(savedView);
-          } else if (updatedUser?.profile_completed) {
-            setCurrentView('home');
+          if (updatedUser?.profile_completed) {
+            if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
+              navigate("professional");
+            } else if (savedView && validViews.includes(savedView)) {
+              navigate(savedView);
+            } else {
+              navigate("home");
+            }
           } else {
-            setCurrentView('profile');
+            navigate("profile");
           }
-        } else {
-          // Not authenticated, clear saved view and go to register
+        } else if (mounted) {
+          setSession(null);
           localStorage.removeItem("currentView");
-          setCurrentView('register');
+          navigate("register");
         }
       } catch (error) {
         console.error('Init app error:', error);
-        localStorage.removeItem("currentView");
-        setCurrentView('register');
+        if (mounted) navigate("register");
       } finally {
-        setIsInitialLoading(false);
+        if (mounted) setIsInitialLoading(false);
       }
     };
 
     initApp();
 
-    // Set up auth state listener for instant reactivity (FIXED SYNTAX)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-
-        if (event === 'SIGNED_IN' && session) {
-          // Immediately fetch profile and update global store
-          await globalStore.fetchUserProfile(session.user.id);
-          const updatedUser = globalStore.getState().user;
+      async (event, currentSession) => {
+        if (!mounted) return;
+        
+        if (event === 'SIGNED_IN' && currentSession) {
+          setSession(currentSession);
+          await globalStore.fetchUserProfile(currentSession.user.id);
+          const updatedUser = useGlobalStore.getState().user;
 
           if (updatedUser?.profile_completed) {
             authStore.setProfileCompleted(true);
-            // Route based on role
             if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
               navigate("professional");
             } else {
@@ -207,34 +174,38 @@ export default function App() {
             navigate("profile");
           }
         } else if (event === 'SIGNED_OUT') {
-          // Clear all state immediately
+          setSession(null);
           authStore.logout();
           globalStore.clearData();
           navigate("register");
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Refresh profile on token refresh to ensure role is current
-          if (session) {
-            await globalStore.refreshProfile();
-          }
+        } else if (event === 'TOKEN_REFRESHED' && currentSession) {
+          setSession(currentSession);
+          await globalStore.refreshProfile();
         }
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
+  // Smart Routing Logic
   useEffect(() => {
     if (isInitialLoading) return;
 
     if (isAuthenticated) {
-      if (!profileCompleted && currentView !== "profile") setCurrentView("profile");
-      else if (profileCompleted && ["register", "login", "otp", "profile"].includes(currentView)) setCurrentView("home");
+      if (!profileCompleted && currentView !== "profile") {
+        navigate("profile");
+      } else if (profileCompleted && ["register", "login", "otp", "profile"].includes(currentView)) {
+        if (currentUserRole === 'seller') navigate("professional");
+        else navigate("home");
+      }
     } else if (!["login", "register", "otp"].includes(currentView)) {
-      setCurrentView("register");
+      navigate("register");
     }
-  }, [isAuthenticated, profileCompleted, currentView, isInitialLoading]);
+  }, [isAuthenticated, profileCompleted, currentView, isInitialLoading, currentUserRole]);
 
   useEffect(() => {
     const newTheme = THEME_MAP[currentView] || "mithas-theme";
@@ -250,85 +221,48 @@ export default function App() {
   const handleVerifyOTP = () => {
     toast.success("Verification successful!");
     authStore.setProfileCompleted(false);
-    setCurrentView("profile");
+    navigate("profile");
   };
 
   const handleProfileComplete = async (view?: string) => {
     try {
-      // (FIXED SYNTAX)
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-
       if (!currentUser) {
         toast.error("User session not found!");
         return;
       }
 
-      // If view is explicitly provided, use it directly (from ProfileSetupView navigation hint)
       if (view) {
-        console.log("[App] Navigation hint received:", view);
         authStore.setProfileCompleted(true);
         navigate(view as View);
         toast.success("Profile saved and synced! ✨");
         return;
       }
 
-      // Fallback: Fetch the complete profile to check role and industry (FIXED SYNTAX)
-      const { data: profile, error: profileError } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('role, industry, profile_completed')
         .eq('id', currentUser.id)
         .single();
 
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-      }
-
       authStore.setProfileCompleted(true);
-
-      // Route based on role and industry
-      if (profile?.role === 'seller' && profile?.industry === 'makeup_artist') {
-        // Professional makeup artist - route to professional dashboard view
+      if (profileData?.role === 'seller' && profileData?.industry === 'makeup_artist') {
         navigate("professional");
       } else {
-        // Regular user - route to home
         navigate("home");
       }
-
       toast.success("Profile saved and synced! ✨");
     } catch (error: any) {
       toast.error(error.message);
     }
   };
 
-  // 🎯 FIX 3: REFRESH PROBLEM SOLVED (Login ஆனதும் Refresh இல்லாமல் ஹோம் போகும்)
   const handleLogin = async (userData: any) => {
     authStore.setSession(userData.session);
-
-    // (FIXED SYNTAX)
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('profile_completed, role, industry')
-      .eq('id', userData.user.id)
-      .single();
-
-    if (!profileError && profile?.profile_completed) {
-      authStore.setProfileCompleted(true);
-
-      // CRITICAL SCHEMA FIX: Route based on role and industry for existing users
-      if (profile?.role === 'seller' && profile?.industry === 'makeup_artist') {
-        navigate("professional");
-      } else {
-        setCurrentView("home");
-      }
-    } else {
-      authStore.setProfileCompleted(false);
-      setCurrentView("profile");
-    }
+    setSession(userData.session);
   };
 
   if (isInitialLoading) return <LoadingScreen />;
-
-  // --- RENDERING LOGIC (Your Original Style Maintained) ---
 
   if (currentView === "userprofile") {
     return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfileScreen onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
@@ -360,18 +294,13 @@ export default function App() {
   }
 
   if (currentView === "professional") {
-    // DUAL-MODE LOGIC: If professional is in Self Mode, show Customer Home instead
     if (isProUserFn() && appViewMode === 'self') {
-      // Professional in Self Mode -> Show Customer Home
       return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><HomeScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToEvents={() => navigate("events")} onNavigateToProducts={() => navigate("products")} onNavigateToCoach={() => navigate("coach")} onNavigateToBooking={() => navigate("booking")} /></Suspense></ErrorBoundary></AuthGuard>;
     }
-    // Professional in Pro Mode -> Show Professional Dashboard
     return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfessionalDashboard onNavigateHome={() => navigate("home")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToMirror={() => navigate("mirror")} /></Suspense></ErrorBoundary></AuthGuard>;
   }
 
-  // DUAL-MODE LOGIC: For normal users or professionals who navigated to home while in self mode
   if (currentView === "home") {
-    // If a professional user is in Pro Mode but somehow landed on home, redirect to professional view
     if (isProUserFn() && appViewMode === 'pro') {
       return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfessionalDashboard onNavigateHome={() => navigate("home")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToMirror={() => navigate("mirror")} /></Suspense></ErrorBoundary></AuthGuard>;
     }
@@ -398,8 +327,6 @@ export default function App() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Toaster position="top-center" richColors />
-
-      {/* 🎯 SKIP BUTTON REMOVED AS REQUESTED */}
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden p-8">
         <header className="text-center mb-8">
           <h1 className="text-4xl tracking-tighter text-pink-600">MITHAS GLOW</h1>
@@ -408,8 +335,8 @@ export default function App() {
 
         {(currentView === "login" || currentView === "register") && (
           <div className="flex border-b border-gray-200 mb-6">
-            <button onClick={() => navigate("login")} className={`flex-1 py-3 ${currentView === "login" ? "border-b-3 border-pink-500 text-pink-600" : "text-gray-500"}`}>Login</button>
-            <button onClick={() => navigate("register")} className={`flex-1 py-3 ${currentView === "register" ? "border-b-3 border-pink-500 text-pink-600" : "text-gray-500"}`}>Register</button>
+            <button onClick={() => navigate("login")} className={`flex-1 py-3 ${currentView === "login" ? "border-b-3 border-purple-500 text-purple-600 font-bold" : "text-gray-500"}`}>Login</button>
+            <button onClick={() => navigate("register")} className={`flex-1 py-3 ${currentView === "register" ? "border-b-3 border-purple-500 text-purple-600 font-bold" : "text-gray-500"}`}>Register</button>
           </div>
         )}
 
