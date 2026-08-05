@@ -1,10 +1,11 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
 import { 
   Calendar, Clock, DollarSign, Star, Users, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Briefcase, MessageSquare,
-  ChevronRight, Plus, Edit2, Trash2, Camera, MapPin, Phone, Mail
+  ChevronRight, Plus, Edit2, Trash2, Camera, MapPin, Phone, Mail,
+  Sparkles, Zap, Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProfessionalBottomNav from './ProfessionalBottomNav';
@@ -18,13 +19,14 @@ interface ProfessionalProfile {
   experience: string | null;
   city: string | null;
   avatar_url: string | null;
-  role: string | null;  // CRITICAL SCHEMA FIX: Use 'role' instead of 'account_type'
+  role: string | null;
   industry: string | null;
   seller_status: string | null;
   is_active: boolean;
   portfolio_link: string | null;
   operating_hours: string | null;
   phone: string | null;
+  artist_mode?: 'self' | 'pro';
 }
 
 interface BookingWithDetails {
@@ -56,11 +58,19 @@ interface DashboardStats {
   totalReviews: number;
 }
 
+type TabView = 'dashboard' | 'bookings' | 'availability' | 'ai-assistant' | 'analytics' | 'profile';
+
 interface ProfessionalDashboardProps {
   onNavigateHome?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToMirror?: () => void;
 }
+
+// Lazy load professional components
+const ProfessionalPortfolio = lazy(() => import('./professional/ProfessionalPortfolio'));
+const ProfessionalAvailability = lazy(() => import('./professional/ProfessionalAvailability'));
+const ProfessionalAIAssistant = lazy(() => import('./professional/ProfessionalAIAssistant'));
+const ProfessionalAnalytics = lazy(() => import('./professional/ProfessionalAnalytics'));
 
 export default function ProfessionalDashboard({ 
   onNavigateHome, 
@@ -68,8 +78,9 @@ export default function ProfessionalDashboard({
   onNavigateToMirror 
 }: ProfessionalDashboardProps) {
   const authStore = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'ai-assistant' | 'analytics' | 'profile'>('dashboard');
-  const [bookingTab, setBookingTab] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
+  const [activeTab, setActiveTab] = useState<TabView>('dashboard');
+  const [bookingFilter, setBookingFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
+  const [artistMode, setArtistMode] = useState<'self' | 'pro'>('self');
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
@@ -98,7 +109,7 @@ export default function ProfessionalDashboard({
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .eq('role', 'seller')  // CRITICAL SCHEMA FIX: Database uses 'seller' for professionals
+          .eq('role', 'seller')
           .eq('industry', 'makeup_artist')
           .single();
 
@@ -112,6 +123,7 @@ export default function ProfessionalDashboard({
           console.log('ProfessionalDashboard: Professional profile found:', profileData);
           setIsProfessional(true);
           setProfile(profileData);
+          setArtistMode((profileData.artist_mode as 'self' | 'pro') || 'self');
           
           // Update auth store profile
           authStore.setProfile(profileData);
@@ -231,8 +243,8 @@ export default function ProfessionalDashboard({
           .order('booking_date', { ascending: false })
           .order('booking_time', { ascending: false });
 
-        if (bookingTab !== 'all') {
-          query = query.eq('status', bookingTab);
+        if (bookingFilter !== 'all') {
+          query = query.eq('status', bookingFilter);
         }
 
         const { data, error: queryError } = await query;
@@ -245,15 +257,9 @@ export default function ProfessionalDashboard({
     };
 
     fetchBookings();
-  }, [profile?.id, bookingTab]);
+  }, [profile?.id, bookingFilter]);
 
-  // Lazy load professional components
-  const ProfessionalPortfolio = lazy(() => import('./professional/ProfessionalPortfolio'));
-  const ProfessionalAvailability = lazy(() => import('./professional/ProfessionalAvailability'));
-  const ProfessionalAIAssistant = lazy(() => import('./professional/ProfessionalAIAssistant'));
-  const ProfessionalAnalytics = lazy(() => import('./professional/ProfessionalAnalytics'));
-
-  const handleAcceptBooking = async (bookingId: string) => {
+  const handleAcceptBooking = useCallback(async (bookingId: string) => {
     try {
       const { error } = await supabase
         .from('bookings')
@@ -267,9 +273,9 @@ export default function ProfessionalDashboard({
       toast.error('Failed to accept booking');
       console.error(err);
     }
-  };
+  }, []);
 
-  const handleDeclineBooking = async (bookingId: string) => {
+  const handleDeclineBooking = useCallback(async (bookingId: string) => {
     try {
       const { error } = await supabase
         .from('bookings')
@@ -283,9 +289,9 @@ export default function ProfessionalDashboard({
       toast.error('Failed to decline booking');
       console.error(err);
     }
-  };
+  }, []);
 
-  const handleCompleteBooking = async (bookingId: string) => {
+  const handleCompleteBooking = useCallback(async (bookingId: string) => {
     try {
       const { error } = await supabase
         .from('bookings')
@@ -299,14 +305,26 @@ export default function ProfessionalDashboard({
       toast.error('Failed to complete booking');
       console.error(err);
     }
-  };
+  }, []);
+
+  const toggleArtistMode = useCallback(() => {
+    setArtistMode(prev => {
+      const newMode = prev === 'self' ? 'pro' : 'self';
+      toast.success(`Switched to ${newMode === 'self' ? 'Self' : 'Pro'} Mode`);
+      return newMode;
+    });
+  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-yellow-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading your dashboard...</p>
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-t-pink-500/50 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+            <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-pink-400 animate-pulse" />
+          </div>
+          <p className="text-white/70 font-medium tracking-wide">Loading your premium dashboard...</p>
         </div>
       </div>
     );
@@ -314,16 +332,19 @@ export default function ProfessionalDashboard({
 
   if (!isProfessional || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-yellow-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
         <div className="text-center max-w-md p-8">
-          <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-6">You don't have access to the professional dashboard.</p>
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-pink-500/20 blur-3xl rounded-full"></div>
+            <AlertCircle className="relative w-20 h-20 text-pink-400 mx-auto" />
+          </div>
+          <h2 className="text-3xl font-black text-white mb-3 tracking-tight">Access Restricted</h2>
+          <p className="text-white/60 mb-8 leading-relaxed">You don't have access to the professional dashboard.</p>
           <button
             onClick={onNavigateHome}
-            className="px-6 py-3 bg-pink-500 text-white font-black rounded-2xl shadow-lg hover:bg-pink-600 transition-all"
+            className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold rounded-2xl shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 hover:scale-105 transition-all duration-300"
           >
-            Go to Home
+            Return to Home
           </button>
         </div>
       </div>
@@ -331,24 +352,41 @@ export default function ProfessionalDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-yellow-50 pb-24">
-      {/* Header */}
-      <header className="glass-header sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-pink-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/50 to-slate-950 pb-24">
+      {/* Premium Glass Header */}
+      <header className="sticky top-0 z-30 bg-black/40 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-black text-gray-900 italic tracking-tighter">MITHAS GLOW</h1>
-              <p className="text-xs text-gray-500">Professional Dashboard</p>
+              <div className="flex items-center gap-2">
+                <Crown className="w-6 h-6 text-pink-400" />
+                <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-pink-400 italic tracking-tighter">
+                  MITHAS GLOW
+                </h1>
+              </div>
+              <p className="text-xs text-white/50 font-medium tracking-wide">PROFESSIONAL DASHBOARD</p>
             </div>
             <div className="flex items-center gap-3">
+              {/* Artist Mode Toggle */}
+              <button
+                onClick={toggleArtistMode}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
+                  artistMode === 'pro' 
+                    ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30' 
+                    : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}
+              >
+                <Zap className="w-3 h-3 inline mr-1" />
+                {artistMode === 'self' ? 'SELF' : 'PRO'} MODE
+              </button>
               <button
                 onClick={onNavigateToProfile}
-                className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center hover:scale-105 transition-transform"
+                className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-white/20 flex items-center justify-center hover:scale-105 transition-transform overflow-hidden"
               >
                 {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                  <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <Users className="w-5 h-5 text-pink-500" />
+                  <Users className="w-5 h-5 text-pink-400" />
                 )}
               </button>
             </div>
@@ -357,257 +395,290 @@ export default function ProfessionalDashboard({
       </header>
 
       <main className="max-w-4xl mx-auto px-4 pt-6">
-        {/* Welcome Section */}
-        <div className="mb-6">
-          <div className="bg-white rounded-3xl p-6 shadow-xl shadow-pink-100/50">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center text-2xl">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  "👤"
-                )}
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-black text-gray-900">
-                  Welcome back, {profile?.shop_name || profile?.full_name || "Professional"}
-                </h2>
-                <p className="text-sm text-gray-600">{profile?.industry?.replace('_', ' ').toUpperCase()}</p>
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                  {profile?.city && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {profile.city}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-2xl p-4 shadow-lg shadow-pink-100/30">
-            <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-6 h-6 text-pink-500" />
-              <span className="text-2xl font-black">{stats?.todayBookings || 0}</span>
-            </div>
-            <p className="text-xs text-gray-600 font-medium">Today's Bookings</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-lg shadow-orange-100/30">
-            <div className="flex items-center gap-3 mb-2">
-              <AlertCircle className="w-6 h-6 text-orange-500" />
-              <span className="text-2xl font-black">{stats?.pendingRequests || 0}</span>
-            </div>
-            <p className="text-xs text-gray-600 font-medium">Pending Requests</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-lg shadow-green-100/30">
-            <div className="flex items-center gap-3 mb-2">
-              <DollarSign className="w-6 h-6 text-green-500" />
-              <span className="text-lg font-black">₹{stats?.todaysEarnings?.toLocaleString() || 0}</span>
-            </div>
-            <p className="text-xs text-gray-600 font-medium">Today's Earnings</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow-lg shadow-purple-100/30">
-            <div className="flex items-center gap-3 mb-2">
-              <Star className="w-6 h-6 text-purple-500" />
-              <span className="text-2xl font-black">{stats?.averageRating || 0}</span>
-            </div>
-            <p className="text-xs text-gray-600 font-medium">Average Rating</p>
-          </div>
-        </div>
-
-        {/* Secondary Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-white rounded-2xl p-3 shadow-lg text-center">
-            <p className="text-xl font-black text-gray-900">{stats?.upcomingAppointments || 0}</p>
-            <p className="text-xs text-gray-600 font-medium">Upcoming</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 shadow-lg text-center">
-            <p className="text-xl font-black text-gray-900">{stats?.completedToday || 0}</p>
-            <p className="text-xs text-gray-600 font-medium">Completed</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 shadow-lg text-center">
-            <p className="text-xl font-black text-gray-900">{stats?.totalReviews || 0}</p>
-            <p className="text-xs text-gray-600 font-medium">Reviews</p>
-          </div>
-        </div>
-
-        {/* Bookings Section */}
-        <div className="bg-white rounded-3xl shadow-xl shadow-pink-100/50 overflow-hidden mb-6">
-          <div className="p-6 border-b border-pink-50">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-black text-gray-900">Booking Management</h3>
-              <span className="text-xs font-bold text-pink-500 bg-pink-50 px-3 py-1 rounded-full">
-                {bookings.length} bookings
-              </span>
-            </div>
-            
-            {/* Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-              {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all ${
-                    activeTab === tab
-                      ? 'bg-pink-500 text-white shadow-lg shadow-pink-200'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="p-4">
-            {bookings.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                <p className="font-medium">No bookings found</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {bookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="border border-pink-100 rounded-2xl p-4 hover:bg-pink-50/30 transition-all"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center text-xl flex-shrink-0">
-                        {booking.customer?.avatar_url ? (
-                          <img src={booking.customer.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          "👤"
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-black text-gray-900 truncate">
-                            {booking.customer?.full_name || "Customer"}
-                          </h4>
-                          <span
-                            className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider ${
-                              booking.status === "pending" ? "bg-orange-100 text-orange-700" :
-                              booking.status === "confirmed" ? "bg-blue-100 text-blue-700" :
-                              booking.status === "completed" ? "bg-green-100 text-green-700" :
-                              "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {booking.status}
-                          </span>
-                        </div>
-                        
-                        <p className="text-sm text-gray-600 font-medium mb-2">{booking.service_name || "Service"}</p>
-                        
-                        <div className="flex items-center gap-4 text-xs text-gray-500 font-bold">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(booking.booking_date).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {booking.booking_time}
-                          </div>
-                          {booking.total_price && (
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-3 h-3" />
-                              ₹{booking.total_price.toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-4">
-                      {booking.status === "pending" && (
-                        <>
-                          <button
-                            onClick={() => handleAcceptBooking(booking.id)}
-                            className="flex-1 py-2 bg-green-500 text-white font-black rounded-xl text-xs hover:bg-green-600 transition-all flex items-center justify-center gap-1"
-                          >
-                            <CheckCircle className="w-4 h-4" /> Accept
-                          </button>
-                          <button
-                            onClick={() => handleDeclineBooking(booking.id)}
-                            className="flex-1 py-2 bg-white border-2 border-red-200 text-red-500 font-black rounded-xl text-xs hover:bg-red-50 transition-all flex items-center justify-center gap-1"
-                          >
-                            <XCircle className="w-4 h-4" /> Decline
-                          </button>
-                        </>
-                      )}
-                      {booking.status === "confirmed" && (
-                        <button
-                          onClick={() => handleCompleteBooking(booking.id)}
-                          className="flex-1 py-2 bg-pink-500 text-white font-black rounded-xl text-xs hover:bg-pink-600 transition-all flex items-center justify-center gap-1"
-                        >
-                          <CheckCircle className="w-4 h-4" /> Complete
-                        </button>
-                      )}
-                      {booking.status === "completed" && (
-                        <span className="flex-1 py-2 bg-green-50 text-green-700 font-black rounded-xl text-xs text-center">
-                          ✓ Completed
+        {/* Render content based on activeTab - ONLY ONE VIEW AT A TIME */}
+        {activeTab === 'dashboard' && (
+          <>
+            {/* Welcome Section - Premium Glass Card */}
+            <div className="mb-6">
+              <div className="relative overflow-hidden bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10 shadow-xl shadow-purple-500/10">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-3xl rounded-full"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 blur-3xl rounded-full"></div>
+                <div className="relative flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-white/20 flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">👤</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-black text-white tracking-tight">
+                      Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">{profile?.shop_name || profile?.full_name || "Professional"}</span>
+                    </h2>
+                    <p className="text-sm text-white/60 font-medium">{profile?.industry?.replace('_', ' ').toUpperCase()}</p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-white/50 font-medium">
+                      {profile?.city && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" /> {profile.city}
                         </span>
                       )}
-                      {booking.status === "cancelled" && (
-                        <span className="flex-1 py-2 bg-gray-100 text-gray-600 font-black rounded-xl text-xs text-center">
-                          ✕ Cancelled
+                      {profile?.experience && (
+                        <span className="flex items-center gap-1">
+                          <Star className="w-3 h-3 text-yellow-400" /> {profile.experience} exp
                         </span>
                       )}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+
+            {/* Premium Stats Grid - Glass Cards with Glows */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-lg bg-pink-500/20">
+                      <Calendar className="w-5 h-5 text-pink-400" />
+                    </div>
+                    <span className="text-2xl font-black text-white">{stats?.todayBookings || 0}</span>
+                  </div>
+                  <p className="text-xs text-white/60 font-medium">Today's Bookings</p>
+                </div>
+              </div>
+
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-lg bg-orange-500/20">
+                      <AlertCircle className="w-5 h-5 text-orange-400" />
+                    </div>
+                    <span className="text-2xl font-black text-white">{stats?.pendingRequests || 0}</span>
+                  </div>
+                  <p className="text-xs text-white/60 font-medium">Pending Requests</p>
+                </div>
+              </div>
+
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-lg bg-green-500/20">
+                      <DollarSign className="w-5 h-5 text-green-400" />
+                    </div>
+                    <span className="text-lg font-black text-white">₹{stats?.todaysEarnings?.toLocaleString() || 0}</span>
+                  </div>
+                  <p className="text-xs text-white/60 font-medium">Today's Earnings</p>
+                </div>
+              </div>
+
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-lg bg-purple-500/20">
+                      <Star className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <span className="text-2xl font-black text-white">{stats?.averageRating || 0}</span>
+                  </div>
+                  <p className="text-xs text-white/60 font-medium">Average Rating</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary Stats */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 text-center">
+                <p className="text-xl font-black text-white">{stats?.upcomingAppointments || 0}</p>
+                <p className="text-xs text-white/60 font-medium">Upcoming</p>
+              </div>
+              <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 text-center">
+                <p className="text-xl font-black text-white">{stats?.completedToday || 0}</p>
+                <p className="text-xs text-white/60 font-medium">Completed</p>
+              </div>
+              <div className="bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 text-center">
+                <p className="text-xl font-black text-white">{stats?.totalReviews || 0}</p>
+                <p className="text-xs text-white/60 font-medium">Reviews</p>
+              </div>
+            </div>
+
+            {/* Bookings Section - Premium Glass Card */}
+            <div className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 shadow-xl overflow-hidden mb-6">
+              <div className="p-6 border-b border-white/10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-black text-white">Booking Management</h3>
+                  <span className="text-xs font-bold text-pink-400 bg-pink-500/20 px-3 py-1 rounded-full border border-pink-500/30">
+                    {bookings.length} bookings
+                  </span>
+                </div>
+                
+                {/* Filter Tabs */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setBookingFilter(filter)}
+                      className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all duration-300 ${
+                        bookingFilter === filter
+                          ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
+                          : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      }`}
+                    >
+                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="p-4">
+                {bookings.length === 0 ? (
+                  <div className="text-center py-12 text-white/50">
+                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                    <p className="font-medium">No bookings found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {bookings.map((booking) => (
+                      <div
+                        key={booking.id}
+                        className="group bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/10 hover:border-pink-500/30 transition-all duration-300"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-white/20 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+                            {booking.customer?.avatar_url ? (
+                              <img src={booking.customer.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xl">👤</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-black text-white truncate">
+                                {booking.customer?.full_name || "Customer"}
+                              </h4>
+                              <span
+                                className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border ${
+                                  booking.status === "pending" ? "bg-orange-500/20 text-orange-400 border-orange-500/30" :
+                                  booking.status === "confirmed" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
+                                  booking.status === "completed" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                                  "bg-white/10 text-white/60 border-white/20"
+                                }`}
+                              >
+                                {booking.status}
+                              </span>
+                            </div>
+                            
+                            <p className="text-sm text-white/70 font-medium mb-2">{booking.service_name || "Service"}</p>
+                            
+                            <div className="flex items-center gap-4 text-xs text-white/50 font-bold flex-wrap">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(booking.booking_date).toLocaleDateString()}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {booking.booking_time}
+                              </div>
+                              {booking.total_price && (
+                                <div className="flex items-center gap-1">
+                                  <DollarSign className="w-3 h-3" />
+                                  ₹{booking.total_price.toLocaleString()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 mt-4">
+                          {booking.status === "pending" && (
+                            <>
+                              <button
+                                onClick={() => handleAcceptBooking(booking.id)}
+                                className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black rounded-xl text-xs hover:shadow-lg hover:shadow-green-500/30 transition-all flex items-center justify-center gap-1"
+                              >
+                                <CheckCircle className="w-4 h-4" /> Accept
+                              </button>
+                              <button
+                                onClick={() => handleDeclineBooking(booking.id)}
+                                className="flex-1 py-2 bg-white/10 border border-red-500/30 text-red-400 font-black rounded-xl text-xs hover:bg-red-500/20 transition-all flex items-center justify-center gap-1"
+                              >
+                                <XCircle className="w-4 h-4" /> Decline
+                              </button>
+                            </>
+                          )}
+                          {booking.status === "confirmed" && (
+                            <button
+                              onClick={() => handleCompleteBooking(booking.id)}
+                              className="flex-1 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black rounded-xl text-xs hover:shadow-lg hover:shadow-pink-500/30 transition-all flex items-center justify-center gap-1"
+                            >
+                              <CheckCircle className="w-4 h-4" /> Complete
+                            </button>
+                          )}
+                          {booking.status === "completed" && (
+                            <span className="flex-1 py-2 bg-green-500/20 text-green-400 font-black rounded-xl text-xs text-center border border-green-500/30">
+                              ✓ Completed
+                            </span>
+                          )}
+                          {booking.status === "cancelled" && (
+                            <span className="flex-1 py-2 bg-white/10 text-white/50 font-black rounded-xl text-xs text-center border border-white/20">
+                              ✕ Cancelled
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'bookings' && (
+          <Suspense fallback={<div className="p-8 text-center text-white/70">Loading bookings...</div>}>
+            <ProfessionalAvailability artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+          </Suspense>
+        )}
+
+        {activeTab === 'availability' && (
+          <Suspense fallback={<div className="p-8 text-center text-white/70">Loading availability...</div>}>
+            <ProfessionalAvailability artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+          </Suspense>
+        )}
+
+        {activeTab === 'ai-assistant' && (
+          <Suspense fallback={<div className="p-8 text-center text-white/70">Loading AI Assistant...</div>}>
+            <ProfessionalAIAssistant artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+          </Suspense>
+        )}
+
+        {activeTab === 'analytics' && (
+          <Suspense fallback={<div className="p-8 text-center text-white/70">Loading Analytics...</div>}>
+            <ProfessionalAnalytics artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+          </Suspense>
+        )}
+
+        {activeTab === 'profile' && (
+          <Suspense fallback={<div className="p-8 text-center text-white/70">Loading Profile...</div>}>
+            <ProfessionalPortfolio 
+              artistId={profile.id}
+              onBack={() => setActiveTab('dashboard')}
+            />
+          </Suspense>
+        )}
       </main>
 
-      {/* Render tab content based on activeTab */}
+      {/* Professional Bottom Navigation - Only show when not in nested component */}
       {activeTab === 'dashboard' && (
-        <>
-          {/* Stats and Bookings already rendered above */}
-        </>
+        <ProfessionalBottomNav 
+          currentView={activeTab}
+          onNavigate={(view) => setActiveTab(view)}
+        />
       )}
-
-      {activeTab === 'bookings' && (
-        <Suspense fallback={<div className="p-8 text-center">Loading bookings...</div>}>
-          <ProfessionalAvailability />
-        </Suspense>
-      )}
-
-      {activeTab === 'ai-assistant' && (
-        <Suspense fallback={<div className="p-8 text-center">Loading AI Assistant...</div>}>
-          <ProfessionalAIAssistant />
-        </Suspense>
-      )}
-
-      {activeTab === 'analytics' && (
-        <Suspense fallback={<div className="p-8 text-center">Loading Analytics...</div>}>
-          <ProfessionalAnalytics />
-        </Suspense>
-      )}
-
-      {activeTab === 'profile' && (
-        <Suspense fallback={<div className="p-8 text-center">Loading Profile...</div>}>
-          <ProfessionalPortfolio 
-            profile={profile}
-            onUpdateProfile={() => {}}
-          />
-        </Suspense>
-      )}
-
-      {/* Professional Bottom Navigation */}
-      <ProfessionalBottomNav 
-        currentView={activeTab}
-        onNavigate={(view) => setActiveTab(view)}
-      />
     </div>
   );
 }
