@@ -29,6 +29,7 @@ interface GlobalState {
   
   // DUAL-MODE STATE (CRITICAL FOR PROFESSIONALS)
   appViewMode: 'pro' | 'self';
+  currentUserRole: 'buyer' | 'seller' | 'admin' | null;
 
   // Actions
   setUser: (user: UserProfile | null) => void;
@@ -36,6 +37,8 @@ interface GlobalState {
   setError: (error: string | null) => void;
   setAppViewMode: (mode: 'pro' | 'self') => void;
   toggleAppViewMode: () => void;
+  setCurrentUserRole: (role: 'buyer' | 'seller' | 'admin' | null) => void;
+  setCurrentProfile: (profile: UserProfile | null) => void;
 
   // Data operations
   fetchUserProfile: (userId: string) => Promise<void>;
@@ -57,9 +60,17 @@ export const useGlobalStore = create<GlobalState>()(
       isLoading: false,
       error: null,
       appViewMode: 'self', // Default to self mode
+      currentUserRole: null,
 
       // Basic setters
-      setUser: (user) => set({ user }),
+      setUser: (user) => {
+        set({ 
+          user,
+          currentUserRole: user?.role ?? null,
+          // Auto-set mode based on role for initial login
+          appViewMode: user?.role === 'seller' ? 'pro' : 'self'
+        });
+      },
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
       
@@ -68,6 +79,13 @@ export const useGlobalStore = create<GlobalState>()(
       toggleAppViewMode: () => {
         const current = get().appViewMode;
         set({ appViewMode: current === 'pro' ? 'self' : 'pro' });
+      },
+      setCurrentUserRole: (role) => set({ currentUserRole: role }),
+      setCurrentProfile: (profile) => {
+        set({ 
+          user: profile,
+          currentUserRole: profile?.role ?? null
+        });
       },
 
       // Fetch user profile
@@ -88,6 +106,7 @@ export const useGlobalStore = create<GlobalState>()(
           set({ 
             user: data as UserProfile, 
             isLoading: false,
+            currentUserRole: data?.role ?? null,
             appViewMode: isPro ? 'pro' : 'self'
           });
         } catch (error: any) {
@@ -100,11 +119,24 @@ export const useGlobalStore = create<GlobalState>()(
       refreshProfile: async () => {
         try {
           const { data: { user: authUser } } = await supabase.auth.getUser();
-          if (!authUser) return;
+          if (!authUser) {
+            // No auth user, clear everything
+            set({ 
+              user: null, 
+              currentUserRole: null,
+              isLoading: false 
+            });
+            return;
+          }
           
           await get().fetchUserProfile(authUser.id);
         } catch (error) {
           console.error('Error refreshing profile:', error);
+          set({ 
+            user: null, 
+            currentUserRole: null,
+            isLoading: false 
+          });
         }
       },
 
@@ -128,7 +160,11 @@ export const useGlobalStore = create<GlobalState>()(
 
           if (error) throw error;
 
-          set({ user: updatedData as UserProfile, isLoading: false });
+          set({ 
+            user: updatedData as UserProfile, 
+            currentUserRole: updatedData?.role ?? null,
+            isLoading: false 
+          });
         } catch (error: any) {
           console.error('Error updating profile:', error);
           set({ error: error.message, isLoading: false });
@@ -196,10 +232,13 @@ export const useGlobalStore = create<GlobalState>()(
             }
           }
 
-          // Update global state
+          // Update global state with role
+          const isPro = savedProfile?.role === 'seller';
           set({
             user: savedProfile as UserProfile,
-            isLoading: false
+            currentUserRole: savedProfile?.role ?? null,
+            isLoading: false,
+            appViewMode: isPro ? 'pro' : 'self'
           });
 
           // Return the saved profile and shop data for immediate use
@@ -231,6 +270,7 @@ export const useGlobalStore = create<GlobalState>()(
       clearData: () => {
         set({
           user: null,
+          currentUserRole: null,
           error: null,
           isLoading: false,
           appViewMode: 'self'
@@ -241,6 +281,7 @@ export const useGlobalStore = create<GlobalState>()(
       name: 'mithas-glow-storage',
       partialize: (state) => ({
         user: state.user,
+        currentUserRole: state.currentUserRole,
         appViewMode: state.appViewMode, // Persist appViewMode for instant mode switching
       }),
     }
@@ -249,7 +290,7 @@ export const useGlobalStore = create<GlobalState>()(
 
 // Real-time subscription hook
 export const useRealtimeProfile = (userId: string) => {
-  const { setUser } = useGlobalStore();
+  const { setUser, setCurrentUserRole } = useGlobalStore();
 
   useEffect(() => {
     if (!userId) return;
@@ -267,7 +308,9 @@ export const useRealtimeProfile = (userId: string) => {
         },
         (payload) => {
           if (payload.new) {
-            setUser(payload.new as UserProfile);
+            const newUser = payload.new as UserProfile;
+            setUser(newUser);
+            setCurrentUserRole(newUser.role);
           }
         }
       )
@@ -276,5 +319,5 @@ export const useRealtimeProfile = (userId: string) => {
     return () => {
       profileSubscription.unsubscribe();
     };
-  }, [userId, setUser]);
+  }, [userId, setUser, setCurrentUserRole]);
 };

@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { supabase } from "../lib/supabase";
 import { useRewardsStore } from "../store/useRewardsStore";
 import { useVerifiedArtists } from "../../hooks/use-booking";
+import { useGlobalStore } from "../lib/globalStore"; // DUAL-MODE IMPORT
 
 const GLOBAL_CSS = `
 :root {
@@ -158,6 +159,10 @@ export function HomeScreen({
 }: HomeScreenProps) {
   // Subscribe to rewards store for real-time streak and points from database
   const { rewards, fetchRewards } = useRewardsStore();
+  
+  // DUAL-MODE: Get user role and app view mode to restrict booking for professionals in Self Mode
+  const { isProUser, appViewMode } = useGlobalStore();
+  const isInSelfMode = isProUser() && appViewMode === 'self';
   
   // Fetch verified makeup artists from Supabase
   const { artists: verifiedArtists, loading: artistsLoading } = useVerifiedArtists({ limit: 3 });
@@ -1046,26 +1051,32 @@ export function HomeScreen({
                 <span className="section-label" style={{ margin: 0 }}>
                   Makeup Artists
                 </span>
-                <button
-                  onClick={() => onNavigateToBooking?.()}
-                  className="nav-tap-btn"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#ec4899",
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "3px",
-                    padding: "4px 6px",
-                    borderRadius: "8px",
-                  }}
-                >
-                  View All
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                {isInSelfMode ? (
+                  <span className="text-xs text-gray-400 italic" style={{ fontSize: 10 }}>
+                    Browse only in Self Mode
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onNavigateToBooking?.()}
+                    className="nav-tap-btn"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#ec4899",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      padding: "4px 6px",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    View All
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <div
@@ -1095,7 +1106,13 @@ export function HomeScreen({
                       <div
                         key={artist.id}
                         className="artist-card dashboard-card nav-tap-btn"
-                        onClick={() => onNavigateToBooking?.()}
+                        onClick={() => {
+                          if (!isInSelfMode) {
+                            onNavigateToBooking?.();
+                          } else {
+                            toast.info('Switch to Pro Mode to book artists');
+                          }
+                        }}
                         style={{ cursor: "pointer", flexShrink: 0 }}
                       >
                         <div

@@ -83,12 +83,18 @@ products: "glow-home-theme", coach: "glow-home-theme", booking: "glow-home-theme
 
 export default function App() {
   const authStore = useAuthStore();
-  const profileCompleted = authStore.profileCompleted;
-  const isAuthenticated = authStore.isAuthenticated;
-  const authLoading = false;
-
-  // DUAL-MODE STATE (CRITICAL FOR PROFESSIONALS)
-  const { appViewMode, refreshProfile, isProUser } = useGlobalStore();
+  const globalStore = useGlobalStore();
+  
+  // CRITICAL: Subscribe to global store state for reactive rendering
+  const user = globalStore.user;
+  const appViewMode = globalStore.appViewMode;
+  const currentUserRole = globalStore.currentUserRole;
+  const isProUser = globalStore.isProUser();
+  
+  // Derive auth state from global store
+  const isAuthenticated = !!user;
+  const profileCompleted = user?.profile_completed ?? false;
+  const authLoading = globalStore.isLoading;
 
   // Subscribe to appViewMode changes for reactive routing
   // This ensures the screen immediately re-renders when mode toggles
@@ -137,105 +143,127 @@ useEffect(() => {
       navigate("profile");
     };
 
-    // Handle navigation to home (for logout)
+    // Handle navigation to home (for logout and mode toggle)
     const handleNavigateToHome = () => {
       navigate("home");
+    };
+
+    // Handle navigation to professional dashboard (for mode toggle)
+    const handleNavigateToProfessional = () => {
+      navigate("professional");
     };
 
     window.addEventListener("popstate", handlePopState);
     window.addEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
     window.addEventListener("navigateToProfileSetup", handleNavigateToProfileSetup as EventListener);
     window.addEventListener("navigateToHome", handleNavigateToHome as EventListener);
+    window.addEventListener("navigateToProfessional", handleNavigateToProfessional as EventListener);
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
       window.removeEventListener("navigateToProfileSetup", handleNavigateToProfileSetup as EventListener);
       window.removeEventListener("navigateToHome", handleNavigateToHome as EventListener);
+      window.removeEventListener("navigateToProfessional", handleNavigateToProfessional as EventListener);
     };
   }, []);
 
+// CRITICAL: Authentication State Listener - Immediately updates UI on login/logout
 useEffect(() => {
+  const initApp = async () => {
+    try {
+      // Clear any previous scan report to prevent ghost data
+      setLatestScanReport(null);
 
-const initApp = async () => {
+      // Get initial session
+      const { data: { session } } = await supabase.auth.getSession();
 
-try {
+      if (session) {
+        // Fetch profile immediately and update global store
+        await globalStore.fetchUserProfile(session.user.id);
+        
+        // Get the updated user from store
+        const updatedUser = globalStore.getState().user;
+        const isProf = updatedUser?.role === 'seller';
+        
+        // If there's a saved view and it's valid for authenticated user, use it
+        const savedView = localStorage.getItem("currentView") as View;
+        const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
 
-// Clear any previous scan report to prevent ghost data
-setLatestScanReport(null);
+        // CRITICAL SCHEMA FIX: Check role instead of account_type
+        // CRITICAL SCHEMA FIX: Database constraint is role IN ('buyer', 'seller', 'admin')
+        // Mapping: 'seller' = professional, 'buyer' = customer
+        const isProfessionalMakeupArtist = updatedUser?.role === 'seller' && updatedUser?.industry === 'makeup_artist';
 
-const { data: { session } } = await supabase.auth.getSession();
+        if (isProfessionalMakeupArtist && updatedUser?.profile_completed) {
+          // Professional makeup artists should be redirected to professional view
+          navigate("professional");
+          return;
+        }
 
-if (session) {
+        if (savedView && validViews.includes(savedView)) {
+          setCurrentView(savedView);
+        } else if (updatedUser?.profile_completed) {
+          setCurrentView('home');
+        } else {
+          setCurrentView('profile');
+        }
+      } else {
+        // Not authenticated, clear saved view and go to register
+        localStorage.removeItem("currentView");
+        setCurrentView('register');
+      }
+    } catch (error) {
+      console.error('Init app error:', error);
+      localStorage.removeItem("currentView");
+      setCurrentView('register');
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
 
-const { data: profile, error: profileError } = await supabase.from('profiles').select('profile_completed, role, industry').eq('id', session.user.id).single();
+  initApp();
 
-if (!profileError) {
-  authStore.setProfileCompleted(!!profile?.profile_completed);
-} else {
-  console.warn('Profile fetch error:', profileError);
-  authStore.setProfileCompleted(false);
-}
+  // Set up auth state listener for instant reactivity
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_IN' && session) {
+        // Immediately fetch profile and update global store
+        await globalStore.fetchUserProfile(session.user.id);
+        const updatedUser = globalStore.getState().user;
+        
+        if (updatedUser?.profile_completed) {
+          authStore.setProfileCompleted(true);
+          // Route based on role
+          if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
+            navigate("professional");
+          } else {
+            navigate("home");
+          }
+        } else {
+          authStore.setProfileCompleted(false);
+          navigate("profile");
+        }
+      } else if (event === 'SIGNED_OUT') {
+        // Clear all state immediately
+        authStore.logout();
+        globalStore.clearData();
+        navigate("register");
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Refresh profile on token refresh to ensure role is current
+        if (session) {
+          await globalStore.refreshProfile();
+        }
+      }
+    }
+  );
 
-// If there's a saved view and it's valid for authenticated user, use it
-
-const savedView = localStorage.getItem("currentView") as View;
-
-const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
-
-// CRITICAL SCHEMA FIX: Check role instead of account_type
-// CRITICAL SCHEMA FIX: Database constraint is role IN ('buyer', 'seller', 'admin')
-// Mapping: 'seller' = professional, 'buyer' = customer
-const isProfessionalMakeupArtist = profile?.role === 'seller' && profile?.industry === 'makeup_artist';
-
-if (isProfessionalMakeupArtist && profile?.profile_completed) {
-  // Professional makeup artists should be redirected to professional view
-  navigate("professional");
-  return;
-}
-
-if (savedView && validViews.includes(savedView)) {
-
-setCurrentView(savedView);
-
-} else if (profile?.profile_completed) {
-
-setCurrentView('home');
-
-} else {
-
-setCurrentView('profile');
-
-}
-
-} else {
-
-// Not authenticated, clear saved view and go to register
-
-localStorage.removeItem("currentView");
-
-setCurrentView('register');
-
-}
-
-} catch (error) {
-
-console.error('Init app error:', error);
-localStorage.removeItem("currentView");
-
-setCurrentView('register');
-
-} finally {
-
-setIsInitialLoading(false);
-
-}
-
-};
-
-initApp();
-
-}, [setLatestScanReport]);
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
 
 useEffect(() => {
 
