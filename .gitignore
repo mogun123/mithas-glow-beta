@@ -1,77 +1,28 @@
---- .gitignore (原始)
-```gitignore
-# Dependencies
-node_modules/
-.pnpm-store/
-.yarn/
-.yarn-cache/
-
-# Build outputs
+```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
 dist/
 build/
-coverage/
-.nyc_output/
-.eslintcache
+target/
 
-# Logs
+# Dependencies
+.venv/
+venv/
+node_modules/
+.mypy_cache/
+.pytest_cache/
+.gradle/
+
+# Logs and temp files
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
-
-# IDE specific
-.vscode/
-.idea/
+*.tmp
 *.swp
 *.swo
-.DS_Store
-Thumbs.db
 
-# Python specific (if applicable)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-.pytest_cache/
-.mypy_cache/
-
-# Temporary files
-*.tmp
-*.temp
-.DS_Store
-```
-
-Wait, let me reconsider the input. The modified files are only TypeScript/React source files (.tsx), so according to rule #6, if there are no build artifacts, dependencies, or temp files in the changes, I should output nothing.
-
-The changes only include source files:
-- src/App.tsx
-- src/components/Header.tsx
-- src/lib/globalStore.ts
-- src/screens/HomeScreen.tsx
-
-No build artifacts, dependencies, or temp files are present in the change list.
-
-(empty - output nothing)
-
-+++ .gitignore (修改后)
-```gitignore
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-build/
-*.js.map
-*.ts.map
-
-# Environment variables
+# Environment
 .env
 .env.local
 *.env.*
@@ -80,43 +31,14 @@ build/
 .vscode/
 .idea/
 
-# Python artifacts (if any Python files exist in the project)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Logs
-*.log
-
-# OS generated files
+# System files
 .DS_Store
 Thumbs.db
 
-# Coverage reports
+# Coverage
 coverage/
 htmlcov/
-*.coverage
-
-# Temporary files
-*.tmp
-*.swp
-*.swo
-
-# Testing
-.mypy_cache/
-.pytest_cache/
-.nyc_output/
-coverage/
-
-# Compiled binaries
-*.exe
-*.dll
-*.so
-*.a
-*.o
-*.obj
-*.out
+.coverage
 
 # Compressed files
 *.zip
