@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../lib/store';
+import { useGlobalStore } from '../lib/globalStore';
 import { 
   Calendar, Clock, DollarSign, Star, Users, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Briefcase, MessageSquare,
@@ -26,7 +27,6 @@ interface ProfessionalProfile {
   portfolio_link: string | null;
   operating_hours: string | null;
   phone: string | null;
-  artist_mode?: 'self' | 'pro';
 }
 
 interface BookingWithDetails {
@@ -80,9 +80,9 @@ export default function ProfessionalDashboard({
   onNavigateToMirror 
 }: ProfessionalDashboardProps) {
   const authStore = useAuthStore();
+  const globalStore = useGlobalStore();
   const [activeTab, setActiveTab] = useState<TabView>('dashboard');
   const [bookingFilter, setBookingFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
-  const [artistMode, setArtistMode] = useState<'self' | 'pro'>('self');
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
@@ -125,7 +125,6 @@ export default function ProfessionalDashboard({
           console.log('ProfessionalDashboard: Professional profile found:', profileData);
           setIsProfessional(true);
           setProfile(profileData);
-          setArtistMode((profileData.artist_mode as 'self' | 'pro') || 'self');
           
           // Update auth store profile
           authStore.setProfile(profileData);
@@ -309,14 +308,6 @@ export default function ProfessionalDashboard({
     }
   }, []);
 
-  const toggleArtistMode = useCallback(() => {
-    setArtistMode(prev => {
-      const newMode = prev === 'self' ? 'pro' : 'self';
-      toast.success(`Switched to ${newMode === 'self' ? 'Self' : 'Pro'} Mode`);
-      return newMode;
-    });
-  }, []);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
@@ -369,17 +360,20 @@ export default function ProfessionalDashboard({
               <p className="text-xs text-white/50 font-medium tracking-wide">PROFESSIONAL DASHBOARD</p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Artist Mode Toggle */}
+              {/* Artist Mode Toggle - Uses global store for unified state */}
               <button
-                onClick={toggleArtistMode}
+                onClick={() => {
+                  globalStore.toggleAppViewMode();
+                  toast.success(`Switched to ${globalStore.appViewMode === 'self' ? 'Self' : 'Pro'} Mode`);
+                }}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                  artistMode === 'pro' 
+                  globalStore.appViewMode === 'pro' 
                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30' 
                     : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
                 <Zap className="w-3 h-3 inline mr-1" />
-                {artistMode === 'self' ? 'SELF' : 'PRO'} MODE
+                {globalStore.appViewMode === 'self' ? 'SELF' : 'PRO'} MODE
               </button>
               <button
                 onClick={onNavigateToProfile}
@@ -671,13 +665,11 @@ export default function ProfessionalDashboard({
         )}
       </main>
 
-      {/* Professional Bottom Navigation - Only show when not in nested component */}
-      {activeTab === 'dashboard' && (
-        <ProfessionalBottomNav 
-          currentView={activeTab}
-          onNavigate={(view) => setActiveTab(view)}
-        />
-      )}
+      {/* Professional Bottom Navigation - Always visible for easy navigation between tabs */}
+      <ProfessionalBottomNav 
+        currentView={activeTab}
+        onNavigate={(view) => setActiveTab(view)}
+      />
     </div>
   );
 }
