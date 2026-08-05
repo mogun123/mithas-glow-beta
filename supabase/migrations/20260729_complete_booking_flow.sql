@@ -1,5 +1,13 @@
 -- MITHAS GLOW BETA: Complete Booking Schema
 -- Ensures robust user-side booking flow with real-time availability and events integration
+--
+-- NOTE: This migration is SUPERSEDED by 20260805051114_fix_bookings_schema.sql
+-- which reconciles schema conflicts with 20260728_create_bookings_tables.sql.
+-- The newer migration handles: ensuring bookings.customer_id exists (renaming from user_id if needed),
+-- converting booking_date from TIMESTAMPTZ to DATE, adding missing columns (booking_time, service_name),
+-- creating the explicit bookings_customer_id_fkey foreign key constraint, and merging artist_services
+-- columns (availability, rating, category, is_active) into a superset.
+-- This file is preserved for migration history but should not be relied upon alone.
 
 -- 1. Ensure Profiles has necessary fields for Artists
 ALTER TABLE profiles 
