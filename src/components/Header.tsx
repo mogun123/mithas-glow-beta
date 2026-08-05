@@ -52,15 +52,21 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
     }
   };
   
-  // DUAL-MODE TOGGLE HANDLER
+  // DUAL-MODE TOGGLE HANDLER - Triggers actual state change and navigation
   const handleModeToggle = () => {
     const previousMode = appViewMode;
     toggleAppViewMode();
     const newMode = useGlobalStore.getState().appViewMode;
+    
+    // Navigate based on new mode
     if (newMode === 'self') {
       toast.success('Switched to Self Mode');
+      // Navigate to home screen for customer experience
+      window.dispatchEvent(new CustomEvent('navigateToHome'));
     } else {
       toast.success('Switched to Pro Mode');
+      // Navigate to professional dashboard
+      window.dispatchEvent(new CustomEvent('navigateToProfessional'));
     }
   };
 
