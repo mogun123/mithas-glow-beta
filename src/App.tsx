@@ -228,6 +228,7 @@ useEffect(() => {
 
   // Set up auth state listener for instant reactivity
   const {  { subscription } } = supabase.auth.onAuthStateChange(
+  
     async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
 
