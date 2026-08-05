@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Camera, Trash2, Edit2, Star, Heart, MapPin, Calendar, Clock, Upload } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 interface PortfolioItem {

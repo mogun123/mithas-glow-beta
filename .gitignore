@@ -1,144 +1,49 @@
---- .gitignore (原始)
-```gitignore
-# Dependencies
-node_modules/
-.pnpm-store/
-.yarn/
-.yarn-cache/
-
-# Build outputs
+```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
 dist/
 build/
-coverage/
-.nyc_output/
-.eslintcache
+target/
 
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment variables
+# Dependencies
+node_modules/
+venv/
+.venv/
 .env
 .env.local
 .env.*
-!.env.example
 
-# IDE specific
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-
-# Python specific (if applicable)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-.pytest_cache/
-.mypy_cache/
-
-# Temporary files
+# Logs and temp files
+*.log
 *.tmp
-*.temp
-.DS_Store
-```
-
-Wait, let me reconsider the input. The modified files are only TypeScript/React source files (.tsx), so according to rule #6, if there are no build artifacts, dependencies, or temp files in the changes, I should output nothing.
-
-The changes only include source files:
-- src/App.tsx
-- src/components/Header.tsx
-- src/lib/globalStore.ts
-- src/screens/HomeScreen.tsx
-
-No build artifacts, dependencies, or temp files are present in the change list.
-
-(empty - output nothing)
-
-+++ .gitignore (修改后)
-```gitignore
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-build/
-*.js.map
-*.ts.map
-
-# Environment variables
-.env
-.env.local
-*.env.*
+*.swp
 
 # Editors
 .vscode/
 .idea/
 
-# Python artifacts (if any Python files exist in the project)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Logs
-*.log
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
 # Coverage reports
 coverage/
 htmlcov/
-*.coverage
+.coverage
 
-# Temporary files
-*.tmp
+# Python specific
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+
+# Distribution / packaging
+*.egg-info/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE specific
 *.swp
 *.swo
-
-# Testing
-.mypy_cache/
-.pytest_cache/
-.nyc_output/
-coverage/
-
-# Compiled binaries
-*.exe
-*.dll
-*.so
-*.a
-*.o
-*.obj
-*.out
-
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+Thumbs.db
+.DS_Store
 ```
