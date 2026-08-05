@@ -38,12 +38,14 @@ import { CoachScreen } from "./screens/CoachScreen";
 
 import { BookingScreen } from "./screens/BookingScreen";
 
+import { ArtistDetailScreen } from "./screens/ArtistDetailScreen";
+
 import ProfessionalDashboard from "./components/ProfessionalDashboard";
 
 // Lazy load heavy components for better performance
 const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
 
-type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "professional";
+type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "artist-detail" | "professional";
 
 // Loading component
 
@@ -75,7 +77,7 @@ register: "mithas-theme", login: "mithas-theme", otp: "mithas-theme", profile: "
 
 home: "glow-home-theme", mirror: "glow-mirror-theme", userprofile: "glow-profile-theme", events: "glow-home-theme",
 
-products: "glow-home-theme", coach: "glow-home-theme", booking: "glow-home-theme", professional: "glow-home-theme",
+products: "glow-home-theme", coach: "glow-home-theme", booking: "glow-home-theme", "artist-detail": "glow-home-theme", professional: "glow-home-theme",
 
 };
 
@@ -175,7 +177,7 @@ if (!profileError) {
 
 const savedView = localStorage.getItem("currentView") as View;
 
-const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "professional"];
+const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
 
 // CRITICAL SCHEMA FIX: Check role instead of account_type
 // CRITICAL SCHEMA FIX: Database constraint is role IN ('buyer', 'seller', 'admin')
@@ -390,7 +392,12 @@ if (currentView === "coach") {
 }
 
 if (currentView === "booking") {
-  return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><BookingScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
+  return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><BookingScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} onNavigateToArtistDetail={(artistId: string) => { localStorage.setItem("selectedArtistId", artistId); navigate("artist-detail"); }} /></Suspense></ErrorBoundary></AuthGuard>;
+}
+
+if (currentView === "artist-detail") {
+  const selectedArtistId = localStorage.getItem("selectedArtistId") || "";
+  return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ArtistDetailScreen artistId={selectedArtistId} onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} onNavigateBack={() => navigate("booking")} onNavigateToMyBookings={() => navigate("userprofile")} /></Suspense></ErrorBoundary></AuthGuard>;
 }
 
 if (currentView === "professional") {

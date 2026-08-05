@@ -8,6 +8,7 @@ type BookingScreenProps = {
   onNavigateToMirror: () => void;
   onNavigateToProfile: () => void;
   onNavigateHome?: () => void;
+  onNavigateToArtistDetail?: (artistId: string) => void;
 };
 
 const BOOKING_CSS = `
@@ -23,7 +24,7 @@ const BOOKING_CSS = `
 .fade-in-booking-d5 { animation-delay: 0.35s; }
 `;
 
-export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavigateHome }: BookingScreenProps) {
+export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavigateHome, onNavigateToArtistDetail }: BookingScreenProps) {
   const [styleId, setStyleId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
@@ -261,6 +262,7 @@ export function BookingScreen({ onNavigateToMirror, onNavigateToProfile, onNavig
                   <div
                     key={artist.id}
                     className={`nav-tap-btn fade-in-booking-d${idx + 3}`}
+                    onClick={() => onNavigateToArtistDetail?.(artist.id)}
                     style={{
                       padding: "16px",
                       background: "rgba(255,255,255,0.88)",
