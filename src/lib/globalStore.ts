@@ -14,7 +14,7 @@ export interface UserProfile {
   bio: string | null;
   phone: string | null;
   city: string | null;
-  role: 'buyer' | 'seller' | 'admin'; // CRITICAL: Must match DB constraint
+  role: 'buyer' | 'seller' | 'admin';
   industry?: string | null;
   profile_completed: boolean;
   created_at: string;
@@ -30,7 +30,7 @@ interface GlobalState {
   isLoading: boolean;
   error: string | null;
 
-  // DUAL-MODE STATE (CRITICAL FOR PROFESSIONALS)
+  // DUAL-MODE STATE
   appViewMode: 'pro' | 'self';
   currentUserRole: 'buyer' | 'seller' | 'admin' | null;
 
@@ -44,9 +44,9 @@ interface GlobalState {
   setCurrentProfile: (profile: UserProfile | null) => void;
 
   // Data operations
-  fetchUserProfile: (userId: string) => Promise<void>;
+  fetchUserProfile: (userId: string, showLoader?: boolean) => Promise<void>;
   refreshProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>, showLoader?: boolean) => Promise<void>;
   completeProfileSetup: (profileData: any, shopData?: any) => Promise<{ profile: any; shop: any | null }>;
 
   // Utility functions
@@ -62,18 +62,20 @@ export const useGlobalStore = create<GlobalState>()(
       user: null,
       isLoading: false,
       error: null,
-      appViewMode: 'self', // Default to self mode
+      appViewMode: 'self',
       currentUserRole: null,
 
       // Basic setters
       setUser: (user) => {
-        set({
-          user,
-          currentUserRole: user?.role ?? null,
-          // Auto-set mode based on role for initial login
-          appViewMode: user?.role === 'seller' ? 'pro' : 'self'
-        });
-      },
+  set((state) => ({
+    user,
+    currentUserRole: user?.role ?? null,
+    appViewMode:
+      state.user === null && user
+        ? (user.role === 'seller' ? 'pro' : 'self')
+        : state.appViewMode
+  }));
+}
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
 
@@ -84,37 +86,47 @@ export const useGlobalStore = create<GlobalState>()(
         set({ appViewMode: current === 'pro' ? 'self' : 'pro' });
       },
       setCurrentUserRole: (role) => set({ currentUserRole: role }),
+      
+      // Fixed: Reuse setUser logic for perfect consistency
       setCurrentProfile: (profile) => {
-        set({
-          user: profile,
-          currentUserRole: profile?.role ?? null
-        });
+        get().setUser(profile);
       },
 
-      // Fetch user profile
-      fetchUserProfile: async (userId: string) => {
+      // Fetch user profile (Kept maybeSingle() as it's a fetch/lookup operation)
+      fetchUserProfile: async (userId: string, showLoader = false) => {
         try {
-          set({ isLoading: true, error: null });
+          if (showLoader) {
+            set({ isLoading: true, error: null });
+          }
 
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
           if (error) throw error;
 
-          // Set appViewMode based on role
-          const isPro = data?.role === 'seller';
-          set({
-            user: data as UserProfile,
-            isLoading: false,
-            currentUserRole: data?.role ?? null,
-            appViewMode: isPro ? 'pro' : 'self'
-          });
+          if (data) {
+            set((state) => ({
+              user: data as UserProfile,
+              currentUserRole: data.role,
+              appViewMode:
+                state.user == null
+                  ? (data.role === 'seller' ? 'pro' : 'self')
+                  : state.appViewMode,
+              isLoading: false
+            }));
+          } else {
+            set({ isLoading: false });
+          }
+
         } catch (error: any) {
           console.error('Error fetching user profile:', error);
-          set({ error: error.message, isLoading: false });
+          set({
+            error: error.message,
+            isLoading: false
+          });
         }
       },
 
@@ -122,30 +134,23 @@ export const useGlobalStore = create<GlobalState>()(
       refreshProfile: async () => {
         try {
           const { data: { user: authUser } } = await supabase.auth.getUser();
+          
           if (!authUser) {
-            set({
-              user: null,
-              currentUserRole: null,
-              isLoading: false
-            });
+            set({ user: null, currentUserRole: null, isLoading: false, appViewMode: 'self' });
             return;
           }
 
-          await get().fetchUserProfile(authUser.id);
-        } catch (error) {
+          await get().fetchUserProfile(authUser.id, false);
+        } catch (error: any) {
           console.error('Error refreshing profile:', error);
-          set({
-            user: null,
-            currentUserRole: null,
-            isLoading: false
-          });
+          set({ error: error.message || 'Profile refresh failed' });
         }
       },
 
       // Update profile
-      updateProfile: async (updates: Partial<UserProfile>) => {
+      updateProfile: async (updates: Partial<UserProfile>, showLoader = true) => {
         try {
-          set({ isLoading: true, error: null });
+          if (showLoader) set({ isLoading: true, error: null });
 
           const currentUser = get().user;
           if (!currentUser) throw new Error('No user found');
@@ -169,7 +174,10 @@ export const useGlobalStore = create<GlobalState>()(
           });
         } catch (error: any) {
           console.error('Error updating profile:', error);
-          set({ error: error.message, isLoading: false });
+          set({ 
+            error: error.message, 
+            isLoading: false
+          });
         }
       },
 
@@ -178,11 +186,9 @@ export const useGlobalStore = create<GlobalState>()(
         try {
           set({ isLoading: true, error: null });
 
-          // Get current user
           const { data: { user: authUser } } = await supabase.auth.getUser();
           if (!authUser) throw new Error('No authenticated user');
 
-          // Prepare profile data with role and industry for professionals
           const profileUpdate: any = {
             id: authUser.id,
             email: authUser.email,
@@ -199,7 +205,7 @@ export const useGlobalStore = create<GlobalState>()(
             seller_status: profileData.seller_status ?? (profileData.user_type === 'pro' ? 'pending' : null)
           };
 
-          // Save profile data
+          // Reverted to .single() for strict creation safety (Fail Fast)
           const { data: savedProfile, error: profileError } = await supabase
             .from('profiles')
             .upsert(profileUpdate)
@@ -208,9 +214,9 @@ export const useGlobalStore = create<GlobalState>()(
 
           if (profileError) throw profileError;
 
-          // If pro user with shop data, save shop details
           let savedShop = null;
           if (shopData && profileData.user_type === 'pro') {
+            // Reverted to .single() for strict creation safety (Fail Fast)
             const { data: shopResult, error: shopError } = await supabase
               .from('shops')
               .insert({
@@ -228,7 +234,6 @@ export const useGlobalStore = create<GlobalState>()(
             }
           }
 
-          // Update global state with role
           const isPro = savedProfile?.role === 'seller';
           set({
             user: savedProfile as UserProfile,
@@ -255,11 +260,7 @@ export const useGlobalStore = create<GlobalState>()(
       getDisplayName: () => {
         const user = get().user;
         if (!user) return 'Guest User';
-
-        return user.display_name ||
-               user.full_name ||
-               user.username ||
-               'Guest User';
+        return user.display_name || user.full_name || user.username || 'Guest User';
       },
 
       clearData: () => {
@@ -285,13 +286,13 @@ export const useGlobalStore = create<GlobalState>()(
 
 // Real-time subscription hook
 export const useRealtimeProfile = (userId: string) => {
-  const { setUser, setCurrentUserRole } = useGlobalStore();
+  const { setUser } = useGlobalStore();
 
   useEffect(() => {
     if (!userId) return;
 
     const profileSubscription = supabase
-      .channel('profile-changes')
+      .channel(`profile-${userId}`)
       .on(
         'postgres_changes',
         {
@@ -302,16 +303,19 @@ export const useRealtimeProfile = (userId: string) => {
         },
         (payload) => {
           if (payload.new) {
-            const newUser = payload.new as UserProfile;
-            setUser(newUser);
-            setCurrentUserRole(newUser.role);
+            setUser(payload.new as UserProfile);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // Safe logging only in Development environment
+        if (import.meta.env.DEV) {
+          console.log("Profile realtime subscription status:", status);
+        }
+      });
 
     return () => {
-      profileSubscription.unsubscribe();
+      supabase.removeChannel(profileSubscription);
     };
-  }, [userId, setUser, setCurrentUserRole]);
+  }, [userId, setUser]);
 };
