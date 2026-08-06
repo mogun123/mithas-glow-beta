@@ -6,7 +6,7 @@ export const AuthGuard = ({ children, onUnauthenticated }: any) => {
   const { user, isLoading } = useGlobalStore();
   const [timeoutReached, setTimeoutReached] = useState(false);
 
-  // 🚀 Fallback Timer: நெட்வொர்க் கட் ஆனால் 4 செகண்டில் ஸ்பின்னரை அகற்றிவிடுவோம்
+  // 1. Fallback Timer: நெட்வொர்க் கட் ஆனால் 4 செகண்டில் ஸ்பின்னரை அகற்றுவதற்கான டைமர்
   useEffect(() => {
     let timer: any;
     if (isLoading && !user) {
@@ -17,9 +17,14 @@ export const AuthGuard = ({ children, onUnauthenticated }: any) => {
     return () => clearTimeout(timer);
   }, [isLoading, user]);
 
-  // 🎯 THE MASTER FIX: 
-  // User டேட்டா ஏற்கனவே இருந்தால் (அதாவது App-ஐ விட்டு வெளியே சென்று வந்தால்) 
-  // ஸ்பின்னர் காட்டக்கூடாது! Silent ஆக உள்ளே அனுமதிக்க வேண்டும்.
+  // 2. 🎯 THE MASTER FIX: onUnauthenticated() ஃபங்ஷனை கட்டாயமாக useEffect-க்குள் மட்டுமே அழைக்க வேண்டும்!
+  useEffect(() => {
+    if (!isLoading && !user && !timeoutReached) {
+      onUnauthenticated();
+    }
+  }, [isLoading, user, timeoutReached, onUnauthenticated]);
+
+  // 3. டேட்டா லோட் ஆகும்போது மட்டும் ஸ்பின்னரைக் காட்டவும்
   if (isLoading && !user && !timeoutReached) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA]">
@@ -35,11 +40,9 @@ export const AuthGuard = ({ children, onUnauthenticated }: any) => {
     );
   }
 
-  // 4 செகண்டுகள் ஆகியும் டேட்டா வரவில்லை, மற்றும் யூசர் லாகின் செய்யவில்லை என்றால்
-  if (!isLoading && !user && !timeoutReached) {
-    onUnauthenticated();
-    return null;
-  }
+  // 4. யூசர் இல்லை என்றால் UI-ஐ ப்ளாக் செய்துவிட்டு (null), லாகின் பேஜுக்கு அனுப்பிவிடும்
+  if (!user) return null;
 
+  // 5. எல்லாம் சரியாக இருந்தால் டாஷ்போர்டைக் காட்டும்
   return <>{children}</>;
 };
