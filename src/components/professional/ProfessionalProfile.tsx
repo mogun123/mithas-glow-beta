@@ -1,233 +1,164 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { 
-  User, MapPin, Clock, Link as LinkIcon, 
-  Save, Camera, Building, FileText, Phone, Sparkles
-} from 'lucide-react';
+import { TrendingUp, Calendar, BarChart3, Sparkles, IndianRupee, Wallet, Activity, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface ProfessionalProfileData {
-  id: string;
-  email: string;
-  full_name: string | null;
-  shop_name: string | null;
-  bio: string | null;
-  experience: string | null;
-  city: string | null;
-  avatar_url: string | null;
-  phone: string | null;
-  portfolio_link: string | null;
-  operating_hours: any | null;
+interface AnalyticsData {
+  todayEarnings: number;
+  weekEarnings: number;
+  monthEarnings: number;
+  yearEarnings: number;
+  totalBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  averageBookingValue: number;
+  customerRetentionRate: number;
+  acceptanceRate: number;
+  completionRate: number;
 }
 
-interface ShopData {
-  id?: string;
-  user_id: string;
-  shop_name: string | null;
-  professional_bio: string | null;
-  business_address: string | null;
-  business_type: string | null;
-  industry: string | null;
-  operating_hours: string | null;
-  portfolio_link: string | null;
-  shop_completed: boolean;
-}
-
-interface ProfessionalProfileProps {
+interface ProfessionalAnalyticsProps {
   artistId: string;
   onBack?: () => void;
 }
 
-const DEFAULT_OPERATING_HOURS = {
-  monday: { start: '09:00', end: '18:00' },
-  tuesday: { start: '09:00', end: '18:00' },
-  wednesday: { start: '09:00', end: '18:00' },
-  thursday: { start: '09:00', end: '18:00' },
-  friday: { start: '09:00', end: '18:00' },
-  saturday: { start: '09:00', end: '18:00' },
-  sunday: null,
-};
-
-export default function ProfessionalProfile({ artistId, onBack }: ProfessionalProfileProps) {
+export default function ProfessionalAnalytics({ artistId, onBack }: ProfessionalAnalyticsProps) {
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [profile, setProfile] = useState<ProfessionalProfileData | null>(null);
-  
-  const [fullName, setFullName] = useState('');
-  const [shopName, setShopName] = useState('');
-  const [bio, setBio] = useState('');
-  const [experience, setExperience] = useState('');
-  const [city, setCity] = useState('');
-  const [phone, setPhone] = useState('');
-  const [portfolioLink, setPortfolioLink] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [operatingHours, setOperatingHours] = useState(DEFAULT_OPERATING_HOURS);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [revenueTrend, setRevenueTrend] = useState<{ month: string; revenue: number }[]>([]);
+  const [popularServices, setPopularServices] = useState<{ name: string; count: number; percentage: number }[]>([]);
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadData = async () => {
+    // 🛡️ Safety Timeout: Never stay stuck in loading for more than 4 seconds on app resume
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 4000);
+
+    const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', artistId)
-          .single();
 
-        if (profileError) throw profileError;
-        
+        const today = new Date().toISOString().split('T')[0];
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+        const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+
+        const { data: allBookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('total_price, status, booking_date, service_name')
+          .eq('artist_id', artistId);
+
+        if (bookingsError) throw bookingsError;
+
         if (!isMounted) return;
+        clearTimeout(safetyTimer);
 
-        if (profileData) {
-          setProfile(profileData);
-          setFullName(profileData.full_name || '');
-          setBio(profileData.bio || '');
-          setExperience(profileData.experience || '');
-          setCity(profileData.city || '');
-          setPhone(profileData.phone || '');
-          setAvatarUrl(profileData.avatar_url || '');
-          setPortfolioLink(profileData.portfolio_link || '');
-          
-          if (profileData.operating_hours) {
-            try {
-              setOperatingHours(typeof profileData.operating_hours === 'string' ? JSON.parse(profileData.operating_hours) : profileData.operating_hours);
-            } catch {
-              setOperatingHours(DEFAULT_OPERATING_HOURS);
+        const bookings = allBookings || [];
+
+        const totalBookings = bookings.length;
+        const completedBookings = bookings.filter(b => b.status === 'completed').length;
+        const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
+        
+        const todayBookings = bookings.filter(b => (b.booking_date || '').startsWith(today) && b.status === 'completed');
+        const weekBookings = bookings.filter(b => (b.booking_date || '') >= weekAgo && b.status === 'completed');
+        const monthBookings = bookings.filter(b => (b.booking_date || '') >= monthStart && b.status === 'completed');
+        const yearBookings = bookings.filter(b => (b.booking_date || '') >= yearStart && b.status === 'completed');
+
+        const todayEarnings = todayBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+        const weekEarnings = weekBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+        const monthEarnings = monthBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+        const yearEarnings = yearBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+        const totalRevenue = bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0);
+        const averageBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
+
+        const pendingBookings = bookings.filter(b => b.status === 'pending').length;
+        const acceptanceRate = totalBookings > 0 ? ((completedBookings + pendingBookings) / totalBookings) * 100 : 0;
+        const completionRate = (completedBookings + pendingBookings) > 0 ? (completedBookings / (completedBookings + pendingBookings)) * 100 : 0;
+
+        setAnalytics({
+          todayEarnings,
+          weekEarnings,
+          monthEarnings,
+          yearEarnings,
+          totalBookings,
+          completedBookings,
+          cancelledBookings,
+          averageBookingValue: Math.round(averageBookingValue),
+          customerRetentionRate: 0,
+          acceptanceRate: Math.round(acceptanceRate),
+          completionRate: Math.round(completionRate),
+        });
+
+        const monthlyRevenue: Record<string, number> = {};
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        bookings.forEach(booking => {
+          if (booking.status === 'completed' && booking.booking_date) {
+            const date = new Date(booking.booking_date);
+            if (!isNaN(date.getTime())) {
+              const key = monthNames[date.getMonth()];
+              monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (booking.total_price || 0);
             }
           }
+        });
+
+        const currentMonth = new Date().getMonth();
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date();
+          d.setMonth(currentMonth - i);
+          last6Months.push(monthNames[d.getMonth()]);
         }
 
-        const { data: shopDataResult, error: shopError } = await supabase
-          .from('shops')
-          .select('*')
-          .eq('user_id', artistId)
-          .single();
+        const trendData = last6Months.map(month => ({
+          month,
+          revenue: monthlyRevenue[month] || 0,
+        }));
+        setRevenueTrend(trendData);
 
-        if (!isMounted) return;
+        const serviceCounts: Record<string, number> = {};
+        bookings.forEach(booking => {
+          if (booking.service_name) {
+            serviceCounts[booking.service_name] = (serviceCounts[booking.service_name] || 0) + 1;
+          }
+        });
 
-        if (!shopError && shopDataResult) {
-          setShopName(shopDataResult.shop_name || '');
-          if (!profileData?.bio && shopDataResult.professional_bio) {
-            setBio(shopDataResult.professional_bio);
-          }
-          if (shopDataResult.business_address && !profileData?.city) {
-            setCity(shopDataResult.business_address);
-          }
-          if (shopDataResult.portfolio_link && !profileData?.portfolio_link) {
-            setPortfolioLink(shopDataResult.portfolio_link);
-          }
-        }
+        const totalServices = Object.values(serviceCounts).reduce((a, b) => a + b, 0);
+        const sortedServices = Object.entries(serviceCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([name, count]) => ({
+            name,
+            count,
+            percentage: totalServices > 0 ? Math.round((count / totalServices) * 100) : 0,
+          }));
+        setPopularServices(sortedServices);
+
       } catch (err: any) {
-        toast.error('Failed to load profile data');
+        toast.error('Failed to load analytics');
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    loadData();
-    return () => { isMounted = false; };
+    fetchAnalytics();
+    return () => { 
+      isMounted = false; 
+      clearTimeout(safetyTimer);
+    };
   }, [artistId]);
 
-  const handleSaveProfile = async () => {
-    try {
-      setSaving(true);
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName,
-          bio,
-          experience,
-          city,
-          phone,
-          portfolio_link: portfolioLink,
-          avatar_url: avatarUrl,
-          operating_hours: JSON.stringify(operatingHours),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', artistId);
-
-      if (profileError) throw profileError;
-
-      const { error: shopError } = await supabase
-        .from('shops')
-        .upsert({
-          user_id: artistId,
-          shop_name: shopName,
-          professional_bio: bio,
-          business_address: city,
-          portfolio_link: portfolioLink,
-          operating_hours: JSON.stringify(operatingHours),
-          shop_completed: true,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id',
-        });
-
-      if (shopError) throw shopError;
-
-      toast.success('Profile saved successfully! 🎉');
-    } catch (err: any) {
-      toast.error('Failed to save profile');
-    } finally {
-      setSaving(false);
+  const getEarningsForRange = () => {
+    if (!analytics) return 0;
+    switch (timeRange) {
+      case 'week': return analytics.weekEarnings;
+      case 'year': return analytics.yearEarnings;
+      default: return analytics.monthEarnings;
     }
-  };
-
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploadingAvatar(true);
-      
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${artistId}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('profile-images')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('profile-images')
-        .getPublicUrl(filePath);
-
-      const newAvatarUrl = urlData.publicUrl;
-      setAvatarUrl(newAvatarUrl);
-      
-      await supabase
-        .from('profiles')
-        .update({ avatar_url: newAvatarUrl })
-        .eq('id', artistId);
-
-      toast.success('Profile photo updated!');
-    } catch (err: any) {
-      toast.error('Failed to upload photo');
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const handleOperatingHoursChange = (day: string, field: 'start' | 'end', value: string) => {
-    setOperatingHours(prev => ({
-      ...prev,
-      [day]: prev[day as keyof typeof prev] 
-        ? { ...(prev[day as keyof typeof prev] as any), [field]: value }
-        : { start: '09:00', end: '18:00' },
-    }));
-  };
-
-  const toggleDayStatus = (day: string) => {
-    setOperatingHours(prev => ({
-      ...prev,
-      [day]: prev[day as keyof typeof prev] ? null : { start: '09:00', end: '18:00' }
-    }));
   };
 
   if (loading) {
@@ -238,218 +169,162 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
           <div className="absolute inset-0 border-4 border-t-pink-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
           <Sparkles className="absolute inset-0 m-auto w-7 h-7 text-pink-500 animate-pulse" />
         </div>
-        <p className="text-slate-500 font-black tracking-widest text-xs uppercase animate-pulse">Loading Profile...</p>
+        <p className="text-slate-500 font-black tracking-widest text-xs uppercase animate-pulse">Loading Analytics...</p>
       </div>
     );
   }
 
+  if (!analytics) return null;
+
   return (
     <div className="pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* 💎 Pink Glass Header & Save Button */}
-      <div className="flex items-center justify-between mb-6 bg-white/80 backdrop-blur-2xl p-4 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-4 z-40">
+      {/* 💎 Glass Controls */}
+      <div className="flex items-center justify-between mb-6 bg-white/80 backdrop-blur-2xl p-2 pl-5 rounded-[2rem] border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div>
-          <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Settings</h2>
+          <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Revenue</h2>
         </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={handleSaveProfile} 
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 disabled:opacity-70 whitespace-nowrap"
-          >
-            <Save className="w-3.5 h-3.5" />
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
+        <div className="flex gap-1 p-1 bg-pink-50/50 rounded-full border border-pink-100/50">
+          {(['week', 'month', 'year'] as const).map(range => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                timeRange === range
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-lg shadow-pink-500/30'
+                  : 'text-slate-500 hover:bg-white'
+              }`}
+            >
+              {range}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* 📸 Avatar Section (FIXED: Perfect Circle & Pink Glow) */}
-      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6 text-center relative overflow-hidden flex flex-col items-center">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-pink-400/5 rounded-bl-full pointer-events-none"></div>
+      {/* 🚀 Main Earning Card (Pink Theme) */}
+      <div className="relative bg-gradient-to-br from-slate-900 via-rose-950 to-slate-900 p-6 rounded-[2rem] shadow-2xl shadow-rose-900/20 mb-6 overflow-hidden border border-rose-700/30">
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-pink-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-rose-500/20 rounded-full blur-3xl pointer-events-none"></div>
         
-        <div className="relative group w-28 h-28 flex-shrink-0 aspect-square">
-          <div className="w-full h-full rounded-full p-1 bg-gradient-to-tr from-pink-400 to-rose-400 shadow-xl shadow-pink-500/20">
-            <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white flex items-center justify-center">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-12 h-12 text-pink-200" />
-              )}
-            </div>
-          </div>
-          <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg border border-pink-100 cursor-pointer hover:scale-110 transition-transform">
-            <Camera className="w-4 h-4 text-pink-500" />
-          </label>
-          <input
-            id="avatar-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarUpload}
-            disabled={uploadingAvatar}
-            className="hidden"
-          />
-        </div>
-        
-        <p className="text-[10px] font-bold text-slate-400 mt-5 uppercase tracking-widest">
-          {uploadingAvatar ? 'Uploading magic...' : 'Tap camera icon to change'}
-        </p>
-      </div>
-
-      {/* 📋 Personal & Business Info (FIXED: Pink Theme & Input Padding) */}
-      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
-        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2">
-          <Building className="w-4 h-4 text-pink-500" /> Professional Details
-        </h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Full Name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your Name"
-              className="w-full bg-white/50 border border-pink-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Shop / Brand Name</label>
-            <input
-              type="text"
-              value={shopName}
-              onChange={(e) => setShopName(e.target.value)}
-              placeholder="E.g. Mithas Glow Studio"
-              className="w-full bg-white/50 border border-pink-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
-            />
-          </div>
-
-          {/* 🎯 FIX: Dedicated Icon Wrapper for Absolute Padding Prevention */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">City / Location</label>
-              <div className="relative rounded-2xl">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <MapPin className="h-4 w-4 text-pink-400" />
-                </div>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="Chennai"
-                  className="block w-full pl-11 pr-4 py-3 bg-white/50 border border-pink-100/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Contact Number</label>
-              <div className="relative rounded-2xl">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Phone className="h-4 w-4 text-pink-400" />
-                </div>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 XXXXXXXXXX"
-                  className="block w-full pl-11 pr-4 py-3 bg-white/50 border border-pink-100/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
-                />
-              </div>
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md border border-white/5">
+              <IndianRupee className="w-3.5 h-3.5 text-pink-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-pink-100">{timeRange}</span>
             </div>
           </div>
           
-          <div>
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Experience</label>
-            <input
-              type="text"
-              value={experience}
-              onChange={(e) => setExperience(e.target.value)}
-              placeholder="E.g. 5+ Years in Bridal Makeup"
-              className="w-full bg-white/50 border border-pink-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
-            />
+          <div className="flex items-baseline gap-1 mb-4">
+            <span className="text-3xl font-bold text-pink-300/80">₹</span>
+            <p className="text-5xl sm:text-6xl font-black text-white tracking-tighter drop-shadow-md">
+              {getEarningsForRange().toLocaleString()}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2 text-[11px] font-extrabold tracking-wide text-pink-200/60 bg-black/20 w-fit px-3 py-1.5 rounded-lg border border-white/5">
+            <Wallet className="w-3.5 h-3.5" />
+            <span>AVG. ₹{analytics.averageBookingValue.toLocaleString()} / BOOKING</span>
           </div>
         </div>
       </div>
 
-      {/* ✍️ Bio & Links */}
-      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
-        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2">
-          <FileText className="w-4 h-4 text-pink-500" /> About & Links
-        </h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Professional Bio</label>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell your clients what makes your service special..."
-              rows={4}
-              className="w-full bg-white/50 border border-pink-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all resize-none"
-            />
+      {/* 📊 Visual Stats Grid */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-blue-500/30">
+            <Calendar className="w-5 h-5" />
           </div>
+          <p className="text-3xl font-black text-slate-800 tracking-tight">{analytics.totalBookings}</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mt-1">Total Bookings</p>
+        </div>
 
-          <div>
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Instagram / Portfolio URL</label>
-            <div className="relative rounded-2xl">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <LinkIcon className="h-4 w-4 text-pink-400" />
-              </div>
-              <input
-                type="text"
-                value={portfolioLink}
-                onChange={(e) => setPortfolioLink(e.target.value)}
-                placeholder="https://instagram.com/yourbrand"
-                className="block w-full pl-11 pr-4 py-3 bg-white/50 border border-pink-100/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
-              />
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-emerald-500/30">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <p className="text-3xl font-black text-slate-800 tracking-tight">{analytics.completedBookings}</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mt-1">Completed</p>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group col-span-2 sm:col-span-1">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+              <Activity className="w-5 h-5" />
             </div>
+            <p className="text-2xl font-black text-slate-800">{analytics.acceptanceRate}%</p>
+          </div>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2">Acceptance Rate</p>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${analytics.acceptanceRate}%`}}></div>
+          </div>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group col-span-2 sm:col-span-1">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-pink-500/30">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <p className="text-2xl font-black text-slate-800">{analytics.completionRate}%</p>
+          </div>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2">Completion Rate</p>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-pink-400 to-rose-500 rounded-full transition-all duration-1000" style={{ width: `${analytics.completionRate}%`}}></div>
           </div>
         </div>
       </div>
 
-      {/* ⏰ Pink Theme Operating Hours Setup */}
+      {/* 📈 Timeline */}
       <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
-        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-pink-500" /> Working Hours
+        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-6 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-pink-500" /> Revenue Timeline
         </h3>
-        
-        <div className="space-y-3">
-          {Object.entries(operatingHours).map(([day, hours]) => {
-            const isOpen = hours !== null;
+        <div className="flex items-end justify-between h-40 gap-3">
+          {revenueTrend.map((item) => {
+            const maxRevenue = Math.max(...revenueTrend.map(r => r.revenue), 1); 
+            const height = (item.revenue / maxRevenue) * 100;
+            
             return (
-              <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-2xl border border-pink-100/50 bg-white/40 transition-colors hover:bg-white/80">
-                <div className="flex items-center justify-between sm:w-32 flex-shrink-0">
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">{day.slice(0, 3)}</span>
-                  <button 
-                    onClick={() => toggleDayStatus(day)}
-                    className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider transition-colors ${isOpen ? 'bg-pink-100 text-pink-600' : 'bg-slate-100 text-slate-500'}`}
-                  >
-                    {isOpen ? 'Open' : 'Closed'}
-                  </button>
-                </div>
-
-                <div className={`flex items-center gap-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                  <input
-                    type="time"
-                    value={isOpen ? (hours as any).start : '09:00'}
-                    onChange={(e) => handleOperatingHoursChange(day, 'start', e.target.value)}
-                    className="bg-white border border-pink-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-400/40"
-                  />
-                  <span className="text-[10px] font-extrabold text-slate-400">TO</span>
-                  <input
-                    type="time"
-                    value={isOpen ? (hours as any).end : '18:00'}
-                    onChange={(e) => handleOperatingHoursChange(day, 'end', e.target.value)}
-                    className="bg-white border border-pink-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-400/40"
+              <div key={item.month} className="flex-1 flex flex-col items-center gap-3 group cursor-pointer h-full justify-end">
+                <div className="w-full relative flex justify-center h-full items-end">
+                  <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition-all transform group-hover:-translate-y-1 whitespace-nowrap z-10 shadow-lg">
+                    ₹{item.revenue.toLocaleString()}
+                  </div>
+                  <div
+                    className={`w-full max-w-[24px] rounded-full transition-all duration-700 ease-out ${item.revenue > 0 ? 'bg-gradient-to-t from-pink-500 to-rose-400 shadow-[0_0_15px_rgba(236,72,153,0.4)]' : 'bg-slate-100'}`}
+                    style={{ height: `${Math.max(height, 8)}%` }}
                   />
                 </div>
+                <span className="text-[10px] font-extrabold text-slate-400 group-hover:text-pink-600 transition-colors uppercase">{item.month}</span>
               </div>
             );
           })}
         </div>
       </div>
-      
+
+      {/* ⭐ Top Services */}
+      {popularServices.length > 0 && (
+        <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-6 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-pink-500" /> Top Services
+          </h3>
+          <div className="space-y-5">
+            {popularServices.map((service) => (
+              <div key={service.name}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-wide">{service.name}</span>
+                  <span className="text-[10px] font-black text-pink-600 bg-pink-50 px-2 py-1 rounded-lg">{service.count} SESSIONS</span>
+                </div>
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                  <div
+                    className="h-full bg-gradient-to-r from-pink-500 to-rose-400 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                    style={{ width: `${service.percentage}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
