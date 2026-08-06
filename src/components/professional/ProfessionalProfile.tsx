@@ -54,7 +54,6 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [profile, setProfile] = useState<ProfessionalProfileData | null>(null);
   
-  // Form state
   const [fullName, setFullName] = useState('');
   const [shopName, setShopName] = useState('');
   const [bio, setBio] = useState('');
@@ -235,9 +234,9 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
     return (
       <div className="animate-in fade-in duration-500 min-h-[60vh] flex flex-col items-center justify-center">
         <div className="relative w-20 h-20 mx-auto mb-6">
-          <div className="absolute inset-0 border-4 border-purple-100 rounded-full"></div>
-          <div className="absolute inset-0 border-4 border-t-purple-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-          <Sparkles className="absolute inset-0 m-auto w-7 h-7 text-purple-600 animate-pulse" />
+          <div className="absolute inset-0 border-4 border-pink-100 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-t-pink-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          <Sparkles className="absolute inset-0 m-auto w-7 h-7 text-pink-500 animate-pulse" />
         </div>
         <p className="text-slate-500 font-black tracking-widest text-xs uppercase animate-pulse">Loading Profile...</p>
       </div>
@@ -247,8 +246,8 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
   return (
     <div className="pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* 💎 Glass Header & Save Button */}
-      <div className="flex items-center justify-between mb-6 bg-white/80 backdrop-blur-2xl p-4 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-4 z-40">
+      {/* 💎 Pink Glass Header & Save Button */}
+      <div className="flex items-center justify-between mb-6 bg-white/80 backdrop-blur-2xl p-4 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-4 z-40">
         <div>
           <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Settings</h2>
         </div>
@@ -256,31 +255,30 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
           <button 
             onClick={handleSaveProfile} 
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/30 hover:scale-105 active:scale-95 disabled:opacity-70"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 disabled:opacity-70 whitespace-nowrap"
           >
-            <Save className="w-4 h-4" />
+            <Save className="w-3.5 h-3.5" />
             {saving ? 'Saving...' : 'Save Profile'}
           </button>
         </div>
       </div>
 
-      {/* 📸 Avatar Section (FIXED: Perfect Circle) */}
-      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6 text-center relative overflow-hidden flex flex-col items-center">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-bl-full pointer-events-none"></div>
+      {/* 📸 Avatar Section (FIXED: Perfect Circle & Pink Glow) */}
+      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6 text-center relative overflow-hidden flex flex-col items-center">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-pink-400/5 rounded-bl-full pointer-events-none"></div>
         
-        {/* Aspect-square ensures it never stretches into a pill shape */}
         <div className="relative group w-28 h-28 flex-shrink-0 aspect-square">
-          <div className="w-full h-full rounded-full p-1 bg-gradient-to-tr from-purple-500 to-fuchsia-500 shadow-xl shadow-purple-500/20">
+          <div className="w-full h-full rounded-full p-1 bg-gradient-to-tr from-pink-400 to-rose-400 shadow-xl shadow-pink-500/20">
             <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white flex items-center justify-center">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <User className="w-12 h-12 text-purple-200" />
+                <User className="w-12 h-12 text-pink-200" />
               )}
             </div>
           </div>
-          <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg border border-purple-100 cursor-pointer hover:scale-110 transition-transform">
-            <Camera className="w-4 h-4 text-purple-600" />
+          <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg border border-pink-100 cursor-pointer hover:scale-110 transition-transform">
+            <Camera className="w-4 h-4 text-pink-500" />
           </label>
           <input
             id="avatar-upload"
@@ -297,10 +295,10 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
         </p>
       </div>
 
-      {/* 📋 Personal & Business Info (FIXED: Icon Overlap) */}
-      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
+      {/* 📋 Personal & Business Info (FIXED: Pink Theme & Input Padding) */}
+      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
         <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2">
-          <Building className="w-4 h-4 text-purple-500" /> Professional Details
+          <Building className="w-4 h-4 text-pink-500" /> Professional Details
         </h3>
         
         <div className="space-y-4">
@@ -311,7 +309,7 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your Name"
-              className="w-full bg-white/50 border border-purple-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+              className="w-full bg-white/50 border border-pink-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
             />
           </div>
 
@@ -322,36 +320,40 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
               value={shopName}
               onChange={(e) => setShopName(e.target.value)}
               placeholder="E.g. Mithas Glow Studio"
-              className="w-full bg-white/50 border border-purple-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+              className="w-full bg-white/50 border border-pink-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
             />
           </div>
 
+          {/* 🎯 FIX: Dedicated Icon Wrapper for Absolute Padding Prevention */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">City / Location</label>
-              {/* Added pl-12 and pointer-events-none to prevent icon overlap */}
-              <div className="relative flex items-center">
-                <MapPin className="absolute left-4 w-4 h-4 text-purple-400 pointer-events-none" />
+              <div className="relative rounded-2xl">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <MapPin className="h-4 w-4 text-pink-400" />
+                </div>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="Chennai"
-                  className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+                  className="block w-full pl-11 pr-4 py-3 bg-white/50 border border-pink-100/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
                 />
               </div>
             </div>
+            
             <div>
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Contact Number</label>
-              {/* Added pl-12 and pointer-events-none to prevent icon overlap */}
-              <div className="relative flex items-center">
-                <Phone className="absolute left-4 w-4 h-4 text-purple-400 pointer-events-none" />
+              <div className="relative rounded-2xl">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Phone className="h-4 w-4 text-pink-400" />
+                </div>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 XXXXXXXXXX"
-                  className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+                  className="block w-full pl-11 pr-4 py-3 bg-white/50 border border-pink-100/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -364,16 +366,16 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
               value={experience}
               onChange={(e) => setExperience(e.target.value)}
               placeholder="E.g. 5+ Years in Bridal Makeup"
-              className="w-full bg-white/50 border border-purple-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+              className="w-full bg-white/50 border border-pink-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
             />
           </div>
         </div>
       </div>
 
       {/* ✍️ Bio & Links */}
-      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
+      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
         <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2">
-          <FileText className="w-4 h-4 text-purple-500" /> About & Links
+          <FileText className="w-4 h-4 text-pink-500" /> About & Links
         </h3>
         
         <div className="space-y-4">
@@ -384,43 +386,44 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell your clients what makes your service special..."
               rows={4}
-              className="w-full bg-white/50 border border-purple-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all resize-none"
+              className="w-full bg-white/50 border border-pink-100/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all resize-none"
             />
           </div>
 
           <div>
             <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Instagram / Portfolio URL</label>
-            {/* Added pl-12 and pointer-events-none to prevent icon overlap */}
-            <div className="relative flex items-center">
-              <LinkIcon className="absolute left-4 w-4 h-4 text-purple-400 pointer-events-none" />
+            <div className="relative rounded-2xl">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <LinkIcon className="h-4 w-4 text-pink-400" />
+              </div>
               <input
                 type="text"
                 value={portfolioLink}
                 onChange={(e) => setPortfolioLink(e.target.value)}
                 placeholder="https://instagram.com/yourbrand"
-                className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+                className="block w-full pl-11 pr-4 py-3 bg-white/50 border border-pink-100/60 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-400/40 focus:border-transparent transition-all"
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* ⏰ Premium Operating Hours Setup */}
-      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
+      {/* ⏰ Pink Theme Operating Hours Setup */}
+      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
         <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-purple-500" /> Working Hours
+          <Clock className="w-4 h-4 text-pink-500" /> Working Hours
         </h3>
         
         <div className="space-y-3">
           {Object.entries(operatingHours).map(([day, hours]) => {
             const isOpen = hours !== null;
             return (
-              <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-2xl border border-purple-100/50 bg-white/40 transition-colors hover:bg-white/80">
+              <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-2xl border border-pink-100/50 bg-white/40 transition-colors hover:bg-white/80">
                 <div className="flex items-center justify-between sm:w-32 flex-shrink-0">
                   <span className="text-xs font-black uppercase tracking-wider text-slate-700">{day.slice(0, 3)}</span>
                   <button 
                     onClick={() => toggleDayStatus(day)}
-                    className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider transition-colors ${isOpen ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-slate-100 text-slate-500'}`}
+                    className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider transition-colors ${isOpen ? 'bg-pink-100 text-pink-600' : 'bg-slate-100 text-slate-500'}`}
                   >
                     {isOpen ? 'Open' : 'Closed'}
                   </button>
@@ -431,14 +434,14 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
                     type="time"
                     value={isOpen ? (hours as any).start : '09:00'}
                     onChange={(e) => handleOperatingHoursChange(day, 'start', e.target.value)}
-                    className="bg-white border border-purple-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40"
+                    className="bg-white border border-pink-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-400/40"
                   />
                   <span className="text-[10px] font-extrabold text-slate-400">TO</span>
                   <input
                     type="time"
                     value={isOpen ? (hours as any).end : '18:00'}
                     onChange={(e) => handleOperatingHoursChange(day, 'end', e.target.value)}
-                    className="bg-white border border-purple-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40"
+                    className="bg-white border border-pink-100 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-400/40"
                   />
                 </div>
               </div>
