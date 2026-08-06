@@ -592,8 +592,9 @@ export default function ProfessionalDashboard({
               </div>
             </div>
           </div>
+            </ErrorBoundaryWrapper>
         )}
-        </ErrorBoundaryWrapper>
+        
 
         {activeTab === 'bookings' && (
           <ErrorBoundaryWrapper moduleName="Bookings" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
