@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, memo, useCallback, useRef, useMemo } from "react";
 import { RegisterView } from "./components/RegisterView";
 import { LoginView } from "./components/LoginView";
 import { OTPView } from "./components/OTPView";
@@ -23,7 +23,8 @@ const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
 
 type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "artist-detail" | "professional";
 
-function LoadingScreen() {
+// Optimization: Memoized LoadingScreen prevents unnecessary re-renders
+const LoadingScreen = memo(function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-white">
       <div className="text-center p-8 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white">
@@ -32,7 +33,7 @@ function LoadingScreen() {
       </div>
     </div>
   );
-}
+});
 
 const THEME_MAP: Record<View, string> = {
   register: "mithas-theme", login: "mithas-theme", otp: "mithas-theme", profile: "mithas-theme",
@@ -41,13 +42,20 @@ const THEME_MAP: Record<View, string> = {
 };
 
 export default function App() {
-  const authStore = useAuthStore();
-  const globalStore = useGlobalStore();
+  const user = useGlobalStore((state) => state.user);
+  const appViewMode = useGlobalStore((state) => state.appViewMode);
+  const currentUserRole = useGlobalStore((state) => state.currentUserRole);
+  
+  // 1. ✨ FIX: Derived boolean value instead of function call
+  const isProUser = user?.role === 'seller';
+  
+  const fetchUserProfile = useGlobalStore((state) => state.fetchUserProfile);
+  const refreshProfile = useGlobalStore((state) => state.refreshProfile);
+  const clearData = useGlobalStore((state) => state.clearData);
 
-  const user = globalStore.user;
-  const appViewMode = globalStore.appViewMode;
-  const currentUserRole = globalStore.currentUserRole;
-  const isProUserFn = globalStore.isProUser;
+  const setAuthSession = useAuthStore((state) => state.setSession);
+  const setAuthProfileCompleted = useAuthStore((state) => state.setProfileCompleted);
+  const authLogout = useAuthStore((state) => state.logout);
 
   const [session, setSession] = useState<any>(null);
   const isAuthenticated = !!session;
@@ -58,18 +66,38 @@ export default function App() {
     const savedView = localStorage.getItem("currentView") as View;
     return savedView || "register";
   });
+
   const [identifier, setIdentifier] = useState("");
   const [identifierType, setIdentifierType] = useState<"email" | "phone">("email");
-  const [latestScanReport, setLatestScanReport] = useState<any>(null);
 
-  const navigate = (view: View) => {
+  // 3. ✨ FIX: Persist selectedArtistId across refreshes using sessionStorage
+  const [selectedArtistId, setSelectedArtistId] = useState<string>(() => sessionStorage.getItem("selectedArtistId") || "");
+
+  const latestScanReport = useRef<any>(null);
+
+  // Stable navigate function via useCallback
+  const navigate = useCallback((view: View) => {
     setCurrentView(view);
     localStorage.setItem("currentView", view);
     window.history.pushState({ view }, "");
-  };
+  }, []);
 
-  // 🚀 MASTER FIX: Bulletproof Fallback Timer
-  // நெட்வொர்க் கட் ஆனாலும், 3.5 விநாடிகளில் லோடிங் ஸ்க்ரீன் தானாகவே மறைந்துவிடும்!
+  // 2. ✨ FIX: Memoized Navigation Callbacks to prevent Child Re-renders
+  const goHome = useCallback(() => navigate("home"), [navigate]);
+  const goMirror = useCallback(() => navigate("mirror"), [navigate]);
+  const goProfile = useCallback(() => navigate("userprofile"), [navigate]);
+  const goEvents = useCallback(() => navigate("events"), [navigate]);
+  const goProducts = useCallback(() => navigate("products"), [navigate]);
+  const goCoach = useCallback(() => navigate("coach"), [navigate]);
+  const goBooking = useCallback(() => navigate("booking"), [navigate]);
+  
+  const handleNavigateToArtistDetail = useCallback((artistId: string) => {
+    setSelectedArtistId(artistId);
+    sessionStorage.setItem("selectedArtistId", artistId);
+    navigate("artist-detail");
+  }, [navigate]);
+
+  // Bulletproof Fallback Timer
   useEffect(() => {
     const fallbackTimer = setTimeout(() => {
       setIsInitialLoading(false);
@@ -77,6 +105,7 @@ export default function App() {
     return () => clearTimeout(fallbackTimer);
   }, []);
 
+  // Event Listeners with Stable Navigate
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       if (event.state?.view) setCurrentView(event.state.view);
@@ -84,45 +113,45 @@ export default function App() {
 
     const handleNavigateToEvents = (event: CustomEvent) => {
       if (event.detail?.scanReport && event.detail?.savedToDatabase === true) {
-        setLatestScanReport(event.detail.scanReport);
+        latestScanReport.current = event.detail.scanReport;
       } else {
-        setLatestScanReport(null);
+        latestScanReport.current = null;
       }
       navigate("events");
     };
 
+    const handleNavigateProfileSetup = () => navigate("profile");
+    const handleNavigateProfessional = () => navigate("professional");
+
     window.addEventListener("popstate", handlePopState);
     window.addEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
-    window.addEventListener("navigateToProfileSetup", () => navigate("profile"));
-    window.addEventListener("navigateToHome", () => navigate("home"));
-    window.addEventListener("navigateToProfessional", () => navigate("professional"));
+    window.addEventListener("navigateToProfileSetup", handleNavigateProfileSetup);
+    window.addEventListener("navigateToHome", goHome);
+    window.addEventListener("navigateToProfessional", handleNavigateProfessional);
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
-      window.removeEventListener("navigateToProfileSetup", () => navigate("profile"));
-      window.removeEventListener("navigateToHome", () => navigate("home"));
-      window.removeEventListener("navigateToProfessional", () => navigate("professional"));
+      window.removeEventListener("navigateToProfileSetup", handleNavigateProfileSetup);
+      window.removeEventListener("navigateToHome", goHome);
+      window.removeEventListener("navigateToProfessional", handleNavigateProfessional);
     };
-  }, []);
+  }, [navigate, goHome]);
 
+  // App Initialization & Auth State
   useEffect(() => {
     let mounted = true;
 
     const initApp = async () => {
       try {
-        setLatestScanReport(null);
+        latestScanReport.current = null;
         const { data: { session: currentSession } } = await supabase.auth.getSession();
 
         if (currentSession && mounted) {
           setSession(currentSession);
           
-          // Force fetch limit to 2 seconds to avoid freezing
-          await Promise.race([
-            globalStore.fetchUserProfile(currentSession.user.id),
-            new Promise(resolve => setTimeout(resolve, 2000))
-          ]);
-
+          await fetchUserProfile(currentSession.user.id, true);
+          
           const updatedUser = useGlobalStore.getState().user;
           const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
           const savedView = localStorage.getItem("currentView") as View;
@@ -159,31 +188,31 @@ export default function App() {
         
         if (event === 'SIGNED_IN' && currentSession) {
           setSession(currentSession);
-          await globalStore.fetchUserProfile(currentSession.user.id);
+          await fetchUserProfile(currentSession.user.id, true);
           const updatedUser = useGlobalStore.getState().user;
 
           if (updatedUser?.profile_completed) {
-            authStore.setProfileCompleted(true);
+            setAuthProfileCompleted(true);
             if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
               navigate("professional");
             } else {
               navigate("home");
             }
           } else {
-            authStore.setProfileCompleted(false);
+            setAuthProfileCompleted(false);
             navigate("profile");
           }
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
-          authStore.logout();
-          globalStore.clearData();
+          authLogout();
+          clearData();
           navigate("register");
-                } else if (event === 'TOKEN_REFRESHED' && currentSession) {
+        } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession(currentSession);
-          // 🎯 FIX: await வேண்டாம், பின்னணியில் (Background-ல்) அமைதியாக அப்டேட் ஆகட்டும்!
-          globalStore.refreshProfile().catch((err) => console.error("Silent refresh failed:", err));
+          setTimeout(() => {
+            refreshProfile().catch((err) => console.error("Silent refresh failed:", err));
+          }, 100);
         }
-
       }
     );
 
@@ -191,7 +220,7 @@ export default function App() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate, fetchUserProfile, setAuthProfileCompleted, authLogout, clearData, refreshProfile]);
 
   // Smart Routing Logic
   useEffect(() => {
@@ -207,11 +236,14 @@ export default function App() {
     } else if (!["login", "register", "otp"].includes(currentView)) {
       navigate("register");
     }
-  }, [isAuthenticated, profileCompleted, currentView, isInitialLoading, currentUserRole]);
+  }, [isAuthenticated, profileCompleted, currentView, isInitialLoading, currentUserRole, navigate]);
 
   useEffect(() => {
     const newTheme = THEME_MAP[currentView] || "mithas-theme";
-    document.body.className = newTheme;
+    const allThemes = Array.from(new Set(Object.values(THEME_MAP)));
+    
+    document.body.classList.remove(...allThemes);
+    document.body.classList.add(newTheme);
   }, [currentView]);
 
   const handleSendOTP = (id: string, type: "email" | "phone") => {
@@ -222,7 +254,7 @@ export default function App() {
 
   const handleVerifyOTP = () => {
     toast.success("Verification successful!");
-    authStore.setProfileCompleted(false);
+    setAuthProfileCompleted(false);
     navigate("profile");
   };
 
@@ -235,7 +267,7 @@ export default function App() {
       }
 
       if (view) {
-        authStore.setProfileCompleted(true);
+        setAuthProfileCompleted(true);
         navigate(view as View);
         toast.success("Profile saved and synced! ✨");
         return;
@@ -247,7 +279,7 @@ export default function App() {
         .eq('id', currentUser.id)
         .single();
 
-      authStore.setProfileCompleted(true);
+      setAuthProfileCompleted(true);
       if (profileData?.role === 'seller' && profileData?.industry === 'makeup_artist') {
         navigate("professional");
       } else {
@@ -260,95 +292,87 @@ export default function App() {
   };
 
   const handleLogin = async (userData: any) => {
-    authStore.setSession(userData.session);
+    setAuthSession(userData.session);
     setSession(userData.session);
   };
 
+  // Switch Case with Memoized Navigation Variables applied
+  const authenticatedScreen = useMemo(() => {
+    const screenMap: Record<string, JSX.Element> = {
+      "userprofile": <ProfileScreen onNavigateHome={goHome} />,
+      "events": <EventScreen onNavigateHome={goHome} latestScanReport={latestScanReport.current} setLatestScanReport={(val: any) => latestScanReport.current = val} />,
+      "mirror": <MirrorScreen onNavigateHome={goHome} />,
+      "products": <ProductsScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} />,
+      "coach": <CoachScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} />,
+      "booking": (
+        <BookingScreen
+          onNavigateToMirror={goMirror}
+          onNavigateToProfile={goProfile}
+          onNavigateHome={goHome}
+          onNavigateToArtistDetail={handleNavigateToArtistDetail}
+        />
+      ),
+      "artist-detail": (
+        <ArtistDetailScreen
+          artistId={selectedArtistId}
+          onNavigateToMirror={goMirror}
+          onNavigateToProfile={goProfile}
+          onNavigateHome={goHome}
+          onNavigateBack={goBooking}
+          onNavigateToMyBookings={goProfile}
+        />
+      ),
+      "professional": (isProUser && appViewMode === 'self') 
+        ? <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} />
+        : <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} />,
+      "home": (isProUser && appViewMode === 'pro')
+        ? <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} />
+        : <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} />
+    };
+
+    return screenMap[currentView] || null;
+  }, [currentView, isProUser, appViewMode, selectedArtistId, goHome, goMirror, goProfile, goEvents, goProducts, goCoach, goBooking, handleNavigateToArtistDetail]);
+
   if (isInitialLoading) return <LoadingScreen />;
 
-  if (currentView === "userprofile") {
-    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfileScreen onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
-  }
-
-  if (currentView === "events") {
-    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><EventScreen onNavigateHome={() => navigate("home")} latestScanReport={latestScanReport} setLatestScanReport={setLatestScanReport} /></Suspense></ErrorBoundary></AuthGuard>;
-  }
-
-  if (currentView === "mirror") {
-    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><MirrorScreen onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
-  }
-
-  if (currentView === "products") {
-    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProductsScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
-  }
-
-  if (currentView === "coach") {
-    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><CoachScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} /></Suspense></ErrorBoundary></AuthGuard>;
-  }
-
-  if (currentView === "booking") {
-    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><BookingScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} onNavigateToArtistDetail={(artistId: string) => { localStorage.setItem("selectedArtistId", artistId); navigate("artist-detail"); }} /></Suspense></ErrorBoundary></AuthGuard>;
-  }
-
-  if (currentView === "artist-detail") {
-    const selectedArtistId = localStorage.getItem("selectedArtistId") || "";
-    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ArtistDetailScreen artistId={selectedArtistId} onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateHome={() => navigate("home")} onNavigateBack={() => navigate("booking")} onNavigateToMyBookings={() => navigate("userprofile")} /></Suspense></ErrorBoundary></AuthGuard>;
-  }
-
-  if (currentView === "professional") {
-    if (isProUserFn() && appViewMode === 'self') {
-      return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><HomeScreen onNavigateToMirror={() => navigate("mirror")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToEvents={() => navigate("events")} onNavigateToProducts={() => navigate("products")} onNavigateToCoach={() => navigate("coach")} onNavigateToBooking={() => navigate("booking")} /></Suspense></ErrorBoundary></AuthGuard>;
-    }
-    return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfessionalDashboard onNavigateHome={() => navigate("home")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToMirror={() => navigate("mirror")} /></Suspense></ErrorBoundary></AuthGuard>;
-  }
-
-  if (currentView === "home") {
-    if (isProUserFn() && appViewMode === 'pro') {
-      return <AuthGuard onUnauthenticated={() => navigate("register")}><ErrorBoundary><Toaster position="top-center" richColors /><Suspense fallback={<LoadingScreen />}><ProfessionalDashboard onNavigateHome={() => navigate("home")} onNavigateToProfile={() => navigate("userprofile")} onNavigateToMirror={() => navigate("mirror")} /></Suspense></ErrorBoundary></AuthGuard>;
-    }
-
+  // Auth Layout Rendering
+  if (["register", "login", "otp", "profile"].includes(currentView)) {
     return (
-      <AuthGuard onUnauthenticated={() => navigate("register")}>
-        <ErrorBoundary>
-          <Toaster position="top-center" richColors />
-          <Suspense fallback={<LoadingScreen />}>
-            <HomeScreen
-              onNavigateToMirror={() => navigate("mirror")}
-              onNavigateToProfile={() => navigate("userprofile")}
-              onNavigateToEvents={() => navigate("events")}
-              onNavigateToProducts={() => navigate("products")}
-              onNavigateToCoach={() => navigate("coach")}
-              onNavigateToBooking={() => navigate("booking")}
-            />
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Toaster position="top-center" richColors />
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden p-8">
+          <header className="text-center mb-8">
+            <h1 className="text-4xl tracking-tighter text-pink-600">MITHAS GLOW</h1>
+            <p className="text-gray-500 mt-1">Discover your perfect look.</p>
+          </header>
+
+          {(currentView === "login" || currentView === "register") && (
+            <div className="flex border-b border-gray-200 mb-6">
+              <button onClick={() => navigate("login")} className={`flex-1 py-3 ${currentView === "login" ? "border-b-3 border-purple-500 text-purple-600 font-bold" : "text-gray-500"}`}>Login</button>
+              <button onClick={() => navigate("register")} className={`flex-1 py-3 ${currentView === "register" ? "border-b-3 border-purple-500 text-purple-600 font-bold" : "text-gray-500"}`}>Register</button>
+            </div>
+          )}
+
+          <Suspense fallback={null}>
+            {currentView === "register" && <RegisterView onSendOTP={handleSendOTP} />}
+            {currentView === "login" && <LoginView onLogin={handleLogin} />}
+            {currentView === "otp" && <OTPView identifier={identifier} identifierType={identifierType} onVerify={handleVerifyOTP} onResend={() => toast.success("OTP Resent")} />}
+            {currentView === "profile" && <ProfileSetupView onComplete={handleProfileComplete} />}
           </Suspense>
-        </ErrorBoundary>
-      </AuthGuard>
+        </div>
+      </div>
     );
   }
 
+  // Centralized AuthGuard and Suspense for Authenticated Views
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Toaster position="top-center" richColors />
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden p-8">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl tracking-tighter text-pink-600">MITHAS GLOW</h1>
-          <p className="text-gray-500 mt-1">Discover your perfect look.</p>
-        </header>
-
-        {(currentView === "login" || currentView === "register") && (
-          <div className="flex border-b border-gray-200 mb-6">
-            <button onClick={() => navigate("login")} className={`flex-1 py-3 ${currentView === "login" ? "border-b-3 border-purple-500 text-purple-600 font-bold" : "text-gray-500"}`}>Login</button>
-            <button onClick={() => navigate("register")} className={`flex-1 py-3 ${currentView === "register" ? "border-b-3 border-purple-500 text-purple-600 font-bold" : "text-gray-500"}`}>Register</button>
-          </div>
-        )}
-
-        <Suspense fallback={null}>
-          {currentView === "register" && <RegisterView onSendOTP={handleSendOTP} />}
-          {currentView === "login" && <LoginView onLogin={handleLogin} />}
-          {currentView === "otp" && <OTPView identifier={identifier} identifierType={identifierType} onVerify={handleVerifyOTP} onResend={() => toast.success("OTP Resent")} />}
-          {currentView === "profile" && <ProfileSetupView onComplete={handleProfileComplete} />}
+    <AuthGuard onUnauthenticated={() => navigate("register")}>
+      <ErrorBoundary>
+        <Toaster position="top-center" richColors />
+        <Suspense fallback={<LoadingScreen />}>
+          {authenticatedScreen}
         </Suspense>
-      </div>
-    </div>
+      </ErrorBoundary>
+    </AuthGuard>
   );
 }
