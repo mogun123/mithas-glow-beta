@@ -65,7 +65,6 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
   const [avatarUrl, setAvatarUrl] = useState('');
   const [operatingHours, setOperatingHours] = useState(DEFAULT_OPERATING_HOURS);
 
-  // Load profile and shop data from Supabase Safely
   useEffect(() => {
     let isMounted = true;
 
@@ -265,11 +264,13 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
         </div>
       </div>
 
-      {/* 📸 Avatar Section */}
-      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6 text-center relative overflow-hidden">
+      {/* 📸 Avatar Section (FIXED: Perfect Circle) */}
+      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6 text-center relative overflow-hidden flex flex-col items-center">
         <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-bl-full pointer-events-none"></div>
-        <div className="relative inline-block group">
-          <div className="w-28 h-28 mx-auto rounded-full p-1 bg-gradient-to-tr from-purple-500 to-fuchsia-500 shadow-xl shadow-purple-500/20">
+        
+        {/* Aspect-square ensures it never stretches into a pill shape */}
+        <div className="relative group w-28 h-28 flex-shrink-0 aspect-square">
+          <div className="w-full h-full rounded-full p-1 bg-gradient-to-tr from-purple-500 to-fuchsia-500 shadow-xl shadow-purple-500/20">
             <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white flex items-center justify-center">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -290,12 +291,13 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
             className="hidden"
           />
         </div>
-        <p className="text-[10px] font-bold text-slate-400 mt-4 uppercase tracking-widest">
+        
+        <p className="text-[10px] font-bold text-slate-400 mt-5 uppercase tracking-widest">
           {uploadingAvatar ? 'Uploading magic...' : 'Tap camera icon to change'}
         </p>
       </div>
 
-      {/* 📋 Personal & Business Info */}
+      {/* 📋 Personal & Business Info (FIXED: Icon Overlap) */}
       <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
         <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2">
           <Building className="w-4 h-4 text-purple-500" /> Professional Details
@@ -327,27 +329,29 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">City / Location</label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
+              {/* Added pl-12 and pointer-events-none to prevent icon overlap */}
+              <div className="relative flex items-center">
+                <MapPin className="absolute left-4 w-4 h-4 text-purple-400 pointer-events-none" />
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="Chennai"
-                  className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+                  className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
                 />
               </div>
             </div>
             <div>
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Contact Number</label>
-              <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
+              {/* Added pl-12 and pointer-events-none to prevent icon overlap */}
+              <div className="relative flex items-center">
+                <Phone className="absolute left-4 w-4 h-4 text-purple-400 pointer-events-none" />
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 XXXXXXXXXX"
-                  className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+                  className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -386,14 +390,15 @@ export default function ProfessionalProfile({ artistId, onBack }: ProfessionalPr
 
           <div>
             <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Instagram / Portfolio URL</label>
-            <div className="relative">
-              <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
+            {/* Added pl-12 and pointer-events-none to prevent icon overlap */}
+            <div className="relative flex items-center">
+              <LinkIcon className="absolute left-4 w-4 h-4 text-purple-400 pointer-events-none" />
               <input
                 type="text"
                 value={portfolioLink}
                 onChange={(e) => setPortfolioLink(e.target.value)}
                 placeholder="https://instagram.com/yourbrand"
-                className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
+                className="w-full bg-white/50 border border-purple-100/60 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 focus:border-transparent transition-all"
               />
             </div>
           </div>
