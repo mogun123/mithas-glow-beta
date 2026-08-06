@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
 import { 
   Calendar, Clock, DollarSign, Star, Users, AlertCircle, 
-  CheckCircle, XCircle, MapPin, Sparkles, Zap, Crown
+  CheckCircle, XCircle, MapPin, Sparkles, Zap, Crown, WifiOff, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProfessionalBottomNav from './ProfessionalBottomNav';
@@ -19,6 +19,16 @@ import {
   TimeExtractable,
   BookingStatus,
 } from '../lib/types/professional';
+import { ErrorBoundaryWrapper } from './common/ErrorBoundary';
+import { 
+  DashboardSkeleton, 
+  BookingSkeleton, 
+  AnalyticsSkeleton, 
+  AvailabilitySkeleton, 
+  ProfileSkeleton, 
+  AISkeleton 
+} from './common/Skeletons';
+import { useOfflineDetection, OfflineBanner } from './common/OfflineSupport';
 
 interface BookingWithCustomer extends BookingWithDetails {
   customer?: {
@@ -31,6 +41,13 @@ interface BookingWithCustomer extends BookingWithDetails {
 interface FetchResult<T> {
   data: T | null;
   error: Error | null;
+}
+
+interface DashboardLoadState {
+  bookingsLoaded: boolean;
+  reviewsLoaded: boolean;
+  bookingsError: Error | null;
+  reviewsError: Error | null;
 }
 
 const ProfessionalBookings = lazy(() => import('./professional/ProfessionalBookings'));
@@ -51,6 +68,17 @@ export default function ProfessionalDashboard({
   // Store ALL bookings here once, and filter them in UI (Prevents looping requests)
   const [allBookings, setAllBookings] = useState<BookingWithCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadState, setLoadState] = useState<DashboardLoadState>({
+    bookingsLoaded: false,
+    reviewsLoaded: false,
+    bookingsError: null,
+    reviewsError: null,
+  });
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+
+  // Offline detection
+  const { isOnline } = useOfflineDetection();
 
   // Use Profile directly from Global Store! No redundant DB calls!
   const profile = globalStore.user;
@@ -107,6 +135,53 @@ export default function ProfessionalDashboard({
     }
   }, []);
 
+  // Retry mechanism for failed requests only
+  const handleRetry = useCallback(async () => {
+    if (!profile?.id || !isOnline) {
+      logger.warn('Cannot retry: no profile or offline', { hasProfile: !!profile?.id, isOnline });
+      return;
+    }
+
+    if (retryCount >= MAX_RETRIES) {
+      logger.warn('Max retries exceeded');
+      toast.error('Unable to load data. Please refresh the page.');
+      return;
+    }
+
+    setLoading(true);
+    setRetryCount(prev => prev + 1);
+    logger.info(`Retrying dashboard data fetch (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+
+    const results = await Promise.all([
+      fetchBookings(profile.id),
+      fetchReviews(profile.id),
+    ]);
+
+    const [bookingsResult, reviewsResult] = results;
+
+    if (bookingsResult.data) {
+      setAllBookings(bookingsResult.data);
+      setLoadState(prev => ({ ...prev, bookingsLoaded: true, bookingsError: null }));
+    } else {
+      setLoadState(prev => ({ ...prev, bookingsError: bookingsResult.error }));
+    }
+
+    if (reviewsResult.data !== null) {
+      setLoadState(prev => ({ ...prev, reviewsLoaded: true, reviewsError: null }));
+    } else {
+      setLoadState(prev => ({ ...prev, reviewsError: reviewsResult.error }));
+    }
+
+    setLoading(false);
+    
+    if (bookingsResult.error || reviewsResult.error) {
+      toast.error('Some data could not be loaded. Retrying...');
+    } else {
+      toast.success('Data refreshed successfully');
+      setRetryCount(0);
+    }
+  }, [profile?.id, isOnline, retryCount, fetchBookings, fetchReviews]);
+
   useEffect(() => {
     if (!profile?.id || !isProfessionalUser) {
       setLoading(false);
@@ -127,6 +202,9 @@ export default function ProfessionalDashboard({
         // Handle bookings (required data)
         if (bookingsResult.error) {
           logger.warn('Bookings fetch failed, using empty array', { error: bookingsResult.error.message });
+          setLoadState(prev => ({ ...prev, bookingsError: bookingsResult.error }));
+        } else {
+          setLoadState(prev => ({ ...prev, bookingsLoaded: true }));
         }
         const fetchedBookings = bookingsResult.data || [];
         setAllBookings(fetchedBookings);
@@ -135,6 +213,9 @@ export default function ProfessionalDashboard({
         const avgRating = reviewsResult.data ?? 0;
         if (reviewsResult.error) {
           logger.warn('Reviews fetch failed, using default rating', { error: reviewsResult.error.message });
+          setLoadState(prev => ({ ...prev, reviewsError: reviewsResult.error }));
+        } else {
+          setLoadState(prev => ({ ...prev, reviewsLoaded: true }));
         }
 
         // Safely calculate Stats in JavaScript (Bypasses missing column DB errors)
@@ -200,14 +281,10 @@ export default function ProfessionalDashboard({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA] relative overflow-hidden">
-        <div className="text-center bg-white/70 backdrop-blur-xl border border-white p-6 rounded-3xl shadow-lg">
-          <div className="relative w-16 h-16 mx-auto mb-4">
-            <div className="absolute inset-0 border-4 border-purple-100 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-t-purple-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-            <Sparkles className="absolute inset-0 m-auto w-6 h-6 text-purple-500 animate-pulse" />
-          </div>
-          <p className="text-slate-700 font-extrabold tracking-wide text-sm">Loading Premium Dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA] relative overflow-hidden pb-32">
+        <OfflineBanner isOnline={isOnline} onRetry={handleRetry} />
+        <div className="max-w-4xl mx-auto px-4 pt-4">
+          <DashboardSkeleton />
         </div>
       </div>
     );
@@ -281,7 +358,8 @@ export default function ProfessionalDashboard({
 
       <main className="max-w-4xl mx-auto px-4 pt-4">
         {activeTab === 'dashboard' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <ErrorBoundaryWrapper moduleName="DashboardOverview" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-4">
               <div className="relative overflow-hidden bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white shadow-sm">
                 <div className="flex items-center gap-3">
@@ -416,12 +494,43 @@ export default function ProfessionalDashboard({
             </div>
           </div>
         )}
+        </ErrorBoundaryWrapper>
 
-        {activeTab === 'bookings' && <Suspense fallback={<div>Loading...</div>}><ProfessionalBookings artistId={profile.id} onBack={() => setActiveTab('dashboard')} /></Suspense>}
-        {activeTab === 'availability' && <Suspense fallback={<div>Loading...</div>}><ProfessionalAvailability artistId={profile.id} onBack={() => setActiveTab('dashboard')} /></Suspense>}
-        {activeTab === 'ai-assistant' && <Suspense fallback={<div>Loading...</div>}><ProfessionalAIAssistant artistId={profile.id} onBack={() => setActiveTab('dashboard')} /></Suspense>}
-        {activeTab === 'analytics' && <Suspense fallback={<div>Loading...</div>}><ProfessionalAnalytics artistId={profile.id} onBack={() => setActiveTab('dashboard')} /></Suspense>}
-        {activeTab === 'profile' && <Suspense fallback={<div>Loading...</div>}><ProfessionalProfile artistId={profile.id} onBack={() => setActiveTab('dashboard')} /></Suspense>}
+        {activeTab === 'bookings' && (
+          <ErrorBoundaryWrapper moduleName="Bookings" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+            <Suspense fallback={<BookingSkeleton />}>
+              <ProfessionalBookings artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+            </Suspense>
+          </ErrorBoundaryWrapper>
+        )}
+        {activeTab === 'availability' && (
+          <ErrorBoundaryWrapper moduleName="Availability" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+            <Suspense fallback={<AvailabilitySkeleton />}>
+              <ProfessionalAvailability artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+            </Suspense>
+          </ErrorBoundaryWrapper>
+        )}
+        {activeTab === 'ai-assistant' && (
+          <ErrorBoundaryWrapper moduleName="AI Assistant" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+            <Suspense fallback={<AISkeleton />}>
+              <ProfessionalAIAssistant artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+            </Suspense>
+          </ErrorBoundaryWrapper>
+        )}
+        {activeTab === 'analytics' && (
+          <ErrorBoundaryWrapper moduleName="Analytics" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+            <Suspense fallback={<AnalyticsSkeleton />}>
+              <ProfessionalAnalytics artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+            </Suspense>
+          </ErrorBoundaryWrapper>
+        )}
+        {activeTab === 'profile' && (
+          <ErrorBoundaryWrapper moduleName="Profile" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+            <Suspense fallback={<ProfileSkeleton />}>
+              <ProfessionalProfile artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+            </Suspense>
+          </ErrorBoundaryWrapper>
+        )}
       </main>
 
       <ProfessionalBottomNav currentView={activeTab} onNavigate={(view: DashboardTab) => setActiveTab(view)} />
