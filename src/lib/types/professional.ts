@@ -124,3 +124,56 @@ export interface TimeExtractable {
   appointment_time?: string;
   time?: string;
 }
+
+/**
+ * Reusable Dashboard Statistics Calculator
+ * Automatically recalculates all stats from bookings and reviews data
+ * Used on: Initial Load, Booking Status Update, Realtime Update, Pull to Refresh, Retry
+ */
+export interface StatsCalculationInput {
+  bookings: BookingWithDetails[];
+  avgRating: number;
+  reviewCount?: number;
+}
+
+export function calculateDashboardStats({ 
+  bookings, 
+  avgRating, 
+  reviewCount 
+}: StatsCalculationInput): DashboardStats {
+  const today = new Date().toISOString().split('T')[0];
+  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+
+  // Helper to safely extract date
+  const getSafeDate = (b: DateExtractable): string => {
+    return b.booking_date || b.appointment_date || b.date || b.created_at?.split('T')[0] || '';
+  };
+
+  const todayBookingsList = bookings.filter(b => getSafeDate(b) === today);
+  const pending = bookings.filter(b => b.status === 'pending');
+  const upcoming = bookings.filter(b => 
+    ['confirmed', 'pending'].includes(b.status) && getSafeDate(b) >= today
+  );
+  const completedToday = bookings.filter(b => 
+    b.status === 'completed' && getSafeDate(b) === today
+  );
+
+  const todaysEarnings = completedToday.reduce((sum, b) => sum + (b.total_price || 0), 0);
+  const monthlyEarnings = bookings
+    .filter(b => b.status === 'completed' && getSafeDate(b) >= firstOfMonth)
+    .reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+  // Use provided reviewCount or estimate from bookings if not provided
+  const totalReviews = reviewCount ?? (bookings.length ? Math.floor(bookings.length * 0.3) : 0);
+
+  return {
+    todayBookings: todayBookingsList.length,
+    pendingRequests: pending.length,
+    upcomingAppointments: upcoming.length,
+    completedToday: completedToday.length,
+    todaysEarnings,
+    monthlyEarnings,
+    averageRating: parseFloat(avgRating.toFixed(1)),
+    totalReviews,
+  };
+}
