@@ -178,10 +178,12 @@ export default function App() {
           authStore.logout();
           globalStore.clearData();
           navigate("register");
-        } else if (event === 'TOKEN_REFRESHED' && currentSession) {
+                } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession(currentSession);
-          await globalStore.refreshProfile();
+          // 🎯 FIX: await வேண்டாம், பின்னணியில் (Background-ல்) அமைதியாக அப்டேட் ஆகட்டும்!
+          globalStore.refreshProfile().catch((err) => console.error("Silent refresh failed:", err));
         }
+
       }
     );
 
