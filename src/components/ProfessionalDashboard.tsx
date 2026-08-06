@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
 import { 
@@ -18,6 +18,7 @@ import {
   DateExtractable,
   TimeExtractable,
   BookingStatus,
+  calculateDashboardStats,
 } from '../lib/types/professional';
 import { ErrorBoundaryWrapper } from './common/ErrorBoundary';
 import { 
@@ -76,6 +77,10 @@ export default function ProfessionalDashboard({
   });
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 3;
+
+  // Refs for realtime subscriptions (prevents memory leaks)
+  const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const isSubscribedRef = useRef(false);
 
   // Offline detection
   const { isOnline } = useOfflineDetection();
@@ -218,34 +223,15 @@ export default function ProfessionalDashboard({
           setLoadState(prev => ({ ...prev, reviewsLoaded: true }));
         }
 
-        // Safely calculate Stats in JavaScript (Bypasses missing column DB errors)
-        const today = new Date().toISOString().split('T')[0];
-        const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-
-        const todayBookings = fetchedBookings.filter(b => getSafeDate(b) === today);
-        const pending = fetchedBookings.filter(b => b.status === 'pending');
-        const upcoming = fetchedBookings.filter(b => ['confirmed', 'pending'].includes(b.status) && getSafeDate(b) >= today);
-        const completedToday = fetchedBookings.filter(b => b.status === 'completed' && getSafeDate(b) === today);
-
-        const todaysEarnings = completedToday.reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const monthlyEarnings = fetchedBookings
-          .filter(b => b.status === 'completed' && getSafeDate(b) >= firstOfMonth)
-          .reduce((sum, b) => sum + (b.total_price || 0), 0);
-
-        const reviewCount = bookingsResult.data?.length ? Math.floor(bookingsResult.data.length * 0.3) : 0;
-
-        setStats({
-          todayBookings: todayBookings.length,
-          pendingRequests: pending.length,
-          upcomingAppointments: upcoming.length,
-          completedToday: completedToday.length,
-          todaysEarnings,
-          monthlyEarnings,
-          averageRating: parseFloat(avgRating.toFixed(1)),
-          totalReviews: reviewCount,
+        // Use reusable stats calculator
+        const newStats = calculateDashboardStats({
+          bookings: fetchedBookings,
+          avgRating,
+          reviewCount: bookingsResult.data?.length ? Math.floor(bookingsResult.data.length * 0.3) : 0,
         });
+        setStats(newStats);
 
-        logger.info('Dashboard data fetch completed', { stats: setStats });
+        logger.info('Dashboard data fetch completed', { stats: newStats });
 
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Unknown dashboard fetch error');
@@ -257,13 +243,28 @@ export default function ProfessionalDashboard({
     };
 
     fetchAllDashboardData();
-  }, [profile?.id, isProfessionalUser, fetchBookings, fetchReviews, getSafeDate]);
+  }, [profile?.id, isProfessionalUser, fetchBookings, fetchReviews]);
 
   // Derived state for UI filtering (Instant tab switching without API calls)
   const displayedBookings = useMemo(() => {
     if (bookingFilter === 'all') return allBookings;
     return allBookings.filter(b => b.status === bookingFilter);
   }, [allBookings, bookingFilter]);
+
+  // Recalculate stats when bookings change (for status updates, realtime sync)
+  const recalculateStats = useCallback(() => {
+    if (!loadState.reviewsLoaded && !loadState.reviewsError) return;
+    
+    const avgRating = loadState.reviewsLoaded ? 
+      (stats?.averageRating || 0) : 0;
+    
+    const newStats = calculateDashboardStats({
+      bookings: allBookings,
+      avgRating,
+      reviewCount: allBookings.length ? Math.floor(allBookings.length * 0.3) : 0,
+    });
+    setStats(newStats);
+  }, [allBookings, loadState.reviewsLoaded, loadState.reviewsError, stats?.averageRating]);
 
   const updateBookingStatus = async (bookingId: string, newStatus: BookingStatus, successMessage: string) => {
     try {
@@ -272,12 +273,110 @@ export default function ProfessionalDashboard({
       logger.info('Booking status updated', { bookingId, newStatus });
       toast.success(successMessage);
       setAllBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
+      // Stats will be recalculated automatically via useEffect below
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error updating booking status');
       logger.error('Failed to update booking status', error, { bookingId, newStatus });
       toast.error('Failed to update booking status');
     }
   };
+
+  // Recalculate stats whenever bookings change
+  useEffect(() => {
+    if (allBookings.length > 0 || loadState.bookingsLoaded) {
+      recalculateStats();
+    }
+  }, [allBookings, recalculateStats, loadState.bookingsLoaded]);
+
+  // Supabase Realtime Subscription for bookings (INSERT, UPDATE, DELETE)
+  useEffect(() => {
+    if (!profile?.id || !isProfessionalUser || !loadState.bookingsLoaded) {
+      return;
+    }
+
+    // Prevent duplicate subscriptions
+    if (isSubscribedRef.current) {
+      logger.info('Realtime subscription already active');
+      return;
+    }
+
+    const setupRealtimeSubscription = async () => {
+      try {
+        // Clean up any existing channel
+        if (realtimeChannelRef.current) {
+          await realtimeChannelRef.current.unsubscribe();
+          realtimeChannelRef.current = null;
+        }
+
+        // Create new realtime channel for bookings
+        const channel = supabase.channel(`bookings:${profile.id}`);
+        
+        channel
+          .on(
+            'postgres_changes',
+            {
+              event: '*', // Listen to INSERT, UPDATE, DELETE
+              schema: 'public',
+              table: 'bookings',
+              filter: `artist_id=eq.${profile.id}`,
+            },
+            async (payload) => {
+              logger.info('Realtime booking update received', { 
+                eventType: payload.eventType, 
+                bookingId: payload.new?.id 
+              });
+
+              // Refetch bookings to get fresh data
+              const result = await fetchBookings(profile.id);
+              if (result.data) {
+                setAllBookings(result.data);
+                setLoadState(prev => ({ ...prev, bookingsLoaded: true }));
+                
+                // Recalculate stats with new data
+                const avgRating = loadState.reviewsLoaded ? (stats?.averageRating || 0) : 0;
+                const newStats = calculateDashboardStats({
+                  bookings: result.data,
+                  avgRating,
+                  reviewCount: result.data.length ? Math.floor(result.data.length * 0.3) : 0,
+                });
+                setStats(newStats);
+                
+                toast.success(`Booking ${payload.eventType.toLowerCase()}`);
+              }
+            }
+          )
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              isSubscribedRef.current = true;
+              realtimeChannelRef.current = channel;
+              logger.info('Successfully subscribed to bookings realtime updates');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              logger.error('Realtime subscription error', new Error(status));
+              isSubscribedRef.current = false;
+            }
+          });
+
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Unknown realtime setup error');
+        logger.error('Failed to setup realtime subscription', error);
+      }
+    };
+
+    setupRealtimeSubscription();
+
+    // Cleanup function - prevents memory leaks
+    return () => {
+      if (realtimeChannelRef.current) {
+        realtimeChannelRef.current.unsubscribe().then(() => {
+          realtimeChannelRef.current = null;
+          isSubscribedRef.current = false;
+          logger.info('Realtime subscription cleaned up');
+        }).catch((err) => {
+          logger.error('Error cleaning up realtime subscription', err as Error);
+        });
+      }
+    };
+  }, [profile?.id, isProfessionalUser, loadState.bookingsLoaded, fetchBookings]);
 
   if (loading) {
     return (
