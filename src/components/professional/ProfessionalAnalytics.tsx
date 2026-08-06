@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { TrendingUp, DollarSign, Calendar, Users, BarChart3, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { TrendingUp, Calendar, BarChart3, Sparkles, IndianRupee, Wallet, Activity, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AnalyticsData {
@@ -34,6 +31,8 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
 
   // Fetch analytics data from Supabase
   useEffect(() => {
+    let isMounted = true;
+
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
@@ -43,7 +42,6 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
         const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
         const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
 
-        // Fetch all bookings for the artist
         const { data: allBookings, error: bookingsError } = await supabase
           .from('bookings')
           .select('total_price, status, booking_date, service_name')
@@ -51,39 +49,30 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
 
         if (bookingsError) throw bookingsError;
 
-        // Calculate metrics
-        const totalBookings = allBookings?.length || 0;
-        const completedBookings = allBookings?.filter(b => b.status === 'completed').length || 0;
-        const cancelledBookings = allBookings?.filter(b => b.status === 'cancelled').length || 0;
+        if (!isMounted) return;
+
+        const bookings = allBookings || [];
+
+        const totalBookings = bookings.length;
+        const completedBookings = bookings.filter(b => b.status === 'completed').length;
+        const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
         
-        const todayBookings = allBookings?.filter(b => b.booking_date === today && b.status === 'completed') || [];
-        const weekBookings = allBookings?.filter(b => b.booking_date >= weekAgo && b.status === 'completed') || [];
-        const monthBookings = allBookings?.filter(b => b.booking_date >= monthStart && b.status === 'completed') || [];
-        const yearBookings = allBookings?.filter(b => b.booking_date >= yearStart && b.status === 'completed') || [];
+        const todayBookings = bookings.filter(b => (b.booking_date || '').startsWith(today) && b.status === 'completed');
+        const weekBookings = bookings.filter(b => (b.booking_date || '') >= weekAgo && b.status === 'completed');
+        const monthBookings = bookings.filter(b => (b.booking_date || '') >= monthStart && b.status === 'completed');
+        const yearBookings = bookings.filter(b => (b.booking_date || '') >= yearStart && b.status === 'completed');
 
         const todayEarnings = todayBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
         const weekEarnings = weekBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
         const monthEarnings = monthBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
         const yearEarnings = yearBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
 
-        const totalRevenue = allBookings?.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0) || 0;
+        const totalRevenue = bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0);
         const averageBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
 
-        // Calculate rates
-        const pendingBookings = allBookings?.filter(b => b.status === 'pending').length || 0;
+        const pendingBookings = bookings.filter(b => b.status === 'pending').length;
         const acceptanceRate = totalBookings > 0 ? ((completedBookings + pendingBookings) / totalBookings) * 100 : 0;
         const completionRate = (completedBookings + pendingBookings) > 0 ? (completedBookings / (completedBookings + pendingBookings)) * 100 : 0;
-
-        // Calculate retention rate: % of customers who have booked more than once
-        const customerBookings: Record<string, number> = {};
-        allBookings?.forEach(booking => {
-          if (booking.status === 'completed' && booking.customer_id) {
-            customerBookings[booking.customer_id] = (customerBookings[booking.customer_id] || 0) + 1;
-          }
-        });
-        const totalCustomers = Object.keys(customerBookings).length;
-        const repeatCustomers = Object.values(customerBookings).filter(count => count > 1).length;
-        const customerRetentionRate = totalCustomers > 0 ? Math.round((repeatCustomers / totalCustomers) * 100) : 0;
 
         setAnalytics({
           todayEarnings,
@@ -93,34 +82,41 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
           totalBookings,
           completedBookings,
           cancelledBookings,
-          averageBookingValue,
-          customerRetentionRate,
+          averageBookingValue: Math.round(averageBookingValue),
+          customerRetentionRate: 0,
           acceptanceRate: Math.round(acceptanceRate),
           completionRate: Math.round(completionRate),
         });
 
-        // Calculate revenue trend by month (last 6 months)
         const monthlyRevenue: Record<string, number> = {};
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
-        allBookings?.forEach(booking => {
+        bookings.forEach(booking => {
           if (booking.status === 'completed' && booking.booking_date) {
             const date = new Date(booking.booking_date);
-            const key = monthNames[date.getMonth()];
-            monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (booking.total_price || 0);
+            if (!isNaN(date.getTime())) {
+              const key = monthNames[date.getMonth()];
+              monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (booking.total_price || 0);
+            }
           }
         });
 
-        const last6Months = monthNames.slice(0, 6);
+        const currentMonth = new Date().getMonth();
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date();
+          d.setMonth(currentMonth - i);
+          last6Months.push(monthNames[d.getMonth()]);
+        }
+
         const trendData = last6Months.map(month => ({
           month,
           revenue: monthlyRevenue[month] || 0,
         }));
         setRevenueTrend(trendData);
 
-        // Calculate popular services
         const serviceCounts: Record<string, number> = {};
-        allBookings?.forEach(booking => {
+        bookings.forEach(booking => {
           if (booking.service_name) {
             serviceCounts[booking.service_name] = (serviceCounts[booking.service_name] || 0) + 1;
           }
@@ -138,14 +134,14 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
         setPopularServices(sortedServices);
 
       } catch (err: any) {
-        console.error('ProfessionalAnalytics: Fetch error:', err.message);
         toast.error('Failed to load analytics');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchAnalytics();
+    return () => { isMounted = false; };
   }, [artistId]);
 
   const getEarningsForRange = () => {
@@ -157,225 +153,177 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
     }
   };
 
-  const getGrowthIndicator = () => {
-    const growth = 12.5; // Would calculate from period-over-period comparison
-    return growth > 0 ? (
-      <Badge className="bg-green-100 text-green-800">
-        <ArrowUpRight className="w-3 h-3 mr-1" />
-        +{growth}%
-      </Badge>
-    ) : (
-      <Badge className="bg-red-100 text-red-800">
-        <ArrowDownRight className="w-3 h-3 mr-1" />
-        {growth}%
-      </Badge>
-    );
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="relative w-12 h-12 mx-auto mb-4">
-            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-t-[#D4AF37] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-          </div>
-          <p className="text-gray-500">Loading analytics...</p>
+      <div className="animate-in fade-in duration-500 min-h-[60vh] flex flex-col items-center justify-center">
+        <div className="relative w-20 h-20 mx-auto mb-6">
+          <div className="absolute inset-0 border-4 border-purple-100 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-t-purple-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          <Sparkles className="absolute inset-0 m-auto w-7 h-7 text-purple-600 animate-pulse" />
         </div>
+        <p className="text-slate-500 font-black tracking-widest text-xs uppercase animate-pulse">Processing Data...</p>
       </div>
     );
   }
 
-  if (!analytics) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-500">No analytics data available</p>
-        </div>
-      </div>
-    );
-  }
+  if (!analytics) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-pink-100">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-black text-gray-900">Analytics</h1>
-              <p className="text-xs text-gray-500">Track your business performance</p>
+    <div className="pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      {/* 💎 Floating Glass Controls */}
+      <div className="flex items-center justify-between mb-6 bg-white/80 backdrop-blur-2xl p-2 pl-5 rounded-[2rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <div>
+          <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Revenue</h2>
+        </div>
+        <div className="flex gap-1 p-1 bg-slate-100/50 rounded-full border border-slate-200/50">
+          {(['week', 'month', 'year'] as const).map(range => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                timeRange === range
+                  ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/30'
+                  : 'text-slate-500 hover:bg-white'
+              }`}
+            >
+              {range}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 🚀 Ultra-Premium Main Earning Card (Dark Theme Insert) */}
+      <div className="relative bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6 rounded-[2rem] shadow-2xl shadow-purple-900/20 mb-6 overflow-hidden border border-purple-700/30">
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-fuchsia-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md border border-white/5">
+              <IndianRupee className="w-3.5 h-3.5 text-fuchsia-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-purple-100">{timeRange}</span>
             </div>
-            <div className="flex gap-2">
-              {(['week', 'month', 'year'] as const).map(range => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    timeRange === range
-                      ? 'bg-[#D4AF37] text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {range.charAt(0).toUpperCase() + range.slice(1)}
-                </button>
-              ))}
-            </div>
+          </div>
+          
+          <div className="flex items-baseline gap-1 mb-4">
+            <span className="text-3xl font-bold text-purple-300/80">₹</span>
+            <p className="text-5xl sm:text-6xl font-black text-white tracking-tighter drop-shadow-md">
+              {getEarningsForRange().toLocaleString()}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2 text-[11px] font-extrabold tracking-wide text-purple-200/60 bg-black/20 w-fit px-3 py-1.5 rounded-lg border border-white/5">
+            <Wallet className="w-3.5 h-3.5" />
+            <span>AVG. ₹{analytics.averageBookingValue.toLocaleString()} / BOOKING</span>
           </div>
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Primary Earnings Card */}
-        <Card className="bg-gradient-to-br from-[#D4AF37] to-orange-500 text-white border-0">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <DollarSign className="w-6 h-6 opacity-80" />
-                <span className="text-sm opacity-80">Total Earnings ({timeRange})</span>
-              </div>
-              {getGrowthIndicator()}
-            </div>
-            <p className="text-4xl font-black mb-2">₹{getEarningsForRange().toLocaleString()}</p>
-            <div className="flex items-center gap-4 text-sm opacity-80">
-              <span>Average: ₹{analytics.averageBookingValue.toLocaleString()}/booking</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-black">{analytics.totalBookings}</p>
-                  <p className="text-xs text-gray-500">Total Bookings</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-black">{analytics.completedBookings}</p>
-                  <p className="text-xs text-gray-500">Completed</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Users className="w-5 h-5 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-black">{analytics.customerRetentionRate}%</p>
-                  <p className="text-xs text-gray-500">Retention Rate</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <TrendingUp className="w-5 h-5 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-black">{analytics.acceptanceRate}%</p>
-                  <p className="text-xs text-gray-500">Acceptance Rate</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* 📊 Visual Stats Grid (No more boring text cards) */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        
+        {/* Total Bookings */}
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-bl-full transition-transform group-hover:scale-110"></div>
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-blue-500/30">
+            <Calendar className="w-5 h-5" />
+          </div>
+          <p className="text-3xl font-black text-slate-800 tracking-tight">{analytics.totalBookings}</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mt-1">Total Bookings</p>
         </div>
 
-        {/* Revenue Trend Chart */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Revenue Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between h-32 gap-2">
-              {revenueTrend.map((item, index) => {
-                const maxRevenue = Math.max(...revenueTrend.map(r => r.revenue));
-                const height = (item.revenue / maxRevenue) * 100;
-                return (
-                  <div key={item.month} className="flex-1 flex flex-col items-center gap-2">
-                    <div
-                      className="w-full bg-gradient-to-t from-[#D4AF37] to-orange-400 rounded-t-lg transition-all duration-500"
-                      style={{ height: `${height}%` }}
-                    />
-                    <span className="text-xs text-gray-500">{item.month}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Completed */}
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full transition-transform group-hover:scale-110"></div>
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-emerald-500/30">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <p className="text-3xl font-black text-slate-800 tracking-tight">{analytics.completedBookings}</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mt-1">Completed</p>
+        </div>
 
-        {/* Popular Services */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Popular Services</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {popularServices.map((service, index) => (
+        {/* Accept Rate with Progress Bar */}
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group col-span-2 sm:col-span-1">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+              <Activity className="w-5 h-5" />
+            </div>
+            <p className="text-2xl font-black text-slate-800">{analytics.acceptanceRate}%</p>
+          </div>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2">Acceptance Rate</p>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${analytics.acceptanceRate}%`}}></div>
+          </div>
+        </div>
+
+        {/* Completion Rate with Progress Bar */}
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group col-span-2 sm:col-span-1">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-fuchsia-400 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-pink-500/30">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <p className="text-2xl font-black text-slate-800">{analytics.completionRate}%</p>
+          </div>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2">Completion Rate</p>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-fuchsia-400 to-pink-500 rounded-full transition-all duration-1000" style={{ width: `${analytics.completionRate}%`}}></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 📈 6-Month Visual Revenue Trend */}
+      <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6">
+        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-6 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-purple-500" /> Revenue Timeline
+        </h3>
+        <div className="flex items-end justify-between h-40 gap-3">
+          {revenueTrend.map((item) => {
+            const maxRevenue = Math.max(...revenueTrend.map(r => r.revenue), 1); 
+            const height = (item.revenue / maxRevenue) * 100;
+            
+            return (
+              <div key={item.month} className="flex-1 flex flex-col items-center gap-3 group cursor-pointer h-full justify-end">
+                <div className="w-full relative flex justify-center h-full items-end">
+                  <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition-all transform group-hover:-translate-y-1 whitespace-nowrap z-10 shadow-lg">
+                    ₹{item.revenue.toLocaleString()}
+                  </div>
+                  <div
+                    className={`w-full max-w-[24px] rounded-full transition-all duration-700 ease-out ${item.revenue > 0 ? 'bg-gradient-to-t from-purple-500 to-fuchsia-400 shadow-[0_0_15px_rgba(168,85,247,0.4)] group-hover:shadow-[0_0_20px_rgba(217,70,239,0.6)]' : 'bg-slate-100'}`}
+                    style={{ height: `${Math.max(height, 8)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-extrabold text-slate-400 group-hover:text-purple-600 transition-colors uppercase">{item.month}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ⭐ Top Services Visually */}
+      {popularServices.length > 0 && (
+        <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-6 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-500" /> Top Services
+          </h3>
+          <div className="space-y-5">
+            {popularServices.map((service) => (
               <div key={service.name}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{service.name}</span>
-                  <span className="text-xs text-gray-500">{service.count} bookings</span>
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-wide">{service.name}</span>
+                  <span className="text-[10px] font-black text-fuchsia-600 bg-fuchsia-50 px-2 py-1 rounded-lg">{service.count} SESSIONS</span>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
                   <div
-                    className="h-full bg-gradient-to-r from-[#D4AF37] to-orange-400 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full transition-all duration-1000 ease-out shadow-sm"
                     style={{ width: `${service.percentage}%` }}
                   />
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        {/* Performance Metrics */}
-        <Card className="bg-gradient-to-br from-gray-50 to-white">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Performance Metrics</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Completion Rate</span>
-              <Badge className="bg-green-100 text-green-800">{analytics.completionRate}%</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Acceptance Rate</span>
-              <Badge className="bg-blue-100 text-blue-800">{analytics.acceptanceRate}%</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Customer Retention</span>
-              <Badge className="bg-purple-100 text-purple-800">{analytics.customerRetentionRate}%</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Cancellation Rate</span>
-              <Badge className="bg-red-100 text-red-800">
-                {((analytics.cancelledBookings / analytics.totalBookings) * 100).toFixed(1)}%
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
