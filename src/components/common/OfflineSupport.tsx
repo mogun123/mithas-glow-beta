@@ -6,7 +6,8 @@
 
 import { useState, useEffect, useCallback, ReactNode } from 'react';
 import { WifiOff, Wifi, RefreshCw } from 'lucide-react';
-import { logger } from '../lib/logger';
+import { logger } from '../../lib/logger';
+
 
 interface OfflineProviderProps {
   children: ReactNode;
