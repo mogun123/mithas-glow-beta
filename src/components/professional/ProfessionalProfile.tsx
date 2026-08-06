@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { TrendingUp, Calendar, BarChart3, Sparkles, IndianRupee, Wallet, Activity, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, Calendar, BarChart3, Sparkles, IndianRupee, Wallet, Activity, CheckCircle2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AnalyticsData {
@@ -29,125 +29,124 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
   const [revenueTrend, setRevenueTrend] = useState<{ month: string; revenue: number }[]>([]);
   const [popularServices, setPopularServices] = useState<{ name: string; count: number; percentage: number }[]>([]);
 
+  const fetchAnalytics = async () => {
+    let isMounted = true;
+    try {
+      setLoading(true);
+
+      const today = new Date().toISOString().split('T')[0];
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+      const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+
+      const { data: allBookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('total_price, status, booking_date, service_name')
+        .eq('artist_id', artistId);
+
+      if (bookingsError) throw bookingsError;
+
+      if (!isMounted) return;
+
+      const bookings = allBookings || [];
+
+      const totalBookings = bookings.length;
+      const completedBookings = bookings.filter(b => b.status === 'completed').length;
+      const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
+      
+      const todayBookings = bookings.filter(b => (b.booking_date || '').startsWith(today) && b.status === 'completed');
+      const weekBookings = bookings.filter(b => (b.booking_date || '') >= weekAgo && b.status === 'completed');
+      const monthBookings = bookings.filter(b => (b.booking_date || '') >= monthStart && b.status === 'completed');
+      const yearBookings = bookings.filter(b => (b.booking_date || '') >= yearStart && b.status === 'completed');
+
+      const todayEarnings = todayBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const weekEarnings = weekBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const monthEarnings = monthBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const yearEarnings = yearBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+      const totalRevenue = bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const averageBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
+
+      const pendingBookings = bookings.filter(b => b.status === 'pending').length;
+      const acceptanceRate = totalBookings > 0 ? ((completedBookings + pendingBookings) / totalBookings) * 100 : 0;
+      const completionRate = (completedBookings + pendingBookings) > 0 ? (completedBookings / (completedBookings + pendingBookings)) * 100 : 0;
+
+      setAnalytics({
+        todayEarnings,
+        weekEarnings,
+        monthEarnings,
+        yearEarnings,
+        totalBookings,
+        completedBookings,
+        cancelledBookings,
+        averageBookingValue: Math.round(averageBookingValue),
+        customerRetentionRate: 0,
+        acceptanceRate: Math.round(acceptanceRate),
+        completionRate: Math.round(completionRate),
+      });
+
+      const monthlyRevenue: Record<string, number> = {};
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      bookings.forEach(booking => {
+        if (booking.status === 'completed' && booking.booking_date) {
+          const date = new Date(booking.booking_date);
+          if (!isNaN(date.getTime())) {
+            const key = monthNames[date.getMonth()];
+            monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (booking.total_price || 0);
+          }
+        }
+      });
+
+      const currentMonth = new Date().getMonth();
+      const last6Months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(currentMonth - i);
+        last6Months.push(monthNames[d.getMonth()]);
+      }
+
+      const trendData = last6Months.map(month => ({
+        month,
+        revenue: monthlyRevenue[month] || 0,
+      }));
+      setRevenueTrend(trendData);
+
+      const serviceCounts: Record<string, number> = {};
+      bookings.forEach(booking => {
+        if (booking.service_name) {
+          serviceCounts[booking.service_name] = (serviceCounts[booking.service_name] || 0) + 1;
+        }
+      });
+
+      const totalServices = Object.values(serviceCounts).reduce((a, b) => a + b, 0);
+      const sortedServices = Object.entries(serviceCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => ({
+          name,
+          count,
+          percentage: totalServices > 0 ? Math.round((count / totalServices) * 100) : 0,
+        }));
+      setPopularServices(sortedServices);
+
+    } catch (err: any) {
+      console.error('Analytics fetch error:', err);
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
-
-    // 🛡️ Safety Timeout: Never stay stuck in loading for more than 4 seconds on app resume
     const safetyTimer = setTimeout(() => {
       if (isMounted) setLoading(false);
     }, 4000);
 
-    const fetchAnalytics = async () => {
-      try {
-        setLoading(true);
-
-        const today = new Date().toISOString().split('T')[0];
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-        const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
-
-        const { data: allBookings, error: bookingsError } = await supabase
-          .from('bookings')
-          .select('total_price, status, booking_date, service_name')
-          .eq('artist_id', artistId);
-
-        if (bookingsError) throw bookingsError;
-
-        if (!isMounted) return;
-        clearTimeout(safetyTimer);
-
-        const bookings = allBookings || [];
-
-        const totalBookings = bookings.length;
-        const completedBookings = bookings.filter(b => b.status === 'completed').length;
-        const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
-        
-        const todayBookings = bookings.filter(b => (b.booking_date || '').startsWith(today) && b.status === 'completed');
-        const weekBookings = bookings.filter(b => (b.booking_date || '') >= weekAgo && b.status === 'completed');
-        const monthBookings = bookings.filter(b => (b.booking_date || '') >= monthStart && b.status === 'completed');
-        const yearBookings = bookings.filter(b => (b.booking_date || '') >= yearStart && b.status === 'completed');
-
-        const todayEarnings = todayBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const weekEarnings = weekBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const monthEarnings = monthBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const yearEarnings = yearBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-
-        const totalRevenue = bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const averageBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
-
-        const pendingBookings = bookings.filter(b => b.status === 'pending').length;
-        const acceptanceRate = totalBookings > 0 ? ((completedBookings + pendingBookings) / totalBookings) * 100 : 0;
-        const completionRate = (completedBookings + pendingBookings) > 0 ? (completedBookings / (completedBookings + pendingBookings)) * 100 : 0;
-
-        setAnalytics({
-          todayEarnings,
-          weekEarnings,
-          monthEarnings,
-          yearEarnings,
-          totalBookings,
-          completedBookings,
-          cancelledBookings,
-          averageBookingValue: Math.round(averageBookingValue),
-          customerRetentionRate: 0,
-          acceptanceRate: Math.round(acceptanceRate),
-          completionRate: Math.round(completionRate),
-        });
-
-        const monthlyRevenue: Record<string, number> = {};
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-        bookings.forEach(booking => {
-          if (booking.status === 'completed' && booking.booking_date) {
-            const date = new Date(booking.booking_date);
-            if (!isNaN(date.getTime())) {
-              const key = monthNames[date.getMonth()];
-              monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (booking.total_price || 0);
-            }
-          }
-        });
-
-        const currentMonth = new Date().getMonth();
-        const last6Months = [];
-        for (let i = 5; i >= 0; i--) {
-          const d = new Date();
-          d.setMonth(currentMonth - i);
-          last6Months.push(monthNames[d.getMonth()]);
-        }
-
-        const trendData = last6Months.map(month => ({
-          month,
-          revenue: monthlyRevenue[month] || 0,
-        }));
-        setRevenueTrend(trendData);
-
-        const serviceCounts: Record<string, number> = {};
-        bookings.forEach(booking => {
-          if (booking.service_name) {
-            serviceCounts[booking.service_name] = (serviceCounts[booking.service_name] || 0) + 1;
-          }
-        });
-
-        const totalServices = Object.values(serviceCounts).reduce((a, b) => a + b, 0);
-        const sortedServices = Object.entries(serviceCounts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 5)
-          .map(([name, count]) => ({
-            name,
-            count,
-            percentage: totalServices > 0 ? Math.round((count / totalServices) * 100) : 0,
-          }));
-        setPopularServices(sortedServices);
-
-      } catch (err: any) {
-        toast.error('Failed to load analytics');
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
     fetchAnalytics();
-    return () => { 
-      isMounted = false; 
+
+    return () => {
+      isMounted = false;
       clearTimeout(safetyTimer);
     };
   }, [artistId]);
@@ -174,7 +173,27 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
     );
   }
 
-  if (!analytics) return null;
+  // 🎯 FIX: Elegant Retry UI instead of blank screen when token/network delays occur
+  if (!analytics) {
+    return (
+      <div className="animate-in fade-in zoom-in duration-500 min-h-[60vh] flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-20 h-20 bg-pink-100 text-pink-500 rounded-[2rem] flex items-center justify-center mb-5 shadow-inner border border-pink-200/50">
+          <Activity className="w-10 h-10" />
+        </div>
+        <h3 className="text-lg font-black text-slate-800 mb-2 tracking-tight">Session Syncing...</h3>
+        <p className="text-xs font-bold text-slate-500 mb-8 max-w-[250px] leading-relaxed">
+          Please tap below to load your performance insights.
+        </p>
+        <button 
+          onClick={fetchAnalytics} 
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-400 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 transition-all"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Load Analytics
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
