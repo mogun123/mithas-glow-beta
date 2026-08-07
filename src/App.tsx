@@ -67,25 +67,18 @@ export default function App() {
     return savedView || "register";
   });
 
-  // ✅ FIX: Variable எல்லாம் உருவான பிறகுதான் இங்கே பிரிண்ட் செய்ய வேண்டும்!
-  console.log(`[${performance.now().toFixed(0)}ms] APP RENDER - isInitialLoading=${isInitialLoading}, currentView=${currentView}`);
-
   const [identifier, setIdentifier] = useState("");
   const [identifierType, setIdentifierType] = useState<"email" | "phone">("email");
 
-  // 3. ✨ FIX: Persist selectedArtistId across refreshes using sessionStorage
   const [selectedArtistId, setSelectedArtistId] = useState<string>(() => sessionStorage.getItem("selectedArtistId") || "");
-
   const latestScanReport = useRef<any>(null);
 
-  // Stable navigate function via useCallback
   const navigate = useCallback((view: View) => {
     setCurrentView(view);
     localStorage.setItem("currentView", view);
     window.history.pushState({ view }, "");
   }, []);
 
-  // 2. ✨ FIX: Memoized Navigation Callbacks to prevent Child Re-renders
   const goHome = useCallback(() => navigate("home"), [navigate]);
   const goMirror = useCallback(() => navigate("mirror"), [navigate]);
   const goProfile = useCallback(() => navigate("userprofile"), [navigate]);
@@ -100,7 +93,6 @@ export default function App() {
     navigate("artist-detail");
   }, [navigate]);
 
-  // Event Listeners with Stable Navigate
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       if (event.state?.view) setCurrentView(event.state.view);
@@ -133,60 +125,40 @@ export default function App() {
     };
   }, [navigate, goHome]);
 
-  // App Initialization & Auth State
+  // 🎯 THE FIX: Clean, Timeout-free Initialization App logic
   useEffect(() => {
     let mounted = true;
 
     const initApp = async () => {
       try {
-        console.log(`[${performance.now().toFixed(0)}ms] STEP 1: initApp starting, setting isInitialLoading=true`);
         setInitError(null);
         setIsInitialLoading(true);
         latestScanReport.current = null;
 
-        console.log(`[${performance.now().toFixed(0)}ms] STEP 2: Calling supabase.auth.getSession()`);
-        const getSessionStart = performance.now();
-        const { data: { session: currentSession }, error: sessionError } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<{ data: { session: any }, error: any }>((_, reject) => 
-            setTimeout(() => reject(new Error('TIMEOUT: getSession() did not resolve in 8s')), 8000)
-          )
-        ]);
-        console.log(`[${performance.now().toFixed(0)}ms] STEP 3: getSession() returned after ${(performance.now() - getSessionStart).toFixed(0)}ms`, { session: currentSession?.user?.id, error: sessionError });
+        // Native await without Promise.race timeout
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
         if (sessionError) throw sessionError;
 
         if (!currentSession?.user?.id) {
-          console.log(`[${performance.now().toFixed(0)}ms] STEP 4a: No session found, redirecting to register`);
           if (mounted) {
             setSession(null);
-            setCurrentView("register");
             localStorage.removeItem("currentView");
+            setCurrentView("register");
           }
           return;
         }
 
-        console.log(`[${performance.now().toFixed(0)}ms] STEP 4b: Session found for user ${currentSession.user.id}, setting session state`);
         if (mounted) {
           setSession(currentSession);
         }
 
-        console.log(`[${performance.now().toFixed(0)}ms] STEP 5: Calling fetchUserProfile(${currentSession.user.id}, true)`);
-        const fetchProfileStart = performance.now();
-        await Promise.race([
-          fetchUserProfile(currentSession.user.id, true),
-          new Promise<void>((_, reject) => 
-            setTimeout(() => reject(new Error('TIMEOUT: fetchUserProfile() did not resolve in 8s')), 8000)
-          )
-        ]);
-        console.log(`[${performance.now().toFixed(0)}ms] STEP 6: fetchUserProfile() returned after ${(performance.now() - fetchProfileStart).toFixed(0)}ms`);
+        // Native await for profile fetching
+        await fetchUserProfile(currentSession.user.id, true);
 
-        if (!mounted) {
-          console.log(`[${performance.now().toFixed(0)}ms] STEP 7: Component unmounted during fetch, aborting`);
-          return;
-        }
+        if (!mounted) return;
 
         const updatedUser = useGlobalStore.getState().user;
-        console.log(`[${performance.now().toFixed(0)}ms] STEP 8: Retrieved user from store`, { userId: updatedUser?.id, profile_completed: updatedUser?.profile_completed });
         if (!updatedUser) {
           throw new Error('No profile was restored for the active session.');
         }
@@ -194,42 +166,36 @@ export default function App() {
         const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
         const savedView = localStorage.getItem("currentView") as View;
 
+        // Strict Routing Logic based on real Data
         if (!updatedUser.profile_completed) {
-          console.log(`[${performance.now().toFixed(0)}ms] STEP 9a: Profile not completed, navigating to profile setup`);
           setCurrentView("profile");
           localStorage.setItem("currentView", "profile");
           return;
         }
 
+        if (savedView && validViews.includes(savedView)) {
+          setCurrentView(savedView);
+          return;
+        }
+
         if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
-          console.log(`[${performance.now().toFixed(0)}ms] STEP 9b: Pro user detected, navigating to professional dashboard`);
           setCurrentView("professional");
           localStorage.setItem("currentView", "professional");
-          return;
+        } else {
+          setCurrentView("home");
+          localStorage.setItem("currentView", "home");
         }
 
-        if (savedView && validViews.includes(savedView)) {
-          console.log(`[${performance.now().toFixed(0)}ms] STEP 9c: Restoring saved view: ${savedView}`);
-          setCurrentView(savedView);
-          localStorage.setItem("currentView", savedView);
-          return;
-        }
-
-        console.log(`[${performance.now().toFixed(0)}ms] STEP 9d: Defaulting to home view`);
-        setCurrentView("home");
-        localStorage.setItem("currentView", "home");
       } catch (error) {
-        console.error(`[${performance.now().toFixed(0)}ms] STEP ERROR: initApp caught error`, error);
-        if (!mounted) {
-          console.log(`[${performance.now().toFixed(0)}ms] STEP ERROR: Component unmounted, skipping state update`);
-          return;
-        }
+        console.error('initApp caught error:', error);
+        if (!mounted) return;
         const message = error instanceof Error ? error.message : 'Unable to restore your session.';
         setInitError(message);
         setSession(null);
       } finally {
-        console.log(`[${performance.now().toFixed(0)}ms] STEP FINALLY: Setting isInitialLoading=false`);
-         setIsInitialLoading(false);
+        if (mounted) {
+          setIsInitialLoading(false);
+        }
       }
     };
 
@@ -237,18 +203,9 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log(`[${performance.now().toFixed(0)}ms] onAuthStateChange: event=${event}`, { userId: currentSession?.user?.id });
-        if (!mounted) {
-          console.log(`[${performance.now().toFixed(0)}ms] onAuthStateChange: Component unmounted, ignoring event`);
-          return;
-        }
+        if (!mounted) return;
 
-        // CRITICAL FIX: Skip INITIAL_SESSION since initApp() already handles session restoration
-        // This prevents duplicate fetchUserProfile calls that race and leave isLoading stuck
-        if (event === 'INITIAL_SESSION') {
-          console.log(`[${performance.now().toFixed(0)}ms] onAuthStateChange: Skipping INITIAL_SESSION (handled by initApp)`);
-          return;
-        }
+        if (event === 'INITIAL_SESSION') return;
 
         if (event === 'SIGNED_IN' && currentSession) {
           setSession(currentSession);
@@ -280,8 +237,8 @@ export default function App() {
           setInitError(null);
           authLogout();
           clearData();
-          setCurrentView("register");
           localStorage.removeItem("currentView");
+          setCurrentView("register");
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession(currentSession);
           try {
@@ -299,7 +256,6 @@ export default function App() {
     };
   }, [navigate, fetchUserProfile, setAuthProfileCompleted, authLogout, clearData, refreshProfile]);
 
-  // Smart Routing Logic
   useEffect(() => {
     if (isInitialLoading) return;
 
@@ -373,7 +329,6 @@ export default function App() {
     setSession(userData.session);
   };
 
-  // Switch Case with Memoized Navigation Variables applied
   const authenticatedScreen = useMemo(() => {
     const screenMap: Record<string, JSX.Element> = {
       "userprofile": <ProfileScreen onNavigateHome={goHome} />,
@@ -429,7 +384,6 @@ export default function App() {
     );
   }
 
-  // Auth Layout Rendering
   if (["register", "login", "otp", "profile"].includes(currentView)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -458,7 +412,6 @@ export default function App() {
     );
   }
 
-  // Centralized AuthGuard and Suspense for Authenticated Views
   return (
     <AuthGuard onUnauthenticated={() => navigate("register")}>
       <ErrorBoundary>
