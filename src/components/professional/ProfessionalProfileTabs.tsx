@@ -110,6 +110,13 @@ const isRecoverableSchemaError = (error: any) => {
   );
 };
 
+const getSchemaErrorMessage = (tableName: string, error: any) => {
+  if (isRecoverableSchemaError(error)) {
+    return `The database schema is missing or inaccessible for ${tableName}. Apply the SQL migration before using this section.`;
+  }
+  return error?.message || `Unable to access ${tableName}.`;
+};
+
 class ProfileErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -219,6 +226,12 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       if (pRes.status === 'rejected' || (pRes.status === 'fulfilled' && pRes.value.error)) {
         throw pRes.status === 'rejected' ? pRes.reason : pRes.value.error;
       }
+      if (sRes.status === 'fulfilled' && sRes.value.error) {
+        throw sRes.value.error;
+      }
+      if (sellerRes.status === 'fulfilled' && sellerRes.value.error) {
+        throw sellerRes.value.error;
+      }
 
       const pData = pRes.value.data || {};
       const sData = sRes.status === 'fulfilled' && !sRes.value.error ? (sRes.value.data || {}) : {};
@@ -289,57 +302,41 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       ]);
 
       if (signal.aborted) return;
-      if (portfolioRes.status === 'fulfilled' && !portfolioRes.value.error) {
+
+      const missingTables: string[] = [];
+      if (portfolioRes.status === 'fulfilled' && portfolioRes.value.error) {
+        if (isRecoverableSchemaError(portfolioRes.value.error)) missingTables.push('artist_portfolio');
+        else throw portfolioRes.value.error;
+      } else if (portfolioRes.status === 'fulfilled') {
         setPortfolioItems(portfolioRes.value.data || []);
-      } else {
-        setPortfolioItems([]);
       }
-      if (servicesRes.status === 'fulfilled' && !servicesRes.value.error) {
+
+      if (servicesRes.status === 'fulfilled' && servicesRes.value.error) {
+        if (isRecoverableSchemaError(servicesRes.value.error)) missingTables.push('artist_services');
+        else throw servicesRes.value.error;
+      } else if (servicesRes.status === 'fulfilled') {
         setServices(servicesRes.value.data || []);
-      } else {
-        setServices([]);
       }
-      if (availabilityRes.status === 'fulfilled' && !availabilityRes.value.error) {
+
+      if (availabilityRes.status === 'fulfilled' && availabilityRes.value.error) {
+        if (isRecoverableSchemaError(availabilityRes.value.error)) missingTables.push('artist_availability');
+        else throw availabilityRes.value.error;
+      } else if (availabilityRes.status === 'fulfilled') {
         const availabilityData = (availabilityRes.value.data || []) as any[];
-        setAvailabilityRows(availabilityData.length ? availabilityData : DAY_LABELS.map((entry, index) => ({
-          id: '',
-          artist_id: artistId,
-          day_of_week: index + 1,
-          day_label: entry.label,
-          start_time: '09:00',
-          end_time: '18:00',
-          is_working_day: index < 6,
-          break_start: null,
-          break_end: null,
-          slot_duration_minutes: 60,
-          max_bookings_per_day: 1,
-          is_blocked: false,
-          block_reason: null,
-        })));
-      } else {
-        setAvailabilityRows(DAY_LABELS.map((entry, index) => ({
-          id: '',
-          artist_id: artistId,
-          day_of_week: index + 1,
-          day_label: entry.label,
-          start_time: '09:00',
-          end_time: '18:00',
-          is_working_day: index < 6,
-          break_start: null,
-          break_end: null,
-          slot_duration_minutes: 60,
-          max_bookings_per_day: 1,
-          is_blocked: false,
-          block_reason: null,
-        })));
+        setAvailabilityRows(availabilityData);
       }
-      if (verificationRes.status === 'fulfilled' && !verificationRes.value.error) {
+
+      if (verificationRes.status === 'fulfilled' && verificationRes.value.error) {
+        if (isRecoverableSchemaError(verificationRes.value.error)) missingTables.push('artist_verification');
+        else throw verificationRes.value.error;
+      } else if (verificationRes.status === 'fulfilled') {
         const verificationData = verificationRes.value.data as any;
         setVerification(verificationData);
         setVerificationStatus((verificationData?.status as 'pending' | 'verified' | 'rejected') || 'pending');
-      } else {
-        setVerification(null);
-        setVerificationStatus('pending');
+      }
+
+      if (missingTables.length) {
+        throw new Error(`Professional profile schema is incomplete. Missing table(s): ${missingTables.join(', ')}. Apply the SQL migration before using this section.`);
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
@@ -441,28 +438,44 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
   const persistShopProfile = async (shopPayload: any) => {
     const { data: existingShop, error: selectError } = await supabase.from('shops').select('id').eq('user_id', artistId).maybeSingle();
-    if (isRecoverableSchemaError(selectError)) return;
+    if (isRecoverableSchemaError(selectError)) {
+      throw new Error(getSchemaErrorMessage('shops', selectError));
+    }
     if (selectError) throw selectError;
 
     if (existingShop?.id) {
       const { error: shopError } = await supabase.from('shops').update(shopPayload).eq('id', existingShop.id);
+      if (isRecoverableSchemaError(shopError)) {
+        throw new Error(getSchemaErrorMessage('shops', shopError));
+      }
       if (shopError) throw shopError;
     } else {
       const { error: shopError } = await supabase.from('shops').insert(shopPayload);
+      if (isRecoverableSchemaError(shopError)) {
+        throw new Error(getSchemaErrorMessage('shops', shopError));
+      }
       if (shopError) throw shopError;
     }
   };
 
   const persistSellerProfile = async (sellerPayload: any) => {
     const { data: existingSeller, error: selectError } = await supabase.from('sellers').select('id').eq('user_id', artistId).maybeSingle();
-    if (isRecoverableSchemaError(selectError)) return;
+    if (isRecoverableSchemaError(selectError)) {
+      throw new Error(getSchemaErrorMessage('sellers', selectError));
+    }
     if (selectError) throw selectError;
 
     if (existingSeller?.id) {
       const { error: sellerError } = await supabase.from('sellers').update(sellerPayload).eq('id', existingSeller.id);
+      if (isRecoverableSchemaError(sellerError)) {
+        throw new Error(getSchemaErrorMessage('sellers', sellerError));
+      }
       if (sellerError) throw sellerError;
     } else {
       const { error: sellerError } = await supabase.from('sellers').insert(sellerPayload);
+      if (isRecoverableSchemaError(sellerError)) {
+        throw new Error(getSchemaErrorMessage('sellers', sellerError));
+      }
       if (sellerError) throw sellerError;
     }
   };
@@ -577,8 +590,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       const { data, error: insertError } = await supabase.from('artist_portfolio').insert(insertPayload).select().single();
       if (insertError) {
         if (isRecoverableSchemaError(insertError)) {
-          toast.error('Portfolio storage is not enabled for this workspace yet.');
-          return;
+          throw new Error(getSchemaErrorMessage('artist_portfolio', insertError));
         }
         throw insertError;
       }
@@ -636,8 +648,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       const { data, error } = await supabase.from('artist_services').insert(insertPayload).select().single();
       if (error) {
         if (isRecoverableSchemaError(error)) {
-          toast.error('Service storage is not enabled for this workspace yet.');
-          return;
+          throw new Error(getSchemaErrorMessage('artist_services', error));
         }
         throw error;
       }
