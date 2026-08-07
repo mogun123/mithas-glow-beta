@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { useForm, Controller } from 'react-hook-form';
@@ -9,7 +9,7 @@ import {
   User, MapPin, Clock, Link as LinkIcon, Save, Camera, Building, Phone, RefreshCw,
   AlertCircle, CheckCircle, Globe, Instagram, Youtube, Award, Car, Wallet, Heart,
   ShieldCheck, Landmark, Image as ImageIcon, Sun, Briefcase, Sparkles, BadgeCheck,
-  CalendarDays, CircleDollarSign, PencilLine
+  CalendarDays, CircleDollarSign, PencilLine, Plus, Trash2, IndianRupee
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -148,25 +148,6 @@ const ProfileSkeleton = () => (
     <div className="h-40 w-full rounded-3xl bg-pink-100/50" />
   </div>
 );
-
-const HoursRow = React.memo(function HoursRow({ day, hours, onChange, onToggle }: HoursRowProps) {
-  const isOpen = hours !== null;
-  return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-pink-100/50 bg-white/40 p-3 transition-colors hover:bg-white/80 sm:flex-row sm:items-center">
-      <div className="flex flex-shrink-0 items-center justify-between sm:w-32">
-        <span className="text-xs font-black uppercase tracking-wider text-slate-700">{day.slice(0, 3)}</span>
-        <button type="button" onClick={() => onToggle(day)} className={`rounded-md px-2 py-1 text-[9px] font-black uppercase tracking-wider transition-colors ${isOpen ? 'bg-pink-100 text-pink-600' : 'bg-slate-100 text-slate-500'}`}>
-          {isOpen ? 'Open' : 'Closed'}
-        </button>
-      </div>
-      <div className={`flex items-center gap-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'pointer-events-none opacity-40'}`}>
-        <input type="time" value={isOpen ? hours.start : '09:00'} onChange={(e) => onChange(day, 'start', e.target.value)} className="rounded-xl border border-pink-100 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
-        <span className="text-[10px] font-extrabold text-slate-400">TO</span>
-        <input type="time" value={isOpen ? hours.end : '18:00'} onChange={(e) => onChange(day, 'end', e.target.value)} className="rounded-xl border border-pink-100 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-400/40" />
-      </div>
-    </div>
-  );
-});
 
 function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   const [loading, setLoading] = useState(true);
@@ -786,7 +767,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
         <TabsList className="flex flex-wrap justify-start gap-2 rounded-3xl border border-pink-100 bg-white/80 p-2 shadow-sm">
           <TabsTrigger value="overview" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Overview</TabsTrigger>
           <TabsTrigger value="portfolio" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Portfolio</TabsTrigger>
-          <TabsTrigger value="services" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Services</TabsTrigger>
+          <TabsTrigger value="services" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Services & Rates</TabsTrigger>
           <TabsTrigger value="availability" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Availability</TabsTrigger>
           <TabsTrigger value="presence" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Presence</TabsTrigger>
           <TabsTrigger value="verification" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Verification</TabsTrigger>
@@ -958,28 +939,34 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
         <TabsContent value="services">
           <div className="space-y-6 rounded-3xl border border-pink-50 bg-white/80 p-6 shadow-sm">
             <div>
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Signature Services</h3>
-              <p className="mt-1 text-xs text-slate-500">Create service cards that show up in your booking flow.</p>
+              <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Signature Services & Rate Card</h3>
+              <p className="mt-1 text-xs text-slate-500">Set your makeup parlor rates and service packages for direct booking transparency.</p>
             </div>
+
             <div className="grid gap-3 rounded-3xl border border-pink-100/80 bg-pink-50/50 p-4 md:grid-cols-2">
-              <input value={serviceForm.title} onChange={(e) => setServiceForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Service title" className="rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold" />
-              <input value={serviceForm.price} onChange={(e) => setServiceForm(prev => ({ ...prev, price: e.target.value }))} type="number" placeholder="Price" className="rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold" />
-              <input value={serviceForm.description} onChange={(e) => setServiceForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description" className="rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold" />
+              <input value={serviceForm.title} onChange={(e) => setServiceForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Service Name (e.g. Bridal HD Makeup)" className="rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold" />
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-400 font-bold">₹</span>
+                <input value={serviceForm.price} onChange={(e) => setServiceForm(prev => ({ ...prev, price: e.target.value }))} type="number" placeholder="Price" className="w-full rounded-2xl border border-pink-100 bg-white py-2 pl-7 pr-3 text-sm font-bold" />
+              </div>
+              <input value={serviceForm.description} onChange={(e) => setServiceForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Short Description" className="rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold" />
               <div className="flex gap-3">
                 <input value={serviceForm.duration} onChange={(e) => setServiceForm(prev => ({ ...prev, duration: e.target.value }))} type="number" placeholder="Duration (min)" className="w-full rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold" />
                 <select value={serviceForm.category} onChange={(e) => setServiceForm(prev => ({ ...prev, category: e.target.value }))} className="w-full rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold">
                   <option value="bridal">Bridal</option>
                   <option value="party">Party</option>
-                  <option value="home_service">Home service</option>
+                  <option value="home_service">Home Service</option>
                   <option value="reception">Reception</option>
                   <option value="hd_makeup">HD Makeup</option>
                   <option value="airbrush">Airbrush</option>
                 </select>
               </div>
             </div>
-            <button type="button" onClick={() => void handleServiceSave()} className="rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg">
-              Add service
+
+            <button type="button" onClick={() => void handleServiceSave()} className="flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg">
+              <Plus className="h-3.5 w-3.5" /> Add Service & Rate
             </button>
+
             <div className="space-y-3">
               {services.map(service => (
                 <div key={service.id} className="flex flex-col gap-3 rounded-3xl border border-pink-100 bg-white/70 p-4 md:flex-row md:items-center md:justify-between">
@@ -988,7 +975,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                       <h4 className="text-sm font-black text-slate-800">{service.title}</h4>
                       <span className="rounded-full bg-pink-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-pink-600">{service.category}</span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-600">{service.description || 'No description yet'}</p>
+                    <p className="mt-1 text-sm text-slate-600">{service.description || 'No description provided'}</p>
                     <p className="mt-1 text-xs font-semibold text-slate-500">₹{service.price} • {service.duration_minutes || 60} mins</p>
                   </div>
                   <button type="button" onClick={() => handleServiceDelete(service.id)} className="rounded-full bg-rose-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600">Delete</button>
