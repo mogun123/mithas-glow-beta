@@ -71,16 +71,16 @@ export const useGlobalStore = create<GlobalState>()(
 
       // Basic setters
       setUser: (user) => {
-  const isProfessional = !!user && (user.role === 'seller' || user.is_seller || user.industry === 'makeup_artist');
-  set((state) => ({
-    user,
-    currentUserRole: user?.role ?? null,
-    appViewMode:
-      state.user === null && user
-        ? (isProfessional ? 'pro' : 'self')
-        : state.appViewMode
-  }));
-},
+        const isProfessional = !!user && (user.role === 'seller' || user.is_seller || user.industry === 'makeup_artist');
+        set((state) => ({
+          user,
+          currentUserRole: user?.role ?? null,
+          appViewMode:
+            state.user === null && user
+              ? (isProfessional ? 'pro' : 'self')
+              : state.appViewMode
+        }));
+      },
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
 
@@ -92,37 +92,31 @@ export const useGlobalStore = create<GlobalState>()(
       },
       setCurrentUserRole: (role) => set({ currentUserRole: role }),
       
-      // Fixed: Reuse setUser logic for perfect consistency
       setCurrentProfile: (profile) => {
         get().setUser(profile);
       },
 
-      // Fetch user profile (Kept maybeSingle() as it's a fetch/lookup operation)
+      // 🎯 FIX: Anti-Freeze logic added to fetchUserProfile
       fetchUserProfile: async (userId: string, showLoader = false) => {
-        console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile START: userId=${userId}, showLoader=${showLoader}`);
-        const fetchStart = performance.now();
         try {
           if (showLoader) {
             set({ isLoading: true, error: null });
-            console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Set isLoading=true`);
           }
 
-          const queryStart = performance.now();
-          console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Calling supabase.from('profiles').select()`);
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-          console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Query returned after ${(performance.now() - queryStart).toFixed(0)}ms`, { hasData: !!data, error });
+          console.log("🛠️ globalStore: Requesting profile data...");
 
-          if (error) {
-            console.error(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Query error`, error);
-            throw error;
-          }
+          // Failsafe: 6 செகண்டுக்குள் டேட்டா வரவில்லை என்றால் ஆப்பை தொங்க விடாமல் Error அடிக்கும்.
+          const fetchPromise = supabase.from('profiles').select('*').eq('id', userId).single();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('TIMEOUT_ERROR')), 6000)
+          );
 
-          if (data) {
-            console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Data found, updating store`, { userId: data.id, profile_completed: data.profile_completed });
+          const result: any = await Promise.race([fetchPromise, timeoutPromise]);
+
+          if (result.error) throw result.error;
+
+          if (result.data) {
+            const data = result.data;
             set((state) => ({
               user: data as UserProfile,
               currentUserRole: data.role,
@@ -133,22 +127,17 @@ export const useGlobalStore = create<GlobalState>()(
               isLoading: false
             }));
           } else {
-            console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: No data found (empty result)`);
-            // No profile row found for this user — clear stale state instead of leaving it ambiguous
             set({ user: null, currentUserRole: null, isLoading: false });
           }
-
-          console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile DONE: Total time ${(performance.now() - fetchStart).toFixed(0)}ms`);
         } catch (error: any) {
-          console.error(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile ERROR:`, error);
-          const message = error?.message || 'Failed to load user profile';
-          set({
-            error: message,
-            isLoading: false,
-            user: null,
-            currentUserRole: null,
-          });
-          throw new Error(message);
+          console.error(`🛠️ globalStore.fetchUserProfile ERROR:`, error);
+          
+          set((state) => ({
+            error: error?.message === 'TIMEOUT_ERROR' ? 'Network timeout' : (error?.message || 'Failed to load profile'),
+            isLoading: false, // 🎯 CRITICAL: எரர் வந்தாலும் Loader-ஐ நிறுத்தி ஆப்பை உள்ளே விட வேண்டும்!
+            // Timeout என்றால் பழைய (Persisted) டேட்டாவை அழிக்கக் கூடாது, மற்ற எரர் என்றால் மட்டும் அழிக்கவும்
+            ...(error?.message !== 'TIMEOUT_ERROR' && { user: null, currentUserRole: null })
+          }));
         }
       },
 
@@ -161,11 +150,10 @@ export const useGlobalStore = create<GlobalState>()(
             set({ user: null, currentUserRole: null, isLoading: false, appViewMode: 'self' });
             return;
           }
-
           await get().fetchUserProfile(authUser.id, false);
         } catch (error: any) {
           console.error('Error refreshing profile:', error);
-          set({ error: error.message || 'Profile refresh failed' });
+          set({ error: error.message || 'Profile refresh failed', isLoading: false });
         }
       },
 
@@ -196,10 +184,7 @@ export const useGlobalStore = create<GlobalState>()(
           });
         } catch (error: any) {
           console.error('Error updating profile:', error);
-          set({ 
-            error: error.message, 
-            isLoading: false
-          });
+          set({ error: error.message, isLoading: false });
         }
       },
 
@@ -227,7 +212,6 @@ export const useGlobalStore = create<GlobalState>()(
             seller_status: profileData.seller_status ?? (profileData.user_type === 'pro' ? 'pending' : null)
           };
 
-          // Reverted to .single() for strict creation safety (Fail Fast)
           const { data: savedProfile, error: profileError } = await supabase
             .from('profiles')
             .upsert(profileUpdate)
@@ -238,7 +222,6 @@ export const useGlobalStore = create<GlobalState>()(
 
           let savedShop = null;
           if (shopData && profileData.user_type === 'pro') {
-            // Reverted to .single() for strict creation safety (Fail Fast)
             const { data: shopResult, error: shopError } = await supabase
               .from('shops')
               .insert({
@@ -265,7 +248,6 @@ export const useGlobalStore = create<GlobalState>()(
           });
 
           return { profile: savedProfile, shop: savedShop };
-
         } catch (error: any) {
           console.error('Error completing profile setup:', error);
           set({ error: error.message, isLoading: false });
@@ -330,7 +312,6 @@ export const useRealtimeProfile = (userId: string) => {
         }
       )
       .subscribe((status) => {
-        // Safe logging only in Development environment
         if (import.meta.env.DEV) {
           console.log("Profile realtime subscription status:", status);
         }
