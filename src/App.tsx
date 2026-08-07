@@ -42,6 +42,9 @@ const THEME_MAP: Record<View, string> = {
 };
 
 export default function App() {
+  // TRACE: Log every render with timestamp
+  console.log(`[${performance.now().toFixed(0)}ms] APP RENDER - isInitialLoading=${isInitialLoading}, currentView=${currentView}`);
+
   const user = useGlobalStore((state) => state.user);
   const appViewMode = useGlobalStore((state) => state.appViewMode);
   const currentUserRole = useGlobalStore((state) => state.currentUserRole);
@@ -137,14 +140,24 @@ export default function App() {
 
     const initApp = async () => {
       try {
+        console.log(`[${performance.now().toFixed(0)}ms] STEP 1: initApp starting, setting isInitialLoading=true`);
         setInitError(null);
         setIsInitialLoading(true);
         latestScanReport.current = null;
 
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        console.log(`[${performance.now().toFixed(0)}ms] STEP 2: Calling supabase.auth.getSession()`);
+        const getSessionStart = performance.now();
+        const { data: { session: currentSession }, error: sessionError } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: any }, error: any }>((_, reject) => 
+            setTimeout(() => reject(new Error('TIMEOUT: getSession() did not resolve in 8s')), 8000)
+          )
+        ]);
+        console.log(`[${performance.now().toFixed(0)}ms] STEP 3: getSession() returned after ${(performance.now() - getSessionStart).toFixed(0)}ms`, { session: currentSession?.user?.id, error: sessionError });
         if (sessionError) throw sessionError;
 
         if (!currentSession?.user?.id) {
+          console.log(`[${performance.now().toFixed(0)}ms] STEP 4a: No session found, redirecting to register`);
           if (mounted) {
             setSession(null);
             setCurrentView("register");
@@ -153,15 +166,28 @@ export default function App() {
           return;
         }
 
+        console.log(`[${performance.now().toFixed(0)}ms] STEP 4b: Session found for user ${currentSession.user.id}, setting session state`);
         if (mounted) {
           setSession(currentSession);
         }
 
-        await fetchUserProfile(currentSession.user.id, true);
+        console.log(`[${performance.now().toFixed(0)}ms] STEP 5: Calling fetchUserProfile(${currentSession.user.id}, true)`);
+        const fetchProfileStart = performance.now();
+        await Promise.race([
+          fetchUserProfile(currentSession.user.id, true),
+          new Promise<void>((_, reject) => 
+            setTimeout(() => reject(new Error('TIMEOUT: fetchUserProfile() did not resolve in 8s')), 8000)
+          )
+        ]);
+        console.log(`[${performance.now().toFixed(0)}ms] STEP 6: fetchUserProfile() returned after ${(performance.now() - fetchProfileStart).toFixed(0)}ms`);
 
-        if (!mounted) return;
+        if (!mounted) {
+          console.log(`[${performance.now().toFixed(0)}ms] STEP 7: Component unmounted during fetch, aborting`);
+          return;
+        }
 
         const updatedUser = useGlobalStore.getState().user;
+        console.log(`[${performance.now().toFixed(0)}ms] STEP 8: Retrieved user from store`, { userId: updatedUser?.id, profile_completed: updatedUser?.profile_completed });
         if (!updatedUser) {
           throw new Error('No profile was restored for the active session.');
         }
@@ -170,31 +196,40 @@ export default function App() {
         const savedView = localStorage.getItem("currentView") as View;
 
         if (!updatedUser.profile_completed) {
+          console.log(`[${performance.now().toFixed(0)}ms] STEP 9a: Profile not completed, navigating to profile setup`);
           setCurrentView("profile");
           localStorage.setItem("currentView", "profile");
           return;
         }
 
         if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
+          console.log(`[${performance.now().toFixed(0)}ms] STEP 9b: Pro user detected, navigating to professional dashboard`);
           setCurrentView("professional");
           localStorage.setItem("currentView", "professional");
           return;
         }
 
         if (savedView && validViews.includes(savedView)) {
+          console.log(`[${performance.now().toFixed(0)}ms] STEP 9c: Restoring saved view: ${savedView}`);
           setCurrentView(savedView);
           localStorage.setItem("currentView", savedView);
           return;
         }
 
+        console.log(`[${performance.now().toFixed(0)}ms] STEP 9d: Defaulting to home view`);
         setCurrentView("home");
         localStorage.setItem("currentView", "home");
       } catch (error) {
-        if (!mounted) return;
+        console.error(`[${performance.now().toFixed(0)}ms] STEP ERROR: initApp caught error`, error);
+        if (!mounted) {
+          console.log(`[${performance.now().toFixed(0)}ms] STEP ERROR: Component unmounted, skipping state update`);
+          return;
+        }
         const message = error instanceof Error ? error.message : 'Unable to restore your session.';
         setInitError(message);
         setSession(null);
       } finally {
+        console.log(`[${performance.now().toFixed(0)}ms] STEP FINALLY: Setting isInitialLoading=false`);
          setIsInitialLoading(false);
       }
     };
@@ -203,7 +238,18 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        if (!mounted) return;
+        console.log(`[${performance.now().toFixed(0)}ms] onAuthStateChange: event=${event}`, { userId: currentSession?.user?.id });
+        if (!mounted) {
+          console.log(`[${performance.now().toFixed(0)}ms] onAuthStateChange: Component unmounted, ignoring event`);
+          return;
+        }
+
+        // CRITICAL FIX: Skip INITIAL_SESSION since initApp() already handles session restoration
+        // This prevents duplicate fetchUserProfile calls that race and leave isLoading stuck
+        if (event === 'INITIAL_SESSION') {
+          console.log(`[${performance.now().toFixed(0)}ms] onAuthStateChange: Skipping INITIAL_SESSION (handled by initApp)`);
+          return;
+        }
 
         if (event === 'SIGNED_IN' && currentSession) {
           setSession(currentSession);

@@ -1,46 +1,60 @@
 ```gitignore
 # Dependencies
 node_modules/
-.pnpm-store/
-.yarn/
-.yarn-cache/
 
 # Build outputs
 dist/
 build/
-.next/
-.nuxt/
-out/
-public/build/
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+*.js.map
+*.ts.map
 
 # Environment variables
 .env
 .env.local
-.env.*
-!.env.example
+*.env.*
 
-# IDE files
+# Logs
+*.log
+
+# IDE specific
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# OS generated files
+# Python related (if applicable)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Temporary files
+*.tmp
+*.temp
 .DS_Store
 Thumbs.db
 
-# Coverage
-coverage/
+# Testing
 .nyc_output/
-istanbul-reports/
+coverage.xml
+*.gcda
+*.gcno
 
-# TypeScript
-*.tsbuildinfo
+# Bundler
+.yarn/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+ehthumbs.db
+Icon?
+apidoc/
 ```

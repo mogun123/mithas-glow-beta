@@ -7,6 +7,9 @@ export const AuthGuard = ({ children, onUnauthenticated }: any) => {
   const isLoading = useGlobalStore((state) => state.isLoading);
   const error = useGlobalStore((state) => state.error);
 
+  // TRACE: Log every render of AuthGuard
+  console.log(`[${performance.now().toFixed(0)}ms] AuthGuard RENDER: isLoading=${isLoading}, user=${user ? user.id : 'null'}, error=${error}`);
+
   useEffect(() => {
     if (!isLoading && !user && !error) {
       onUnauthenticated();
