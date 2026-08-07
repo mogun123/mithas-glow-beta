@@ -13,7 +13,7 @@ import {
 import { toast } from 'sonner';
 
 // ==========================================
-// 1. Interfaces & Types (Fix #3)
+// 1. Interfaces & Types
 // ==========================================
 interface ProfessionalProfileProps {
   artistId: string;
@@ -45,7 +45,7 @@ const DEFAULT_OPERATING_HOURS: OperatingHours = {
 };
 
 // ==========================================
-// 2. Strict Zod Schema (Fix #4, #8, #11, #12, #14)
+// 2. Strict Zod Schema
 // ==========================================
 const profileSchema = z.object({
   fullName: z.string().min(2, 'Name is required'),
@@ -99,7 +99,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 // ==========================================
-// 3. Error Boundary (Fix #7)
+// 3. Error Boundary
 // ==========================================
 class ProfileErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
   constructor(props: {children: React.ReactNode}) {
@@ -160,7 +160,7 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [imgError, setImgError] = useState(false); // Fix #9
+  const [imgError, setImgError] = useState(false);
   const [oldAvatarPath, setOldAvatarPath] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   
@@ -255,10 +255,10 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
     }
   }, [artistId, reset]);
 
+  // ✅ EFFECT 1: Data fetching and realtime sync ONLY. (Removed isDirty)
   useEffect(() => {
     loadData();
 
-    // Fix #6: Separate Events for Realtime Performance
     const channel = supabase.channel(`profile_sync_${artistId}`);
     ['INSERT', 'UPDATE', 'DELETE'].forEach(event => {
       channel.on('postgres_changes', { event, schema: 'public', table: 'profiles', filter: `id=eq.${artistId}` }, loadData);
@@ -266,17 +266,24 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
     });
     channel.subscribe();
 
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) { e.preventDefault(); e.returnValue = ''; }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     return () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
       supabase.removeChannel(channel);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [artistId, loadData, isDirty]);
+  }, [artistId, loadData]);
+
+  // ✅ EFFECT 2: Handle BeforeUnload listener independently
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) { 
+        e.preventDefault(); 
+        e.returnValue = ''; 
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -320,7 +327,6 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', artistId);
       if (updateError) throw updateError;
       
-      // Fix #5: Added catch logger for orphan deletion
       if (oldAvatarPath) {
         supabase.storage.from('profile-images').remove([`avatars/${oldAvatarPath}`])
           .catch(err => logger.error('Failed to delete old avatar', err));
@@ -342,7 +348,6 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
       reset(data, { keepValues: true });
       data.bio = data.bio.trim();
       
-      // Fix #13: Social Normalization (remove @ if typed, standard extract)
       const instaMatch = data.instagram?.match(/instagram\.com\/([^/?]+)/);
       const normalizedInsta = instaMatch ? instaMatch[1] : data.instagram?.replace('@', '');
       
@@ -387,7 +392,6 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
 
       const { error } = await supabase.rpc('update_professional_settings', payload);
 
-      // Fix #1 & #2: Safe Fallback for missing DB columns during rollout
       if (error) {
         if (error.code === '42883' || error.message?.includes('function') || error.message?.includes('column')) {
           logger.warn('RPC or Column missing, using safe basic fallback sync.');
@@ -429,7 +433,6 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
         </button>
       </div>
 
-      {/* Fix #10: Disable entire form when submitting */}
       <fieldset disabled={isSubmitting} className="space-y-6">
 
         {/* 📸 Avatar */}
@@ -437,7 +440,6 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
           <div className="relative group w-28 h-28 aspect-square">
             <div className="w-full h-full rounded-full p-1 bg-gradient-to-tr from-pink-400 to-rose-400">
               <div className="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white flex items-center justify-center">
-                {/* Fix #9: Avatar onError Fallback */}
                 {avatarUrl && !imgError ? (
                   <img src={avatarUrl} alt="Avatar" onError={() => setImgError(true)} className="w-full h-full object-cover" />
                 ) : (
@@ -496,7 +498,6 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              {/* Fix #14: Experience as Number */}
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase ml-1">Experience (Years)</label>
               <Controller name="experience" control={control} render={({ field: { onChange, ...rest } }) => (
                 <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} placeholder="E.g. 5" className="w-full bg-white/50 border border-pink-100 rounded-2xl px-4 py-3 text-sm font-bold" />
@@ -522,7 +523,7 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
           </div>
         </div>
 
-        {/* 🛡️ Section 3: KYC & Bank (Fix #11) */}
+        {/* 🛡️ Section 3: KYC & Bank */}
         <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-sm space-y-4">
           <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-pink-500" /> Verification & Payouts</h3>
           
@@ -571,7 +572,6 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
             </label>
           </div>
 
-          {/* Fix #8: Safe null handling for numbers */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase ml-1">Starting Price (₹)</label>
@@ -592,7 +592,7 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
           </div>
         </div>
 
-        {/* 🏖️ Section 5: Availability (Fix #12) */}
+        {/* 🏖️ Section 5: Availability */}
         <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-3xl border border-pink-50 shadow-sm space-y-4">
           <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-5 flex items-center gap-2"><Sun className="w-4 h-4 text-pink-500" /> Availability & Limits</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -663,7 +663,7 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
 }
 
 // ==========================================
-// 5. Export Wrapper (No Suspense - Fix #7)
+// 5. Export Wrapper (No Suspense)
 // ==========================================
 export default function ProfessionalProfile(props: ProfessionalProfileProps) {
   return (
