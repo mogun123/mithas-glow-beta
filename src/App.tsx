@@ -42,14 +42,10 @@ const THEME_MAP: Record<View, string> = {
 };
 
 export default function App() {
-  // TRACE: Log every render with timestamp
-  console.log(`[${performance.now().toFixed(0)}ms] APP RENDER - isInitialLoading=${isInitialLoading}, currentView=${currentView}`);
-
   const user = useGlobalStore((state) => state.user);
   const appViewMode = useGlobalStore((state) => state.appViewMode);
   const currentUserRole = useGlobalStore((state) => state.currentUserRole);
   
-  // 1. ✨ FIX: Derived boolean value instead of function call
   const isProUser = !!user && (user.role === 'seller' || (user as any).is_seller || user.industry === 'makeup_artist');
   
   const fetchUserProfile = useGlobalStore((state) => state.fetchUserProfile);
@@ -70,6 +66,9 @@ export default function App() {
     const savedView = localStorage.getItem("currentView") as View;
     return savedView || "register";
   });
+
+  // ✅ FIX: Variable எல்லாம் உருவான பிறகுதான் இங்கே பிரிண்ட் செய்ய வேண்டும்!
+  console.log(`[${performance.now().toFixed(0)}ms] APP RENDER - isInitialLoading=${isInitialLoading}, currentView=${currentView}`);
 
   const [identifier, setIdentifier] = useState("");
   const [identifierType, setIdentifierType] = useState<"email" | "phone">("email");
