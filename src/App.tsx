@@ -62,6 +62,7 @@ export default function App() {
   const profileCompleted = user?.profile_completed ?? false;
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<View>(() => {
     const savedView = localStorage.getItem("currentView") as View;
     return savedView || "register";
@@ -96,14 +97,6 @@ export default function App() {
     sessionStorage.setItem("selectedArtistId", artistId);
     navigate("artist-detail");
   }, [navigate]);
-
-  // Bulletproof Fallback Timer
-  useEffect(() => {
-    const fallbackTimer = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 3500);
-    return () => clearTimeout(fallbackTimer);
-  }, []);
 
   // Event Listeners with Stable Navigate
   useEffect(() => {
@@ -144,84 +137,113 @@ export default function App() {
 
     const initApp = async () => {
       try {
+        setInitError(null);
+        setIsInitialLoading(true);
         latestScanReport.current = null;
-        const { data: { session: currentSession } } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<{ data: { session: null } }>((resolve) => {
-            setTimeout(() => resolve({ data: { session: null } }), 6000);
-          })
-        ]);
 
-        if (currentSession && mounted) {
-          setSession(currentSession);
-          
-          await Promise.race([
-            fetchUserProfile(currentSession.user.id, true),
-            new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Profile fetch timeout')), 6000);
-            })
-          ]);
-          
-          const updatedUser = useGlobalStore.getState().user;
-          const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
-          const savedView = localStorage.getItem("currentView") as View;
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
-          if (updatedUser?.profile_completed) {
-            if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
-              navigate("professional");
-            } else if (savedView && validViews.includes(savedView)) {
-              navigate(savedView);
-            } else {
-              navigate("home");
-            }
-          } else {
-            navigate("profile");
+        if (!currentSession?.user?.id) {
+          if (mounted) {
+            setSession(null);
+            setCurrentView("register");
+            localStorage.removeItem("currentView");
           }
-        } else if (mounted) {
-          setSession(null);
-          localStorage.removeItem("currentView");
-          navigate("register");
+          return;
         }
+
+        if (mounted) {
+          setSession(currentSession);
+        }
+
+        await fetchUserProfile(currentSession.user.id, true);
+
+        if (!mounted) return;
+
+        const updatedUser = useGlobalStore.getState().user;
+        if (!updatedUser) {
+          throw new Error('No profile was restored for the active session.');
+        }
+
+        const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
+        const savedView = localStorage.getItem("currentView") as View;
+
+        if (!updatedUser.profile_completed) {
+          setCurrentView("profile");
+          localStorage.setItem("currentView", "profile");
+          return;
+        }
+
+        if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
+          setCurrentView("professional");
+          localStorage.setItem("currentView", "professional");
+          return;
+        }
+
+        if (savedView && validViews.includes(savedView)) {
+          setCurrentView(savedView);
+          localStorage.setItem("currentView", savedView);
+          return;
+        }
+
+        setCurrentView("home");
+        localStorage.setItem("currentView", "home");
       } catch (error) {
-        console.error('Init app error:', error);
-        if (mounted) navigate("register");
+        if (!mounted) return;
+        const message = error instanceof Error ? error.message : 'Unable to restore your session.';
+        setInitError(message);
+        setSession(null);
       } finally {
         if (mounted) setIsInitialLoading(false);
       }
     };
 
-    initApp();
+    void initApp();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         if (!mounted) return;
-        
+
         if (event === 'SIGNED_IN' && currentSession) {
           setSession(currentSession);
-          await fetchUserProfile(currentSession.user.id, true);
-          const updatedUser = useGlobalStore.getState().user;
+          try {
+            await fetchUserProfile(currentSession.user.id, true);
+            const updatedUser = useGlobalStore.getState().user;
 
-          if (updatedUser?.profile_completed) {
-            setAuthProfileCompleted(true);
-            if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
-              navigate("professional");
+            if (updatedUser?.profile_completed) {
+              setAuthProfileCompleted(true);
+              if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
+                setCurrentView("professional");
+                localStorage.setItem("currentView", "professional");
+              } else {
+                setCurrentView("home");
+                localStorage.setItem("currentView", "home");
+              }
             } else {
-              navigate("home");
+              setAuthProfileCompleted(false);
+              setCurrentView("profile");
+              localStorage.setItem("currentView", "profile");
             }
-          } else {
-            setAuthProfileCompleted(false);
-            navigate("profile");
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unable to load your profile.';
+            setInitError(message);
+            setSession(null);
           }
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
+          setInitError(null);
           authLogout();
           clearData();
-          navigate("register");
+          setCurrentView("register");
+          localStorage.removeItem("currentView");
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession(currentSession);
-          setTimeout(() => {
-            refreshProfile().catch((err) => console.error("Silent refresh failed:", err));
-          }, 100);
+          try {
+            await refreshProfile();
+          } catch (err) {
+            console.error('Silent refresh failed:', err);
+          }
         }
       }
     );
@@ -344,6 +366,23 @@ export default function App() {
   }, [currentView, isProUser, appViewMode, selectedArtistId, goHome, goMirror, goProfile, goEvents, goProducts, goCoach, goBooking, handleNavigateToArtistDetail]);
 
   if (isInitialLoading) return <LoadingScreen />;
+
+  if (initError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-white p-4">
+        <div className="w-full max-w-md rounded-3xl border border-rose-200 bg-white/80 p-8 text-center shadow-xl backdrop-blur-xl">
+          <h2 className="text-xl font-black text-slate-900">Session restore failed</h2>
+          <p className="mt-3 text-sm text-slate-600">{initError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
+          >
+            Reload app
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Auth Layout Rendering
   if (["register", "login", "otp", "profile"].includes(currentView)) {

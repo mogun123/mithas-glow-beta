@@ -128,10 +128,14 @@ export const useGlobalStore = create<GlobalState>()(
 
         } catch (error: any) {
           console.error('Error fetching user profile:', error);
+          const message = error?.message || 'Failed to load user profile';
           set({
-            error: error.message,
-            isLoading: false
+            error: message,
+            isLoading: false,
+            user: null,
+            currentUserRole: null,
           });
+          throw new Error(message);
         }
       },
 
