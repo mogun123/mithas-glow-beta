@@ -3,14 +3,13 @@ import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
 import { 
   Calendar, Clock, DollarSign, Star, Users, AlertCircle, 
-  CheckCircle, XCircle, MapPin, Sparkles, Zap, Crown, WifiOff, RefreshCw
+  CheckCircle, XCircle, MapPin, Zap, Crown, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProfessionalBottomNav from './ProfessionalBottomNav';
 import { logger } from '../lib/logger';
 import { 
   BookingWithDetails, 
-  DashboardStats, 
   DashboardTab, 
   BookingFilter,
   ProfessionalDashboardProps,
@@ -39,16 +38,14 @@ interface BookingWithCustomer extends BookingWithDetails {
   };
 }
 
+interface ReviewData {
+  avgRating: number;
+  count: number;
+}
+
 interface FetchResult<T> {
   data: T | null;
   error: Error | null;
-}
-
-interface DashboardLoadState {
-  bookingsLoaded: boolean;
-  reviewsLoaded: boolean;
-  bookingsError: Error | null;
-  reviewsError: Error | null;
 }
 
 const ProfessionalBookings = lazy(() => import('./professional/ProfessionalBookings'));
@@ -57,6 +54,22 @@ const ProfessionalAIAssistant = lazy(() => import('./professional/ProfessionalAI
 const ProfessionalAnalytics = lazy(() => import('./professional/ProfessionalAnalytics'));
 const ProfessionalProfile = lazy(() => import('./professional/ProfessionalProfile'));
 
+// Helper for status badge styling
+const getStatusColor = (status: BookingStatus): string => {
+  switch (status) {
+    case "pending": return "bg-amber-50 text-amber-700 border-amber-200";
+    case "confirmed": return "bg-blue-50 text-blue-700 border-blue-200";
+    case "completed": return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    default: return "bg-slate-100 text-slate-600 border-slate-200";
+  }
+};
+
+// Helper for industry formatting
+const formatIndustry = (industry?: string | null): string => {
+  if (!industry) return "PROFESSIONAL";
+  return industry.replace('_', ' ').toUpperCase();
+};
+
 export default function ProfessionalDashboard({ 
   onNavigateHome, 
   onNavigateToProfile,
@@ -64,32 +77,27 @@ export default function ProfessionalDashboard({
   const globalStore = useGlobalStore();
   const [activeTab, setActiveTab] = useState<DashboardTab>('dashboard');
   const [bookingFilter, setBookingFilter] = useState<BookingFilter>('all');
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   
-  // Store ALL bookings here once, and filter them in UI (Prevents looping requests)
   const [allBookings, setAllBookings] = useState<BookingWithCustomer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadState, setLoadState] = useState<DashboardLoadState>({
-    bookingsLoaded: false,
-    reviewsLoaded: false,
-    bookingsError: null,
-    reviewsError: null,
-  });
+  const [reviewData, setReviewData] = useState<ReviewData>({ avgRating: 0, count: 0 });
+  
+  const [initialLoading, setInitialLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 3;
 
-  // Refs for realtime subscriptions (prevents memory leaks)
+  // Refs for realtime subscriptions
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isSubscribedRef = useRef(false);
 
   // Offline detection
   const { isOnline } = useOfflineDetection();
 
-  // Use Profile directly from Global Store! No redundant DB calls!
+  // Clean artistId usage
   const profile = globalStore.user;
+  const artistId = profile?.id;
   const isProfessionalUser = useMemo(() => isProfessionalRole(profile?.role), [profile?.role]);
 
-  // Helper to safely get the date regardless of database column names
+  // Safe Date & Time Extractors
   const getSafeDate = useCallback((b: DateExtractable): string => {
     return b.booking_date || b.appointment_date || b.date || b.created_at?.split('T')[0] || '';
   }, []);
@@ -98,287 +106,228 @@ export default function ProfessionalDashboard({
     return b.booking_time || b.appointment_time || b.time || 'Time TBD';
   }, []);
 
-  // Parallel data loading with graceful partial failure handling
-  const fetchBookings = useCallback(async (artistId: string): Promise<FetchResult<BookingWithCustomer[]>> => {
+  // Parallel data loading
+  const fetchBookings = useCallback(async (targetArtistId: string): Promise<FetchResult<BookingWithCustomer[]>> => {
     try {
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`*, customer:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url)`)
-        .eq('artist_id', artistId)
+        .eq('artist_id', targetArtistId)
         .order('created_at', { ascending: false });
 
       if (bookingsError) throw bookingsError;
-
-      logger.info('Bookings fetched successfully', { count: bookingsData?.length || 0 });
       return { data: bookingsData || [], error: null };
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error fetching bookings');
-      logger.error('Failed to fetch bookings', error, { artistId });
       return { data: null, error };
     }
   }, []);
 
-  const fetchReviews = useCallback(async (artistId: string): Promise<FetchResult<number>> => {
+  const fetchReviews = useCallback(async (targetArtistId: string): Promise<FetchResult<ReviewData>> => {
     try {
       const { data: reviews, error: reviewsError } = await supabase
         .from('reviews')
         .select('rating')
-        .eq('artist_id', artistId);
+        .eq('artist_id', targetArtistId);
 
       if (reviewsError) throw reviewsError;
 
-      const avgRating = reviews && reviews.length > 0 
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
+      const count = reviews?.length || 0;
+      const avgRating = count > 0 
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / count 
         : 0;
 
-      logger.info('Reviews fetched successfully', { count: reviews?.length || 0, avgRating });
-      return { data: avgRating, error: null };
+      return { data: { avgRating, count }, error: null };
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error fetching reviews');
-      logger.error('Failed to fetch reviews', error, { artistId });
       return { data: null, error };
     }
   }, []);
 
-  // Retry mechanism for failed requests only
+  // 1 & 6. ✨ FIX: Robust Retry with Offline Feedback and Promise.allSettled
   const handleRetry = useCallback(async () => {
-    if (!profile?.id || !isOnline) {
-      logger.warn('Cannot retry: no profile or offline', { hasProfile: !!profile?.id, isOnline });
+    if (!isOnline) {
+      toast.error("You are currently offline.");
       return;
     }
+    if (!artistId) return;
 
     if (retryCount >= MAX_RETRIES) {
-      logger.warn('Max retries exceeded');
       toast.error('Unable to load data. Please refresh the page.');
       return;
     }
 
-    setLoading(true);
-    setRetryCount(prev => prev + 1);
-    logger.info(`Retrying dashboard data fetch (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+    setInitialLoading(true);
+    const nextAttempt = retryCount + 1;
+    setRetryCount(nextAttempt);
 
-    const results = await Promise.all([
-      fetchBookings(profile.id),
-      fetchReviews(profile.id),
-    ]);
+    try {
+      const results = await Promise.allSettled([
+        fetchBookings(artistId),
+        fetchReviews(artistId),
+      ]);
 
-    const [bookingsResult, reviewsResult] = results;
+      const bookingsResult = results[0];
+      const reviewsResult = results[1];
+      let bookingsSuccess = false;
 
-    if (bookingsResult.data) {
-      setAllBookings(bookingsResult.data);
-      setLoadState(prev => ({ ...prev, bookingsLoaded: true, bookingsError: null }));
-    } else {
-      setLoadState(prev => ({ ...prev, bookingsError: bookingsResult.error }));
+      if (bookingsResult.status === 'fulfilled' && bookingsResult.value.data) {
+        setAllBookings(bookingsResult.value.data);
+        bookingsSuccess = true;
+      } else {
+        toast.error('Failed to sync bookings.');
+      }
+
+      if (reviewsResult.status === 'fulfilled' && reviewsResult.value.data) {
+        setReviewData(reviewsResult.value.data);
+      }
+
+      if (bookingsSuccess) {
+        toast.success('Dashboard synced successfully');
+        setRetryCount(0); // 4. ✨ FIX: Reset retry count if core functionality (bookings) succeeds
+      }
+    } catch (err) {
+      toast.error('Sync failed. Please try again.');
+    } finally {
+      setInitialLoading(false);
     }
+  }, [artistId, isOnline, retryCount, fetchBookings, fetchReviews]);
 
-    if (reviewsResult.data !== null) {
-      setLoadState(prev => ({ ...prev, reviewsLoaded: true, reviewsError: null }));
-    } else {
-      setLoadState(prev => ({ ...prev, reviewsError: reviewsResult.error }));
-    }
-
-    setLoading(false);
-    
-    if (bookingsResult.error || reviewsResult.error) {
-      toast.error('Some data could not be loaded. Retrying...');
-    } else {
-      toast.success('Data refreshed successfully');
-      setRetryCount(0);
-    }
-  }, [profile?.id, isOnline, retryCount, fetchBookings, fetchReviews]);
-
+  // 9. ✨ FIX: Component Mount Flag to Prevent Memory Leaks on Unmount
   useEffect(() => {
-    if (!profile?.id || !isProfessionalUser) {
-      setLoading(false);
+    let mounted = true;
+
+    if (!artistId || !isProfessionalUser) {
+      setInitialLoading(false);
       return;
     }
 
-    const fetchAllDashboardData = async () => {
-      try {
-        setLoading(true);
-        logger.info('Starting dashboard data fetch', { artistId: profile.id });
+    const initFetch = async () => {
+      setInitialLoading(true);
+      
+      const results = await Promise.allSettled([
+        fetchBookings(artistId),
+        fetchReviews(artistId),
+      ]);
 
-        // Parallel data loading with Promise.all
-        const [bookingsResult, reviewsResult] = await Promise.all([
-          fetchBookings(profile.id),
-          fetchReviews(profile.id),
-        ]);
+      if (!mounted) return;
 
-        // Handle bookings (required data)
-        if (bookingsResult.error) {
-          logger.warn('Bookings fetch failed, using empty array', { error: bookingsResult.error.message });
-          setLoadState(prev => ({ ...prev, bookingsError: bookingsResult.error }));
-        } else {
-          setLoadState(prev => ({ ...prev, bookingsLoaded: true }));
-        }
-        const fetchedBookings = bookingsResult.data || [];
-        setAllBookings(fetchedBookings);
+      const bookingsResult = results[0];
+      const reviewsResult = results[1];
 
-        // Handle reviews (optional data - dashboard still loads if this fails)
-        const avgRating = reviewsResult.data ?? 0;
-        if (reviewsResult.error) {
-          logger.warn('Reviews fetch failed, using default rating', { error: reviewsResult.error.message });
-          setLoadState(prev => ({ ...prev, reviewsError: reviewsResult.error }));
-        } else {
-          setLoadState(prev => ({ ...prev, reviewsLoaded: true }));
-        }
-
-        // Use reusable stats calculator
-        const newStats = calculateDashboardStats({
-          bookings: fetchedBookings,
-          avgRating,
-          reviewCount: bookingsResult.data?.length ? Math.floor(bookingsResult.data.length * 0.3) : 0,
-        });
-        setStats(newStats);
-
-        logger.info('Dashboard data fetch completed', { stats: newStats });
-
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown dashboard fetch error');
-        logger.error('Dashboard Fetch Error', error);
-        toast.error('Failed to load some dashboard data');
-      } finally {
-        setLoading(false);
+      if (bookingsResult.status === 'fulfilled' && bookingsResult.value.data) {
+        setAllBookings(bookingsResult.value.data);
       }
+
+      if (reviewsResult.status === 'fulfilled' && reviewsResult.value.data) {
+        setReviewData(reviewsResult.value.data);
+      }
+
+      setInitialLoading(false);
     };
 
-    fetchAllDashboardData();
-  }, [profile?.id, isProfessionalUser, fetchBookings, fetchReviews]);
+    initFetch();
 
-  // Derived state for UI filtering (Instant tab switching without API calls)
+    return () => {
+      mounted = false;
+    };
+  }, [artistId, isProfessionalUser, fetchBookings, fetchReviews]);
+
+  // 7. ✨ FIX: Single Source of Truth for Stats (Calculated via actual review count)
+  const stats = useMemo(() => {
+    return calculateDashboardStats({
+      bookings: allBookings,
+      avgRating: reviewData.avgRating,
+      reviewCount: reviewData.count, // Real data instead of fake math!
+    });
+  }, [allBookings, reviewData]);
+
+  // Derived state for UI filtering
   const displayedBookings = useMemo(() => {
     if (bookingFilter === 'all') return allBookings;
     return allBookings.filter(b => b.status === bookingFilter);
   }, [allBookings, bookingFilter]);
 
-  // Recalculate stats when bookings change (for status updates, realtime sync)
-  const recalculateStats = useCallback(() => {
-    if (!loadState.reviewsLoaded && !loadState.reviewsError) return;
-    
-    const avgRating = loadState.reviewsLoaded ? 
-      (stats?.averageRating || 0) : 0;
-    
-    const newStats = calculateDashboardStats({
-      bookings: allBookings,
-      avgRating,
-      reviewCount: allBookings.length ? Math.floor(allBookings.length * 0.3) : 0,
-    });
-    setStats(newStats);
-  }, [allBookings, loadState.reviewsLoaded, loadState.reviewsError, stats?.averageRating]);
-
+  // 3. ✨ FIX: Optimistic UI Update (No Duplicate Fetches)
   const updateBookingStatus = async (bookingId: string, newStatus: BookingStatus, successMessage: string) => {
+    const previousBookings = [...allBookings];
+    // Instantly update UI without waiting for DB
+    setAllBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
+    
     try {
-      const { error } = await supabase.from('bookings').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', bookingId);
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', bookingId);
+        
       if (error) throw error;
-      logger.info('Booking status updated', { bookingId, newStatus });
       toast.success(successMessage);
-      setAllBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
-      // Stats will be recalculated automatically via useEffect below
+      // DB updated. The Realtime debounce will quietly sync the final state if needed.
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error updating booking status');
-      logger.error('Failed to update booking status', error, { bookingId, newStatus });
+      // Rollback UI on error
+      setAllBookings(previousBookings);
       toast.error('Failed to update booking status');
     }
   };
 
-  // Recalculate stats whenever bookings change
+  // 8. ✨ FIX: Optimized Realtime Subscription (Debounced to prevent API Spam)
   useEffect(() => {
-    if (allBookings.length > 0 || loadState.bookingsLoaded) {
-      recalculateStats();
-    }
-  }, [allBookings, recalculateStats, loadState.bookingsLoaded]);
+    let mounted = true;
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
-  // Supabase Realtime Subscription for bookings (INSERT, UPDATE, DELETE)
-  useEffect(() => {
-    if (!profile?.id || !isProfessionalUser || !loadState.bookingsLoaded) {
-      return;
-    }
-
-    // Prevent duplicate subscriptions
-    if (isSubscribedRef.current) {
-      logger.info('Realtime subscription already active');
-      return;
-    }
+    if (!artistId) return;
+    if (isSubscribedRef.current) return;
 
     const setupRealtimeSubscription = async () => {
       try {
-        // Clean up any existing channel
         if (realtimeChannelRef.current) {
           await realtimeChannelRef.current.unsubscribe();
-          realtimeChannelRef.current = null;
         }
 
-        // Create new realtime channel for bookings
-        const channel = supabase.channel(`bookings:${profile.id}`);
-        
-        channel
+        const channel = supabase.channel(`bookings:${artistId}`)
           .on(
             'postgres_changes',
-            {
-              event: '*', // Listen to INSERT, UPDATE, DELETE
-              schema: 'public',
-              table: 'bookings',
-              filter: `artist_id=eq.${profile.id}`,
-            },
-            async (payload) => {
-              logger.info('Realtime booking update received', { 
-                eventType: payload.eventType, 
-                bookingId: payload.new?.id 
-              });
-
-              // Refetch bookings to get fresh data
-              const result = await fetchBookings(profile.id);
-              if (result.data) {
-                setAllBookings(result.data);
-                setLoadState(prev => ({ ...prev, bookingsLoaded: true }));
-                
-                // Recalculate stats with new data
-                const avgRating = loadState.reviewsLoaded ? (stats?.averageRating || 0) : 0;
-                const newStats = calculateDashboardStats({
-                  bookings: result.data,
-                  avgRating,
-                  reviewCount: result.data.length ? Math.floor(result.data.length * 0.3) : 0,
-                });
-                setStats(newStats);
-                
-                toast.success(`Booking ${payload.eventType.toLowerCase()}`);
-              }
+            { event: '*', schema: 'public', table: 'bookings', filter: `artist_id=eq.${artistId}` },
+            () => {
+              // Throttle/Debounce API calls when multiple realtime events trigger at once
+              clearTimeout(debounceTimer);
+              debounceTimer = setTimeout(async () => {
+                const result = await fetchBookings(artistId);
+                if (mounted && result.data) {
+                  setAllBookings(result.data);
+                }
+              }, 800); 
             }
           )
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
               isSubscribedRef.current = true;
               realtimeChannelRef.current = channel;
-              logger.info('Successfully subscribed to bookings realtime updates');
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-              logger.error('Realtime subscription error', new Error(status));
               isSubscribedRef.current = false;
             }
           });
-
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown realtime setup error');
-        logger.error('Failed to setup realtime subscription', error);
+        logger.error('Failed to setup realtime subscription', err as Error);
       }
     };
 
     setupRealtimeSubscription();
 
-    // Cleanup function - prevents memory leaks
     return () => {
+      mounted = false;
+      clearTimeout(debounceTimer);
       if (realtimeChannelRef.current) {
         realtimeChannelRef.current.unsubscribe().then(() => {
           realtimeChannelRef.current = null;
           isSubscribedRef.current = false;
-          logger.info('Realtime subscription cleaned up');
-        }).catch((err) => {
-          logger.error('Error cleaning up realtime subscription', err as Error);
-        });
+        }).catch(() => {});
       }
     };
-  }, [profile?.id, isProfessionalUser, loadState.bookingsLoaded, fetchBookings]);
+  }, [artistId, fetchBookings]);
 
-  if (loading) {
+  // Loading Screens & Restrictions
+  if (initialLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA] relative overflow-hidden pb-32">
         <OfflineBanner isOnline={isOnline} onRetry={handleRetry} />
@@ -425,6 +374,15 @@ export default function ProfessionalDashboard({
               <p className="text-[10px] text-slate-600 font-bold tracking-widest mt-0.5">PROFESSIONAL DASHBOARD</p>
             </div>
             <div className="flex items-center gap-2">
+              {/* 10. ✨ FIX: Dashboard Refresh Button added */}
+              <button
+                onClick={handleRetry}
+                className="w-8 h-8 rounded-full bg-white border border-purple-200 shadow-sm flex items-center justify-center text-slate-600 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                title="Refresh Dashboard"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+
               <button
                 onClick={() => {
                   globalStore.toggleAppViewMode();
@@ -473,7 +431,7 @@ export default function ProfessionalDashboard({
                     <h2 className="text-lg font-extrabold text-slate-900 tracking-tight leading-tight">
                       Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-fuchsia-600">{profile?.shop_name || profile?.display_name || "Professional"}</span>
                     </h2>
-                    <p className="text-xs text-slate-700 font-bold mt-1">{profile?.industry?.replace('_', ' ').toUpperCase()}</p>
+                    <p className="text-xs text-slate-700 font-bold mt-1">{formatIndustry(profile?.industry)}</p>
                     <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-700 font-bold">
                       {profile?.city && (
                         <span className="flex items-center gap-1 bg-white/60 px-2 py-1 rounded-full border border-purple-100">
@@ -490,7 +448,7 @@ export default function ProfessionalDashboard({
               <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-purple-100/80"><Calendar className="w-4 h-4 text-purple-600" /></div>
-                  <span className="text-lg font-extrabold text-slate-900">{stats?.todayBookings || 0}</span>
+                  <span className="text-lg font-extrabold text-slate-900">{stats.todayBookings}</span>
                 </div>
                 <p className="text-[11px] text-slate-700 font-bold">Today's Bookings</p>
               </div>
@@ -498,7 +456,7 @@ export default function ProfessionalDashboard({
               <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-fuchsia-100/80"><AlertCircle className="w-4 h-4 text-fuchsia-600" /></div>
-                  <span className="text-lg font-extrabold text-slate-900">{stats?.pendingRequests || 0}</span>
+                  <span className="text-lg font-extrabold text-slate-900">{stats.pendingRequests}</span>
                 </div>
                 <p className="text-[11px] text-slate-700 font-bold">Pending Requests</p>
               </div>
@@ -506,7 +464,7 @@ export default function ProfessionalDashboard({
               <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-emerald-100/80"><DollarSign className="w-4 h-4 text-emerald-600" /></div>
-                  <span className="text-base font-extrabold text-slate-900">₹{stats?.todaysEarnings?.toLocaleString() || 0}</span>
+                  <span className="text-base font-extrabold text-slate-900">₹{stats.todaysEarnings.toLocaleString()}</span>
                 </div>
                 <p className="text-[11px] text-slate-700 font-bold">Today's Earnings</p>
               </div>
@@ -514,9 +472,9 @@ export default function ProfessionalDashboard({
               <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-amber-100/80"><Star className="w-4 h-4 text-amber-600" /></div>
-                  <span className="text-lg font-extrabold text-slate-900">{stats?.averageRating || 0}</span>
+                  <span className="text-lg font-extrabold text-slate-900">{stats.averageRating.toFixed(1)}</span>
                 </div>
-                <p className="text-[11px] text-slate-700 font-bold">Average Rating</p>
+                <p className="text-[11px] text-slate-700 font-bold">Average Rating ({stats.reviewCount})</p>
               </div>
             </div>
 
@@ -559,11 +517,9 @@ export default function ProfessionalDashboard({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1 mb-1">
                               <h4 className="font-extrabold text-slate-900 truncate text-base">{booking.customer?.full_name || "Customer"}</h4>
-                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border shadow-sm ${
-                                booking.status === "pending" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                booking.status === "confirmed" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                booking.status === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600"
-                              }`}>{booking.status}</span>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border shadow-sm ${getStatusColor(booking.status)}`}>
+                                {booking.status}
+                              </span>
                             </div>
                             <p className="text-xs text-slate-700 font-bold mb-2">{booking.service_name || "Service"}</p>
                             <div className="flex flex-wrap gap-2 text-[10px] text-slate-700 font-bold">
@@ -592,42 +548,41 @@ export default function ProfessionalDashboard({
               </div>
             </div>
           </div>
-            </ErrorBoundaryWrapper>
+          </ErrorBoundaryWrapper>
         )}
-        
 
         {activeTab === 'bookings' && (
           <ErrorBoundaryWrapper moduleName="Bookings" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<BookingSkeleton />}>
-              <ProfessionalBookings artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+              <ProfessionalBookings artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
         {activeTab === 'availability' && (
           <ErrorBoundaryWrapper moduleName="Availability" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<AvailabilitySkeleton />}>
-              <ProfessionalAvailability artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+              <ProfessionalAvailability artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
         {activeTab === 'ai-assistant' && (
           <ErrorBoundaryWrapper moduleName="AI Assistant" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<AISkeleton />}>
-              <ProfessionalAIAssistant artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+              <ProfessionalAIAssistant artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
         {activeTab === 'analytics' && (
           <ErrorBoundaryWrapper moduleName="Analytics" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<AnalyticsSkeleton />}>
-              <ProfessionalAnalytics artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+              <ProfessionalAnalytics artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
         {activeTab === 'profile' && (
           <ErrorBoundaryWrapper moduleName="Profile" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<ProfileSkeleton />}>
-              <ProfessionalProfile artistId={profile.id} onBack={() => setActiveTab('dashboard')} />
+              <ProfessionalProfile artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
