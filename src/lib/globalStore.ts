@@ -51,7 +51,9 @@ interface GlobalState {
   fetchUserProfile: (userId: string, showLoader?: boolean) => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>, showLoader?: boolean) => Promise<void>;
-  completeProfileSetup: (profileData: any, shopData?: any) => Promise<{ profile: any; shop: any | null }>;
+  
+  // 🎯 FIX: Added servicesData parameter to accept the pricing list
+  completeProfileSetup: (profileData: any, shopData?: any, servicesData?: any[]) => Promise<{ profile: any; shop: any | null }>;
 
   // Utility functions
   isProUser: () => boolean;
@@ -96,7 +98,6 @@ export const useGlobalStore = create<GlobalState>()(
         get().setUser(profile);
       },
 
-      // 🎯 FIX: Anti-Freeze logic added to fetchUserProfile
       fetchUserProfile: async (userId: string, showLoader = false) => {
         try {
           if (showLoader) {
@@ -105,7 +106,6 @@ export const useGlobalStore = create<GlobalState>()(
 
           console.log("🛠️ globalStore: Requesting profile data...");
 
-          // Failsafe: 6 செகண்டுக்குள் டேட்டா வரவில்லை என்றால் ஆப்பை தொங்க விடாமல் Error அடிக்கும்.
           const fetchPromise = supabase.from('profiles').select('*').eq('id', userId).single();
           const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('TIMEOUT_ERROR')), 6000)
@@ -134,14 +134,12 @@ export const useGlobalStore = create<GlobalState>()(
           
           set((state) => ({
             error: error?.message === 'TIMEOUT_ERROR' ? 'Network timeout' : (error?.message || 'Failed to load profile'),
-            isLoading: false, // 🎯 CRITICAL: எரர் வந்தாலும் Loader-ஐ நிறுத்தி ஆப்பை உள்ளே விட வேண்டும்!
-            // Timeout என்றால் பழைய (Persisted) டேட்டாவை அழிக்கக் கூடாது, மற்ற எரர் என்றால் மட்டும் அழிக்கவும்
+            isLoading: false, 
             ...(error?.message !== 'TIMEOUT_ERROR' && { user: null, currentUserRole: null })
           }));
         }
       },
 
-      // Force refresh profile from DB
       refreshProfile: async () => {
         try {
           const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -157,7 +155,6 @@ export const useGlobalStore = create<GlobalState>()(
         }
       },
 
-      // Update profile
       updateProfile: async (updates: Partial<UserProfile>, showLoader = true) => {
         try {
           if (showLoader) set({ isLoading: true, error: null });
@@ -188,8 +185,8 @@ export const useGlobalStore = create<GlobalState>()(
         }
       },
 
-      // Complete profile setup
-      completeProfileSetup: async (profileData: any, shopData?: any) => {
+      // 🎯 FIX: Included servicesData to save the Artist Rates 
+      completeProfileSetup: async (profileData: any, shopData?: any, servicesData?: any[]) => {
         try {
           set({ isLoading: true, error: null });
 
@@ -236,6 +233,33 @@ export const useGlobalStore = create<GlobalState>()(
               console.warn('Shop creation warning:', shopError);
             } else {
               savedShop = shopResult;
+            }
+
+            // 🎯 NEW: Save Services (Rates) into artist_services table
+            if (servicesData && servicesData.length > 0) {
+              // Prepare data for Supabase insert
+              const servicesToInsert = servicesData
+                .filter((s: any) => s.title && s.price) // Only valid entries
+                .map((s: any) => ({
+                  artist_id: authUser.id,
+                  title: s.title,
+                  price: parseFloat(s.price),
+                  duration_minutes: 60, // Default duration
+                  category: 'bridal', // Default category
+                  is_active: true
+                }));
+
+              if (servicesToInsert.length > 0) {
+                const { error: servicesError } = await supabase
+                  .from('artist_services')
+                  .insert(servicesToInsert);
+
+                if (servicesError) {
+                  console.warn('Services creation warning:', servicesError);
+                } else {
+                  console.log('Services (Rate Card) successfully saved!');
+                }
+              }
             }
           }
 
