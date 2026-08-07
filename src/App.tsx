@@ -205,6 +205,12 @@ export default function App() {
       async (event, currentSession) => {
         if (!mounted) return;
 
+        // CRITICAL FIX: Skip INITIAL_SESSION since initApp() already handles session restoration
+        // This prevents duplicate fetchUserProfile calls that race and leave isLoading stuck
+        if (event === 'INITIAL_SESSION') {
+          return;
+        }
+
         if (event === 'SIGNED_IN' && currentSession) {
           setSession(currentSession);
           try {
