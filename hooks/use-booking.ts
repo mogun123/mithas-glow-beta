@@ -65,7 +65,7 @@ export const useVerifiedArtists = (options?: {
           .select(`
             *,
             artist_services!inner(price),
-            reviews(rating)
+            reviews!reviews_artist_id_fkey(rating)
           `)
           .eq('account_type', 'professional')
           .eq('industry', 'makeup_artist')
