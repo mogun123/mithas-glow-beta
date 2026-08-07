@@ -126,6 +126,7 @@ export default function App() {
   }, [navigate, goHome]);
 
   // 🎯 THE FIX: Clean, Timeout-free Initialization App logic
+  // App Initialization & Auth State
   useEffect(() => {
     let mounted = true;
 
@@ -152,8 +153,7 @@ export default function App() {
           setSession(currentSession);
         }
 
-        // 🎯 FIX: Original App-ல் உள்ளதைப் போல நேரடியாக Supabase-ஐ கூப்பிடுகிறோம்!
-        // globalStore-ஐ நம்பி App-ஐ Freeze செய்யாமல், அதை Background-ல் ரன் ஆக விடுகிறோம்.
+        // 🎯 FIX: Background update only. No waiting, no freezing.
         fetchUserProfile(currentSession.user.id, false).catch(console.error);
 
         const { data: profile, error: profileError } = await supabase
@@ -162,16 +162,12 @@ export default function App() {
           .eq('id', currentSession.user.id)
           .single();
 
-        if (profileError) {
-          console.warn('Profile fetch error:', profileError);
-        }
-
+        if (profileError) console.warn('Profile fetch error:', profileError);
         if (!mounted) return;
 
         const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
         const savedView = localStorage.getItem("currentView") as View;
 
-        // 🎯 FIX: Routing based on Direct Supabase Data
         if (!profile?.profile_completed) {
           setCurrentView("profile");
           localStorage.setItem("currentView", "profile");
@@ -190,7 +186,6 @@ export default function App() {
           setCurrentView("home");
           localStorage.setItem("currentView", "home");
         }
-
       } catch (error) {
         console.error('initApp caught error:', error);
         if (!mounted) return;
@@ -198,9 +193,7 @@ export default function App() {
         setInitError(message);
         setSession(null);
       } finally {
-        if (mounted) {
-          setIsInitialLoading(false);
-        }
+        if (mounted) setIsInitialLoading(false);
       }
     };
 
@@ -209,18 +202,24 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         if (!mounted) return;
-
         if (event === 'INITIAL_SESSION') return;
 
         if (event === 'SIGNED_IN' && currentSession) {
           setSession(currentSession);
           try {
-            await fetchUserProfile(currentSession.user.id, true);
-            const updatedUser = useGlobalStore.getState().user;
+            // 🎯 FIX: Remove globalStore fetch that was freezing the app!
+            // Directly query Supabase for routing
+            fetchUserProfile(currentSession.user.id, false).catch(console.error);
+            
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('role, industry, profile_completed')
+              .eq('id', currentSession.user.id)
+              .single();
 
-            if (updatedUser?.profile_completed) {
+            if (profileData?.profile_completed) {
               setAuthProfileCompleted(true);
-              if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
+              if (profileData.role === 'seller' && profileData.industry === 'makeup_artist') {
                 setCurrentView("professional");
                 localStorage.setItem("currentView", "professional");
               } else {
@@ -246,11 +245,7 @@ export default function App() {
           setCurrentView("register");
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession(currentSession);
-          try {
-            await refreshProfile();
-          } catch (err) {
-            console.error('Silent refresh failed:', err);
-          }
+          refreshProfile().catch(console.error);
         }
       }
     );
