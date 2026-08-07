@@ -135,7 +135,6 @@ export default function App() {
         setIsInitialLoading(true);
         latestScanReport.current = null;
 
-        // Native await without Promise.race timeout
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) throw sessionError;
@@ -153,21 +152,27 @@ export default function App() {
           setSession(currentSession);
         }
 
-        // Native await for profile fetching
-        await fetchUserProfile(currentSession.user.id, true);
+        // 🎯 FIX: Original App-ல் உள்ளதைப் போல நேரடியாக Supabase-ஐ கூப்பிடுகிறோம்!
+        // globalStore-ஐ நம்பி App-ஐ Freeze செய்யாமல், அதை Background-ல் ரன் ஆக விடுகிறோம்.
+        fetchUserProfile(currentSession.user.id, false).catch(console.error);
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, industry, profile_completed')
+          .eq('id', currentSession.user.id)
+          .single();
+
+        if (profileError) {
+          console.warn('Profile fetch error:', profileError);
+        }
 
         if (!mounted) return;
-
-        const updatedUser = useGlobalStore.getState().user;
-        if (!updatedUser) {
-          throw new Error('No profile was restored for the active session.');
-        }
 
         const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
         const savedView = localStorage.getItem("currentView") as View;
 
-        // Strict Routing Logic based on real Data
-        if (!updatedUser.profile_completed) {
+        // 🎯 FIX: Routing based on Direct Supabase Data
+        if (!profile?.profile_completed) {
           setCurrentView("profile");
           localStorage.setItem("currentView", "profile");
           return;
@@ -178,7 +183,7 @@ export default function App() {
           return;
         }
 
-        if (updatedUser.role === 'seller' && updatedUser.industry === 'makeup_artist') {
+        if (profile?.role === 'seller' && profile?.industry === 'makeup_artist') {
           setCurrentView("professional");
           localStorage.setItem("currentView", "professional");
         } else {
