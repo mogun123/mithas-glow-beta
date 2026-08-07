@@ -123,7 +123,8 @@ export const useGlobalStore = create<GlobalState>()(
               isLoading: false
             }));
           } else {
-            set({ isLoading: false });
+            // No profile row found for this user — clear stale state instead of leaving it ambiguous
+            set({ user: null, currentUserRole: null, isLoading: false });
           }
 
         } catch (error: any) {

@@ -14,6 +14,8 @@ export const AuthGuard = ({ children, onUnauthenticated }: any) => {
   }, [isLoading, user, error, onUnauthenticated]);
 
   if (isLoading && !user) {
+    // Safety net only — App.tsx already gates the main splash via isInitialLoading.
+    // This should rarely render; if it does, it must never hang forever.
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA]">
         <div className="text-center bg-white/70 backdrop-blur-xl border border-white p-6 rounded-3xl shadow-lg">

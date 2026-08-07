@@ -195,7 +195,7 @@ export default function App() {
         setInitError(message);
         setSession(null);
       } finally {
-        if (mounted) setIsInitialLoading(false);
+         setIsInitialLoading(false);
       }
     };
 
