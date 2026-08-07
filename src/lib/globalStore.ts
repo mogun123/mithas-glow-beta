@@ -75,7 +75,7 @@ export const useGlobalStore = create<GlobalState>()(
         ? (user.role === 'seller' ? 'pro' : 'self')
         : state.appViewMode
   }));
-}
+},
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
 
