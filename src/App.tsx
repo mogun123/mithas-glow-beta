@@ -23,7 +23,6 @@ const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
 
 type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "artist-detail" | "professional";
 
-// Optimization: Memoized LoadingScreen prevents unnecessary re-renders
 const LoadingScreen = memo(function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-white">
@@ -44,24 +43,16 @@ const THEME_MAP: Record<View, string> = {
 export default function App() {
   const user = useGlobalStore((state) => state.user);
   const appViewMode = useGlobalStore((state) => state.appViewMode);
-  const currentUserRole = useGlobalStore((state) => state.currentUserRole);
   
   const isProUser = !!user && (user.role === 'seller' || (user as any).is_seller || user.industry === 'makeup_artist');
   
-  const fetchUserProfile = useGlobalStore((state) => state.fetchUserProfile);
-  const refreshProfile = useGlobalStore((state) => state.refreshProfile);
-  const clearData = useGlobalStore((state) => state.clearData);
-
   const setAuthSession = useAuthStore((state) => state.setSession);
   const setAuthProfileCompleted = useAuthStore((state) => state.setProfileCompleted);
-  const authLogout = useAuthStore((state) => state.logout);
 
   const [session, setSession] = useState<any>(null);
   const isAuthenticated = !!session;
-  const profileCompleted = user?.profile_completed ?? false;
-
+  
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [initError, setInitError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<View>(() => {
     const savedView = localStorage.getItem("currentView") as View;
     return savedView || "register";
@@ -69,7 +60,6 @@ export default function App() {
 
   const [identifier, setIdentifier] = useState("");
   const [identifierType, setIdentifierType] = useState<"email" | "phone">("email");
-
   const [selectedArtistId, setSelectedArtistId] = useState<string>(() => sessionStorage.getItem("selectedArtistId") || "");
   const latestScanReport = useRef<any>(null);
 
@@ -97,184 +87,66 @@ export default function App() {
     const handlePopState = (event: PopStateEvent) => {
       if (event.state?.view) setCurrentView(event.state.view);
     };
-
-    const handleNavigateToEvents = (event: CustomEvent) => {
-      if (event.detail?.scanReport && event.detail?.savedToDatabase === true) {
-        latestScanReport.current = event.detail.scanReport;
-      } else {
-        latestScanReport.current = null;
-      }
-      navigate("events");
-    };
-
-    const handleNavigateProfileSetup = () => navigate("profile");
-    const handleNavigateProfessional = () => navigate("professional");
-
     window.addEventListener("popstate", handlePopState);
-    window.addEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
-    window.addEventListener("navigateToProfileSetup", handleNavigateProfileSetup);
-    window.addEventListener("navigateToHome", goHome);
-    window.addEventListener("navigateToProfessional", handleNavigateProfessional);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener("navigateToEventSection", handleNavigateToEvents as EventListener);
-      window.removeEventListener("navigateToProfileSetup", handleNavigateProfileSetup);
-      window.removeEventListener("navigateToHome", goHome);
-      window.removeEventListener("navigateToProfessional", handleNavigateProfessional);
-    };
-  }, [navigate, goHome]);
-
-  // 🎯 THE FIX: Clean, Timeout-free Initialization App logic
-  // App Initialization & Auth State
+  // 🎯 STRICTLY ORIGINAL APP LOGIC - NO TIMEOUTS, NO onAuthStateChange CONFLICTS
   useEffect(() => {
-    let mounted = true;
-
     const initApp = async () => {
       try {
-        setInitError(null);
-        setIsInitialLoading(true);
-        latestScanReport.current = null;
-
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (sessionError) throw sessionError;
+        if (session) {
+          setSession(session);
+          
+          // Original App Style Direct Fetch
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-        if (!currentSession?.user?.id) {
-          if (mounted) {
-            setSession(null);
-            localStorage.removeItem("currentView");
-            setCurrentView("register");
+          if (!profileError && profile) {
+            useGlobalStore.getState().setUser(profile as any);
+            setAuthProfileCompleted(!!profile.profile_completed);
+          } else {
+            setAuthProfileCompleted(false);
           }
-          return;
-        }
 
-        if (mounted) {
-          setSession(currentSession);
-        }
+          const savedView = localStorage.getItem("currentView") as View;
+          const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
 
-        // 🎯 FIX: Background update only. No waiting, no freezing.
-        fetchUserProfile(currentSession.user.id, false).catch(console.error);
-
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, industry, profile_completed')
-          .eq('id', currentSession.user.id)
-          .single();
-
-        if (profileError) console.warn('Profile fetch error:', profileError);
-        if (!mounted) return;
-
-        const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];
-        const savedView = localStorage.getItem("currentView") as View;
-
-        if (!profile?.profile_completed) {
-          setCurrentView("profile");
-          localStorage.setItem("currentView", "profile");
-          return;
-        }
-
-        if (savedView && validViews.includes(savedView)) {
-          setCurrentView(savedView);
-          return;
-        }
-
-        if (profile?.role === 'seller' && profile?.industry === 'makeup_artist') {
-          setCurrentView("professional");
-          localStorage.setItem("currentView", "professional");
+          if (savedView && validViews.includes(savedView)) {
+            setCurrentView(savedView);
+          } else if (profile?.profile_completed) {
+            if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
+              setCurrentView('professional');
+            } else {
+              setCurrentView('home');
+            }
+          } else {
+            setCurrentView('profile');
+          }
         } else {
-          setCurrentView("home");
-          localStorage.setItem("currentView", "home");
+          localStorage.removeItem("currentView");
+          setCurrentView('register');
         }
       } catch (error) {
-        console.error('initApp caught error:', error);
-        if (!mounted) return;
-        const message = error instanceof Error ? error.message : 'Unable to restore your session.';
-        setInitError(message);
-        setSession(null);
+        console.error('Init app error:', error);
+        localStorage.removeItem("currentView");
+        setCurrentView('register');
       } finally {
-        if (mounted) setIsInitialLoading(false);
+        setIsInitialLoading(false);
       }
     };
 
-    void initApp();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        if (!mounted) return;
-        if (event === 'INITIAL_SESSION') return;
-
-        if (event === 'SIGNED_IN' && currentSession) {
-          setSession(currentSession);
-          try {
-            // 🎯 FIX: Remove globalStore fetch that was freezing the app!
-            // Directly query Supabase for routing
-            fetchUserProfile(currentSession.user.id, false).catch(console.error);
-            
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('role, industry, profile_completed')
-              .eq('id', currentSession.user.id)
-              .single();
-
-            if (profileData?.profile_completed) {
-              setAuthProfileCompleted(true);
-              if (profileData.role === 'seller' && profileData.industry === 'makeup_artist') {
-                setCurrentView("professional");
-                localStorage.setItem("currentView", "professional");
-              } else {
-                setCurrentView("home");
-                localStorage.setItem("currentView", "home");
-              }
-            } else {
-              setAuthProfileCompleted(false);
-              setCurrentView("profile");
-              localStorage.setItem("currentView", "profile");
-            }
-          } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unable to load your profile.';
-            setInitError(message);
-            setSession(null);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setInitError(null);
-          authLogout();
-          clearData();
-          localStorage.removeItem("currentView");
-          setCurrentView("register");
-        } else if (event === 'TOKEN_REFRESHED' && currentSession) {
-          setSession(currentSession);
-          refreshProfile().catch(console.error);
-        }
-      }
-    );
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [navigate, fetchUserProfile, setAuthProfileCompleted, authLogout, clearData, refreshProfile]);
-
-  useEffect(() => {
-    if (isInitialLoading) return;
-
-    if (isAuthenticated) {
-      if (!profileCompleted && currentView !== "profile") {
-        navigate("profile");
-      } else if (profileCompleted && ["register", "login", "otp", "profile"].includes(currentView)) {
-        if (currentUserRole === 'seller') navigate("professional");
-        else navigate("home");
-      }
-    } else if (!["login", "register", "otp"].includes(currentView)) {
-      navigate("register");
-    }
-  }, [isAuthenticated, profileCompleted, currentView, isInitialLoading, currentUserRole, navigate]);
+    initApp();
+  }, []);
 
   useEffect(() => {
     const newTheme = THEME_MAP[currentView] || "mithas-theme";
     const allThemes = Array.from(new Set(Object.values(THEME_MAP)));
-    
     document.body.classList.remove(...allThemes);
     document.body.classList.add(newTheme);
   }, [currentView]);
@@ -288,7 +160,7 @@ export default function App() {
   const handleVerifyOTP = () => {
     toast.success("Verification successful!");
     setAuthProfileCompleted(false);
-    navigate("profile");
+    setCurrentView("profile");
   };
 
   const handleProfileComplete = async (view?: string) => {
@@ -302,7 +174,7 @@ export default function App() {
       if (view) {
         setAuthProfileCompleted(true);
         navigate(view as View);
-        toast.success("Profile saved and synced! ✨");
+        toast.success("Profile saved! ✨");
         return;
       }
 
@@ -318,7 +190,7 @@ export default function App() {
       } else {
         navigate("home");
       }
-      toast.success("Profile saved and synced! ✨");
+      toast.success("Profile saved! ✨");
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -327,6 +199,27 @@ export default function App() {
   const handleLogin = async (userData: any) => {
     setAuthSession(userData.session);
     setSession(userData.session);
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userData.user.id)
+      .single();
+
+    if (profile) {
+      useGlobalStore.getState().setUser(profile as any);
+      if (profile.profile_completed) {
+        setAuthProfileCompleted(true);
+        if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
+          setCurrentView("professional");
+        } else {
+          setCurrentView("home");
+        }
+      } else {
+        setAuthProfileCompleted(false);
+        setCurrentView("profile");
+      }
+    }
   };
 
   const authenticatedScreen = useMemo(() => {
@@ -336,53 +229,15 @@ export default function App() {
       "mirror": <MirrorScreen onNavigateHome={goHome} />,
       "products": <ProductsScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} />,
       "coach": <CoachScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} />,
-      "booking": (
-        <BookingScreen
-          onNavigateToMirror={goMirror}
-          onNavigateToProfile={goProfile}
-          onNavigateHome={goHome}
-          onNavigateToArtistDetail={handleNavigateToArtistDetail}
-        />
-      ),
-      "artist-detail": (
-        <ArtistDetailScreen
-          artistId={selectedArtistId}
-          onNavigateToMirror={goMirror}
-          onNavigateToProfile={goProfile}
-          onNavigateHome={goHome}
-          onNavigateBack={goBooking}
-          onNavigateToMyBookings={goProfile}
-        />
-      ),
-      "professional": (isProUser && appViewMode === 'self') 
-        ? <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} />
-        : <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} />,
-      "home": (isProUser && appViewMode === 'pro')
-        ? <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} />
-        : <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} />
+      "booking": <BookingScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateToArtistDetail={handleNavigateToArtistDetail} />,
+      "artist-detail": <ArtistDetailScreen artistId={selectedArtistId} onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateBack={goBooking} onNavigateToMyBookings={goProfile} />,
+      "professional": (isProUser && appViewMode === 'self') ? <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} /> : <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} />,
+      "home": (isProUser && appViewMode === 'pro') ? <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} /> : <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} />
     };
-
     return screenMap[currentView] || null;
   }, [currentView, isProUser, appViewMode, selectedArtistId, goHome, goMirror, goProfile, goEvents, goProducts, goCoach, goBooking, handleNavigateToArtistDetail]);
 
   if (isInitialLoading) return <LoadingScreen />;
-
-  if (initError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-white p-4">
-        <div className="w-full max-w-md rounded-3xl border border-rose-200 bg-white/80 p-8 text-center shadow-xl backdrop-blur-xl">
-          <h2 className="text-xl font-black text-slate-900">Session restore failed</h2>
-          <p className="mt-3 text-sm text-slate-600">{initError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
-          >
-            Reload app
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (["register", "login", "otp", "profile"].includes(currentView)) {
     return (
@@ -393,14 +248,12 @@ export default function App() {
             <h1 className="text-4xl tracking-tighter text-pink-600">MITHAS GLOW</h1>
             <p className="text-gray-500 mt-1">Discover your perfect look.</p>
           </header>
-
           {(currentView === "login" || currentView === "register") && (
             <div className="flex border-b border-gray-200 mb-6">
               <button onClick={() => navigate("login")} className={`flex-1 py-3 ${currentView === "login" ? "border-b-3 border-purple-500 text-purple-600 font-bold" : "text-gray-500"}`}>Login</button>
               <button onClick={() => navigate("register")} className={`flex-1 py-3 ${currentView === "register" ? "border-b-3 border-purple-500 text-purple-600 font-bold" : "text-gray-500"}`}>Register</button>
             </div>
           )}
-
           <Suspense fallback={null}>
             {currentView === "register" && <RegisterView onSendOTP={handleSendOTP} />}
             {currentView === "login" && <LoginView onLogin={handleLogin} />}
