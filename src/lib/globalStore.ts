@@ -99,20 +99,30 @@ export const useGlobalStore = create<GlobalState>()(
 
       // Fetch user profile (Kept maybeSingle() as it's a fetch/lookup operation)
       fetchUserProfile: async (userId: string, showLoader = false) => {
+        console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile START: userId=${userId}, showLoader=${showLoader}`);
+        const fetchStart = performance.now();
         try {
           if (showLoader) {
             set({ isLoading: true, error: null });
+            console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Set isLoading=true`);
           }
 
+          const queryStart = performance.now();
+          console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Calling supabase.from('profiles').select()`);
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
             .maybeSingle();
+          console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Query returned after ${(performance.now() - queryStart).toFixed(0)}ms`, { hasData: !!data, error });
 
-          if (error) throw error;
+          if (error) {
+            console.error(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Query error`, error);
+            throw error;
+          }
 
           if (data) {
+            console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: Data found, updating store`, { userId: data.id, profile_completed: data.profile_completed });
             set((state) => ({
               user: data as UserProfile,
               currentUserRole: data.role,
@@ -123,12 +133,14 @@ export const useGlobalStore = create<GlobalState>()(
               isLoading: false
             }));
           } else {
+            console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile: No data found (empty result)`);
             // No profile row found for this user — clear stale state instead of leaving it ambiguous
             set({ user: null, currentUserRole: null, isLoading: false });
           }
 
+          console.log(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile DONE: Total time ${(performance.now() - fetchStart).toFixed(0)}ms`);
         } catch (error: any) {
-          console.error('Error fetching user profile:', error);
+          console.error(`[${performance.now().toFixed(0)}ms] globalStore.fetchUserProfile ERROR:`, error);
           const message = error?.message || 'Failed to load user profile';
           set({
             error: message,
