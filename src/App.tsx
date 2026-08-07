@@ -47,7 +47,7 @@ export default function App() {
   const currentUserRole = useGlobalStore((state) => state.currentUserRole);
   
   // 1. ✨ FIX: Derived boolean value instead of function call
-  const isProUser = user?.role === 'seller';
+  const isProUser = !!user && (user.role === 'seller' || (user as any).is_seller || user.industry === 'makeup_artist');
   
   const fetchUserProfile = useGlobalStore((state) => state.fetchUserProfile);
   const refreshProfile = useGlobalStore((state) => state.refreshProfile);
@@ -145,12 +145,22 @@ export default function App() {
     const initApp = async () => {
       try {
         latestScanReport.current = null;
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const { data: { session: currentSession } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null } }>((resolve) => {
+            setTimeout(() => resolve({ data: { session: null } }), 6000);
+          })
+        ]);
 
         if (currentSession && mounted) {
           setSession(currentSession);
           
-          await fetchUserProfile(currentSession.user.id, true);
+          await Promise.race([
+            fetchUserProfile(currentSession.user.id, true),
+            new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Profile fetch timeout')), 6000);
+            })
+          ]);
           
           const updatedUser = useGlobalStore.getState().user;
           const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional"];

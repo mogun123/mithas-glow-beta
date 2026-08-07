@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
 import { 
   Calendar, Clock, DollarSign, Star, Users, AlertCircle, 
-  CheckCircle, XCircle, MapPin, Zap, Crown, RefreshCw
+  CheckCircle, XCircle, MapPin, Zap, Crown, RefreshCw, Home
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProfessionalBottomNav from './ProfessionalBottomNav';
@@ -82,12 +82,9 @@ export default function ProfessionalDashboard({
   const [reviewData, setReviewData] = useState<ReviewData>({ avgRating: 0, count: 0 });
   
   const [initialLoading, setInitialLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 3;
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Refs for realtime subscriptions
-  const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const isSubscribedRef = useRef(false);
+  // Realtime subscription state is managed per artistId
 
   // Offline detection
   const { isOnline } = useOfflineDetection();
@@ -95,7 +92,9 @@ export default function ProfessionalDashboard({
   // Clean artistId usage
   const profile = globalStore.user;
   const artistId = profile?.id;
-  const isProfessionalUser = useMemo(() => isProfessionalRole(profile?.role), [profile?.role]);
+  const isProfessionalUser = useMemo(() => {
+    return isProfessionalRole(profile?.role) || profile?.industry === 'makeup_artist' || (profile as any)?.is_seller;
+  }, [profile?.role, profile?.industry, (profile as any)?.is_seller]);
 
   // Safe Date & Time Extractors
   const getSafeDate = useCallback((b: DateExtractable): string => {
@@ -106,94 +105,62 @@ export default function ProfessionalDashboard({
     return b.booking_time || b.appointment_time || b.time || 'Time TBD';
   }, []);
 
-  // Parallel data loading
-  const fetchBookings = useCallback(async (targetArtistId: string): Promise<FetchResult<BookingWithCustomer[]>> => {
-    try {
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select(`*, customer:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url)`)
-        .eq('artist_id', targetArtistId)
-        .order('created_at', { ascending: false });
+  // Parallel data loading from Supabase only
+  const fetchBookings = useCallback(async (targetArtistId: string): Promise<BookingWithCustomer[]> => {
+    const { data: bookingsData, error: bookingsError } = await supabase
+      .from('bookings')
+      .select(`*, customer:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url)`)
+      .eq('artist_id', targetArtistId)
+      .order('created_at', { ascending: false });
 
-      if (bookingsError) throw bookingsError;
-      return { data: bookingsData || [], error: null };
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error fetching bookings');
-      return { data: null, error };
-    }
+    if (bookingsError) throw bookingsError;
+    return (bookingsData || []) as BookingWithCustomer[];
   }, []);
 
-  const fetchReviews = useCallback(async (targetArtistId: string): Promise<FetchResult<ReviewData>> => {
-    try {
-      const { data: reviews, error: reviewsError } = await supabase
-        .from('reviews')
-        .select('rating')
-        .eq('artist_id', targetArtistId);
+  const fetchReviews = useCallback(async (targetArtistId: string): Promise<ReviewData> => {
+    const { data: reviews, error: reviewsError } = await supabase
+      .from('reviews')
+      .select('rating')
+      .eq('artist_id', targetArtistId);
 
-      if (reviewsError) throw reviewsError;
+    if (reviewsError) throw reviewsError;
 
-      const count = reviews?.length || 0;
-      const avgRating = count > 0 
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / count 
-        : 0;
+    const count = reviews?.length || 0;
+    const avgRating = count > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / count
+      : 0;
 
-      return { data: { avgRating, count }, error: null };
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error fetching reviews');
-      return { data: null, error };
-    }
+    return { avgRating, count };
   }, []);
 
-  // 1 & 6. ✨ FIX: Robust Retry with Offline Feedback and Promise.allSettled
+  const loadDashboardData = useCallback(async (targetArtistId: string) => {
+    const [bookingsData, reviewsData] = await Promise.all([
+      fetchBookings(targetArtistId),
+      fetchReviews(targetArtistId),
+    ]);
+
+    setAllBookings(bookingsData);
+    setReviewData(reviewsData);
+  }, [fetchBookings, fetchReviews]);
+
   const handleRetry = useCallback(async () => {
-    if (!isOnline) {
-      toast.error("You are currently offline.");
-      return;
-    }
     if (!artistId) return;
 
-    if (retryCount >= MAX_RETRIES) {
-      toast.error('Unable to load data. Please refresh the page.');
-      return;
-    }
-
     setInitialLoading(true);
-    const nextAttempt = retryCount + 1;
-    setRetryCount(nextAttempt);
+    setLoadError(null);
 
     try {
-      const results = await Promise.allSettled([
-        fetchBookings(artistId),
-        fetchReviews(artistId),
-      ]);
-
-      const bookingsResult = results[0];
-      const reviewsResult = results[1];
-      let bookingsSuccess = false;
-
-      if (bookingsResult.status === 'fulfilled' && bookingsResult.value.data) {
-        setAllBookings(bookingsResult.value.data);
-        bookingsSuccess = true;
-      } else {
-        toast.error('Failed to sync bookings.');
-      }
-
-      if (reviewsResult.status === 'fulfilled' && reviewsResult.value.data) {
-        setReviewData(reviewsResult.value.data);
-      }
-
-      if (bookingsSuccess) {
-        toast.success('Dashboard synced successfully');
-        setRetryCount(0); // 4. ✨ FIX: Reset retry count if core functionality (bookings) succeeds
-      }
+      await loadDashboardData(artistId);
+      toast.success('Dashboard synced successfully');
     } catch (err) {
-      toast.error('Sync failed. Please try again.');
+      const message = err instanceof Error ? err.message : 'Unknown dashboard error';
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setInitialLoading(false);
     }
-  }, [artistId, isOnline, retryCount, fetchBookings, fetchReviews]);
+  }, [artistId, loadDashboardData]);
 
-  // 9. ✨ FIX: Component Mount Flag to Prevent Memory Leaks on Unmount
   useEffect(() => {
     let mounted = true;
 
@@ -204,34 +171,28 @@ export default function ProfessionalDashboard({
 
     const initFetch = async () => {
       setInitialLoading(true);
-      
-      const results = await Promise.allSettled([
-        fetchBookings(artistId),
-        fetchReviews(artistId),
-      ]);
+      setLoadError(null);
 
-      if (!mounted) return;
-
-      const bookingsResult = results[0];
-      const reviewsResult = results[1];
-
-      if (bookingsResult.status === 'fulfilled' && bookingsResult.value.data) {
-        setAllBookings(bookingsResult.value.data);
+      try {
+        await loadDashboardData(artistId);
+      } catch (err) {
+        if (!mounted) return;
+        const message = err instanceof Error ? err.message : 'Unknown dashboard error';
+        setLoadError(message);
+        toast.error(message);
+      } finally {
+        if (mounted) {
+          setInitialLoading(false);
+        }
       }
-
-      if (reviewsResult.status === 'fulfilled' && reviewsResult.value.data) {
-        setReviewData(reviewsResult.value.data);
-      }
-
-      setInitialLoading(false);
     };
 
-    initFetch();
+    void initFetch();
 
     return () => {
       mounted = false;
     };
-  }, [artistId, isProfessionalUser, fetchBookings, fetchReviews]);
+  }, [artistId, isProfessionalUser, loadDashboardData]);
 
   // 7. ✨ FIX: Single Source of Truth for Stats (Calculated via actual review count)
   const stats = useMemo(() => {
@@ -248,83 +209,51 @@ export default function ProfessionalDashboard({
     return allBookings.filter(b => b.status === bookingFilter);
   }, [allBookings, bookingFilter]);
 
-  // 3. ✨ FIX: Optimistic UI Update (No Duplicate Fetches)
   const updateBookingStatus = async (bookingId: string, newStatus: BookingStatus, successMessage: string) => {
-    const previousBookings = [...allBookings];
-    // Instantly update UI without waiting for DB
-    setAllBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
-    
+    if (!artistId) {
+      toast.error('Missing artist id for booking update.');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('bookings')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', bookingId);
-        
+
       if (error) throw error;
+
+      const refreshedBookings = await fetchBookings(artistId);
+      setAllBookings(refreshedBookings);
       toast.success(successMessage);
-      // DB updated. The Realtime debounce will quietly sync the final state if needed.
     } catch (err) {
-      // Rollback UI on error
-      setAllBookings(previousBookings);
-      toast.error('Failed to update booking status');
+      const message = err instanceof Error ? err.message : 'Booking update failed';
+      toast.error(message);
     }
   };
 
-  // 8. ✨ FIX: Optimized Realtime Subscription (Debounced to prevent API Spam)
   useEffect(() => {
-    let mounted = true;
-    let debounceTimer: ReturnType<typeof setTimeout>;
-
     if (!artistId) return;
-    if (isSubscribedRef.current) return;
 
-    const setupRealtimeSubscription = async () => {
-      try {
-        if (realtimeChannelRef.current) {
-          await realtimeChannelRef.current.unsubscribe();
+    const channel = supabase.channel(`bookings:${artistId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings', filter: `artist_id=eq.${artistId}` },
+        async () => {
+          try {
+            await loadDashboardData(artistId);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'Realtime refresh failed';
+            toast.error(message);
+          }
         }
-
-        const channel = supabase.channel(`bookings:${artistId}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'bookings', filter: `artist_id=eq.${artistId}` },
-            () => {
-              // Throttle/Debounce API calls when multiple realtime events trigger at once
-              clearTimeout(debounceTimer);
-              debounceTimer = setTimeout(async () => {
-                const result = await fetchBookings(artistId);
-                if (mounted && result.data) {
-                  setAllBookings(result.data);
-                }
-              }, 800); 
-            }
-          )
-          .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-              isSubscribedRef.current = true;
-              realtimeChannelRef.current = channel;
-            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-              isSubscribedRef.current = false;
-            }
-          });
-      } catch (err) {
-        logger.error('Failed to setup realtime subscription', err as Error);
-      }
-    };
-
-    setupRealtimeSubscription();
+      )
+      .subscribe();
 
     return () => {
-      mounted = false;
-      clearTimeout(debounceTimer);
-      if (realtimeChannelRef.current) {
-        realtimeChannelRef.current.unsubscribe().then(() => {
-          realtimeChannelRef.current = null;
-          isSubscribedRef.current = false;
-        }).catch(() => {});
-      }
+      supabase.removeChannel(channel);
     };
-  }, [artistId, fetchBookings]);
+  }, [artistId, loadDashboardData]);
 
   // Loading Screens & Restrictions
   if (initialLoading) {
@@ -399,6 +328,13 @@ export default function ProfessionalDashboard({
                 {globalStore.appViewMode === 'self' ? 'SELF' : 'PRO'}
               </button>
               <button
+                onClick={onNavigateHome}
+                className="w-8 h-8 rounded-full bg-white border border-purple-200 shadow-sm flex items-center justify-center text-slate-600 hover:text-purple-600"
+                title="Go Home"
+              >
+                <Home className="w-4 h-4" />
+              </button>
+              <button
                 onClick={onNavigateToProfile}
                 className="w-8 h-8 rounded-full bg-white border border-purple-200 shadow-sm flex items-center justify-center overflow-hidden"
               >
@@ -415,8 +351,14 @@ export default function ProfessionalDashboard({
 
       <main className="max-w-4xl mx-auto px-4 pt-4">
         {activeTab === 'dashboard' && (
-          <ErrorBoundaryWrapper moduleName="DashboardOverview" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+          <ErrorBoundaryWrapper moduleName="DashboardOverview" errorMessage={loadError} onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {loadError && (
+              <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-700 font-semibold">
+                {loadError}
+              </div>
+            )}
+
             <div className="mb-4">
               <div className="relative overflow-hidden bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white shadow-sm">
                 <div className="flex items-center gap-3">
@@ -552,35 +494,35 @@ export default function ProfessionalDashboard({
         )}
 
         {activeTab === 'bookings' && (
-          <ErrorBoundaryWrapper moduleName="Bookings" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+          <ErrorBoundaryWrapper moduleName="Bookings" errorMessage={loadError} onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<BookingSkeleton />}>
               <ProfessionalBookings artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
         {activeTab === 'availability' && (
-          <ErrorBoundaryWrapper moduleName="Availability" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+          <ErrorBoundaryWrapper moduleName="Availability" errorMessage={loadError} onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<AvailabilitySkeleton />}>
               <ProfessionalAvailability artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
         {activeTab === 'ai-assistant' && (
-          <ErrorBoundaryWrapper moduleName="AI Assistant" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+          <ErrorBoundaryWrapper moduleName="AI Assistant" errorMessage={loadError} onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<AISkeleton />}>
               <ProfessionalAIAssistant artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
         {activeTab === 'analytics' && (
-          <ErrorBoundaryWrapper moduleName="Analytics" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+          <ErrorBoundaryWrapper moduleName="Analytics" errorMessage={loadError} onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<AnalyticsSkeleton />}>
               <ProfessionalAnalytics artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>
           </ErrorBoundaryWrapper>
         )}
         {activeTab === 'profile' && (
-          <ErrorBoundaryWrapper moduleName="Profile" onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
+          <ErrorBoundaryWrapper moduleName="Profile" errorMessage={loadError} onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>
             <Suspense fallback={<ProfileSkeleton />}>
               <ProfessionalProfile artistId={artistId || ''} onBack={() => setActiveTab('dashboard')} />
             </Suspense>

@@ -160,6 +160,8 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
   const [oldAvatarPath, setOldAvatarPath] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -187,6 +189,8 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
 
     try {
       setLoading(true);
+      setLoadError(null);
+      setSaveError(null);
 
       const [pRes, sRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', artistId).maybeSingle().abortSignal(signal),
@@ -249,7 +253,11 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
         isVacation: sData.is_vacation || false
       });
     } catch (err: any) {
-      if (err.name !== 'AbortError') toast.error('Failed to load profile data');
+      if (err.name !== 'AbortError') {
+        const message = err?.message || 'Failed to load profile data';
+        setLoadError(message);
+        toast.error(message);
+      }
     } finally {
       if (!signal.aborted) setLoading(false);
     }
@@ -345,6 +353,7 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
+      setSaveError(null);
       reset(data, { keepValues: true });
       data.bio = data.bio.trim();
       
@@ -391,28 +400,31 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
       };
 
       const { error } = await supabase.rpc('update_professional_settings', payload);
-
-      if (error) {
-        if (error.code === '42883' || error.message?.includes('function') || error.message?.includes('column')) {
-          logger.warn('RPC or Column missing, using safe basic fallback sync.');
-          await Promise.all([
-            supabase.from('profiles').update({ full_name: data.fullName, bio: data.bio, city: data.city, phone: data.phone, experience: data.experience?.toString(), operating_hours: JSON.stringify(data.operatingHours) }).eq('id', artistId),
-            supabase.from('shops').upsert({ user_id: artistId, shop_name: data.shopName, business_address: data.city, professional_bio: data.bio, operating_hours: JSON.stringify(data.operatingHours) }, { onConflict: 'user_id' })
-          ]);
-        } else {
-          throw error;
-        }
-      }
+      if (error) throw error;
 
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
       toast.success('Profile saved successfully! 🎉');
     } catch (err) {
-      toast.error('Save failed. Please retry.');
+      const message = err instanceof Error ? err.message : 'Save failed. Please retry.';
+      setSaveError(message);
+      toast.error(message);
     }
   };
 
   if (loading) return <ProfileSkeleton />;
+
+  if (loadError) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center rounded-3xl border border-rose-200 bg-rose-50/70 p-6 text-center">
+        <AlertCircle className="mb-4 h-12 w-12 text-rose-500" />
+        <p className="text-sm font-semibold text-rose-700">{loadError}</p>
+        <button onClick={() => void loadData()} className="mt-4 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white">
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -432,6 +444,12 @@ function ProfessionalProfileContent({ artistId, onBack }: ProfessionalProfilePro
           {isSubmitting ? 'Saving...' : saveSuccess ? 'Saved ✓' : 'Save Profile'}
         </button>
       </div>
+
+      {saveError && (
+        <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">
+          {saveError}
+        </div>
+      )}
 
       <fieldset disabled={isSubmitting} className="space-y-6">
 

@@ -49,41 +49,26 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  // Call real AI backend if available, otherwise use fallback responses
   const generateResponse = async (query: string): Promise<string> => {
-    try {
-      // Try to call the real AI service
-      const response = await fetch(`${AI_SERVICE_URL}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: query,
-          user_id: artistId,
-          context: 'professional_makeup_artist',
-        }),
-      });
+    const response = await fetch(`${AI_SERVICE_URL}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: query,
+        user_id: artistId,
+        context: 'professional_makeup_artist',
+      }),
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        return data.response || data.message || data.reply || 'I received your message.';
-      }
-    } catch (error) {
-      // AI service unavailable - use graceful fallback
-      console.warn('AI service unavailable, using fallback responses');
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(detail || `AI service returned ${response.status}`);
     }
 
-    // Fallback canned responses when AI backend is not available
-    const responses: Record<string, string> = {
-      pricing: "Based on industry standards and your location, here are pricing suggestions:\n\n• Bridal Makeup: ₹15,000 - ₹35,000\n• Reception Makeup: ₹8,000 - ₹15,000\n• Party Makeup: ₹3,000 - ₹7,000\n• HD Makeup: ₹5,000 - ₹10,000\n\nConsider factors like experience, product quality, and travel distance when setting prices.",
-      growth: "Here are proven strategies to grow your makeup business:\n\n1. Build a strong Instagram presence with before/after posts\n2. Collaborate with wedding planners and photographers\n3. Offer referral discounts to existing clients\n4. Create tutorial content to showcase expertise\n5. Attend bridal expos and networking events",
-      retention: "Customer retention tips:\n\n• Send personalized follow-up messages after appointments\n• Offer loyalty discounts for repeat bookings\n• Remember client preferences and skin types\n• Share skincare tips between appointments\n• Create a VIP program for frequent clients",
-      trends: "Top makeup trends for 2024:\n\n1. Natural, dewy skin with minimal coverage\n2. Bold, graphic eyeliner\n3. Warm, earthy eyeshadow tones\n4. Glossy lips in nude shades\n5. Feathered brows for a natural look\n6. Blush draping technique",
-    };
-
-    const key = Object.keys(responses).find(k => query.toLowerCase().includes(k)) || 'growth';
-    return responses[key] || "That's a great question! Here are some insights based on industry best practices. Consider reaching out to experienced artists in your network for personalized advice.";
+    const data = await response.json();
+    return data.response || data.message || data.reply || 'I received your message.';
   };
 
   const handleSendMessage = async (content: string) => {
@@ -109,8 +94,9 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get AI response';
       console.error('AI response error:', error);
-      toast.error('Failed to get AI response');
+      toast.error(message);
     } finally {
       setIsTyping(false);
     }

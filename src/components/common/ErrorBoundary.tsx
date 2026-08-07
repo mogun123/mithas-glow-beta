@@ -5,6 +5,7 @@ import { logger } from '../../lib/logger';
 interface Props {
   children: ReactNode;
   moduleName: string;
+  errorMessage?: string | null;
   onRetry?: () => void;
   onBack?: () => void;
 }
@@ -37,7 +38,7 @@ export class ErrorBoundaryWrapper extends Component<Props, State> {
           </div>
           <h3 className="text-xl font-extrabold text-slate-900 mb-2 tracking-tight">Oops! Module Failed</h3>
           <p className="text-sm text-slate-600 mb-6 font-medium">
-            We couldn't load the {this.props.moduleName} module right now. 
+            {this.props.errorMessage || `We couldn't load the ${this.props.moduleName} module right now.`}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">

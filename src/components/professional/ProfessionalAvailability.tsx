@@ -29,6 +29,7 @@ const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export default function ProfessionalAvailability({ artistId, onBack }: ProfessionalAvailabilityProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isVacationMode, setIsVacationMode] = useState(false);
   const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // Mon-Sat
   const [startTime, setStartTime] = useState('09:00');
@@ -38,10 +39,10 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
 
   // Load availability settings from Supabase on mount
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const { data, error } = await supabase
+  const loadSettings = async () => {
+    try {
+      setErrorMessage(null);
+      const { data, error } = await supabase
           .from('profiles')
           .select('operating_hours')
           .eq('id', artistId)
@@ -81,14 +82,17 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
           if (settings.vacationMode !== undefined) setIsVacationMode(settings.vacationMode);
           if (settings.blockedDates) setBlockedDates(settings.blockedDates);
         }
-      } catch (err: any) {
-        console.error('ProfessionalAvailability: Load error:', err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (err: any) {
+      const message = err?.message || 'Failed to load availability';
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadSettings();
+  useEffect(() => {
+    void loadSettings();
   }, [artistId]);
 
   const handleToggleWorkingDay = (dayIndex: number) => {
@@ -102,6 +106,7 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
+      setErrorMessage(null);
       
       // Build operating_hours JSONB object matching get_available_slots SQL function format
       const operatingHours: Record<string, any> = {};
@@ -113,18 +118,6 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
         }
       });
 
-      // Update profiles table with operating_hours
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          operating_hours: JSON.stringify(operatingHours),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', artistId);
-
-      if (profileError) throw profileError;
-
-      // Save additional settings as availability_settings JSONB column
       const availabilitySettings = {
         slotDuration,
         maxBookingsPerDay,
@@ -132,24 +125,22 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
         blockedDates,
       };
 
-      // Update availability_settings column (added in 20260805120000_professional_features.sql)
-      const { error: settingsError } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
+          operating_hours: JSON.stringify(operatingHours),
           availability_settings: JSON.stringify(availabilitySettings),
           updated_at: new Date().toISOString(),
         })
         .eq('id', artistId);
 
-      if (settingsError) {
-        console.warn('Failed to save availability_settings:', settingsError.message);
-        // Don't throw - operating_hours was saved successfully
-      }
+      if (profileError) throw profileError;
 
       toast.success('Availability settings saved!');
     } catch (error: any) {
-      console.error('ProfessionalAvailability: Save error:', error.message);
-      toast.error('Failed to save settings');
+      const message = error?.message || 'Failed to save settings';
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -158,9 +149,7 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
   const handleBlockDate = async (date: string) => {
     if (!blockedDates.includes(date)) {
       const newBlockedDates = [...blockedDates, date];
-      setBlockedDates(newBlockedDates);
-      
-      // Persist to Supabase availability_settings column
+
       try {
         const { error } = await supabase
           .from('profiles')
@@ -174,21 +163,22 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
             updated_at: new Date().toISOString(),
           })
           .eq('id', artistId);
-        
+
         if (error) throw error;
+        setBlockedDates(newBlockedDates);
+        setErrorMessage(null);
         toast.success('Date blocked');
       } catch (err: any) {
-        console.warn('Failed to persist blocked date:', err.message);
-        toast.error('Failed to block date');
+        const message = err?.message || 'Failed to block date';
+        setErrorMessage(message);
+        toast.error(message);
       }
     }
   };
 
   const handleUnblockDate = async (date: string) => {
     const newBlockedDates = blockedDates.filter(d => d !== date);
-    setBlockedDates(newBlockedDates);
-    
-    // Persist to Supabase availability_settings column
+
     try {
       const { error } = await supabase
         .from('profiles')
@@ -202,14 +192,30 @@ export default function ProfessionalAvailability({ artistId, onBack }: Professio
           updated_at: new Date().toISOString(),
         })
         .eq('id', artistId);
-      
+
       if (error) throw error;
+      setBlockedDates(newBlockedDates);
+      setErrorMessage(null);
       toast.success('Date unblocked');
     } catch (err: any) {
-      console.warn('Failed to persist unblocked date:', err.message);
-      toast.error('Failed to unblock date');
+      const message = err?.message || 'Failed to unblock date';
+      setErrorMessage(message);
+      toast.error(message);
     }
   };
+
+  if (errorMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center max-w-md">
+          <p className="text-sm font-semibold text-rose-700">{errorMessage}</p>
+          <Button variant="outline" className="mt-4" onClick={() => void loadSettings()}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

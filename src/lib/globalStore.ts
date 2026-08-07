@@ -17,6 +17,10 @@ export interface UserProfile {
   role: 'buyer' | 'seller' | 'admin';
   industry?: string | null;
   profile_completed: boolean;
+  is_seller?: boolean;
+  seller_status?: string | null;
+  shop_name?: string | null;
+  shop_type?: string | null;
   created_at: string;
   updated_at: string;
   glow_points?: number;
@@ -67,12 +71,13 @@ export const useGlobalStore = create<GlobalState>()(
 
       // Basic setters
       setUser: (user) => {
+  const isProfessional = !!user && (user.role === 'seller' || user.is_seller || user.industry === 'makeup_artist');
   set((state) => ({
     user,
     currentUserRole: user?.role ?? null,
     appViewMode:
       state.user === null && user
-        ? (user.role === 'seller' ? 'pro' : 'self')
+        ? (isProfessional ? 'pro' : 'self')
         : state.appViewMode
   }));
 },
@@ -113,7 +118,7 @@ export const useGlobalStore = create<GlobalState>()(
               currentUserRole: data.role,
               appViewMode:
                 state.user == null
-                  ? (data.role === 'seller' ? 'pro' : 'self')
+                  ? ((data.role === 'seller' || data.is_seller || data.industry === 'makeup_artist') ? 'pro' : 'self')
                   : state.appViewMode,
               isLoading: false
             }));
@@ -234,7 +239,7 @@ export const useGlobalStore = create<GlobalState>()(
             }
           }
 
-          const isPro = savedProfile?.role === 'seller';
+          const isPro = !!savedProfile && (savedProfile.role === 'seller' || savedProfile.is_seller || savedProfile.industry === 'makeup_artist');
           set({
             user: savedProfile as UserProfile,
             currentUserRole: savedProfile?.role ?? null,
@@ -254,7 +259,7 @@ export const useGlobalStore = create<GlobalState>()(
       // Utility functions
       isProUser: () => {
         const user = get().user;
-        return user?.role === 'seller';
+        return !!user && (user.role === 'seller' || user.is_seller || user.industry === 'makeup_artist');
       },
 
       getDisplayName: () => {

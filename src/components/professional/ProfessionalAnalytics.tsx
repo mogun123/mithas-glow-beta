@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { TrendingUp, Calendar, BarChart3, Sparkles, IndianRupee, Wallet, Activity, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,124 +25,120 @@ interface ProfessionalAnalyticsProps {
 export default function ProfessionalAnalytics({ artistId, onBack }: ProfessionalAnalyticsProps) {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [revenueTrend, setRevenueTrend] = useState<{ month: string; revenue: number }[]>([]);
   const [popularServices, setPopularServices] = useState<{ name: string; count: number; percentage: number }[]>([]);
 
-  // Fetch analytics data from Supabase
-  useEffect(() => {
-    let isMounted = true;
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setLoading(true);
+      setErrorMessage(null);
 
-    const fetchAnalytics = async () => {
-      try {
-        setLoading(true);
+      const today = new Date().toISOString().split('T')[0];
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+      const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
 
-        const today = new Date().toISOString().split('T')[0];
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-        const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+      const { data: allBookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('total_price, status, booking_date, service_name')
+        .eq('artist_id', artistId);
 
-        const { data: allBookings, error: bookingsError } = await supabase
-          .from('bookings')
-          .select('total_price, status, booking_date, service_name')
-          .eq('artist_id', artistId);
+      if (bookingsError) throw bookingsError;
 
-        if (bookingsError) throw bookingsError;
+      const bookings = allBookings || [];
+      const totalBookings = bookings.length;
+      const completedBookings = bookings.filter(b => b.status === 'completed').length;
+      const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
 
-        if (!isMounted) return;
+      const todayBookings = bookings.filter(b => (b.booking_date || '').startsWith(today) && b.status === 'completed');
+      const weekBookings = bookings.filter(b => (b.booking_date || '') >= weekAgo && b.status === 'completed');
+      const monthBookings = bookings.filter(b => (b.booking_date || '') >= monthStart && b.status === 'completed');
+      const yearBookings = bookings.filter(b => (b.booking_date || '') >= yearStart && b.status === 'completed');
 
-        const bookings = allBookings || [];
+      const todayEarnings = todayBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const weekEarnings = weekBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const monthEarnings = monthBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const yearEarnings = yearBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
 
-        const totalBookings = bookings.length;
-        const completedBookings = bookings.filter(b => b.status === 'completed').length;
-        const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
-        
-        const todayBookings = bookings.filter(b => (b.booking_date || '').startsWith(today) && b.status === 'completed');
-        const weekBookings = bookings.filter(b => (b.booking_date || '') >= weekAgo && b.status === 'completed');
-        const monthBookings = bookings.filter(b => (b.booking_date || '') >= monthStart && b.status === 'completed');
-        const yearBookings = bookings.filter(b => (b.booking_date || '') >= yearStart && b.status === 'completed');
+      const totalRevenue = bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const averageBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
 
-        const todayEarnings = todayBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const weekEarnings = weekBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const monthEarnings = monthBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const yearEarnings = yearBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const pendingBookings = bookings.filter(b => b.status === 'pending').length;
+      const acceptanceRate = totalBookings > 0 ? ((completedBookings + pendingBookings) / totalBookings) * 100 : 0;
+      const completionRate = (completedBookings + pendingBookings) > 0 ? (completedBookings / (completedBookings + pendingBookings)) * 100 : 0;
 
-        const totalRevenue = bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0);
-        const averageBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
+      setAnalytics({
+        todayEarnings,
+        weekEarnings,
+        monthEarnings,
+        yearEarnings,
+        totalBookings,
+        completedBookings,
+        cancelledBookings,
+        averageBookingValue: Math.round(averageBookingValue),
+        customerRetentionRate: 0,
+        acceptanceRate: Math.round(acceptanceRate),
+        completionRate: Math.round(completionRate),
+      });
 
-        const pendingBookings = bookings.filter(b => b.status === 'pending').length;
-        const acceptanceRate = totalBookings > 0 ? ((completedBookings + pendingBookings) / totalBookings) * 100 : 0;
-        const completionRate = (completedBookings + pendingBookings) > 0 ? (completedBookings / (completedBookings + pendingBookings)) * 100 : 0;
+      const monthlyRevenue: Record<string, number> = {};
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-        setAnalytics({
-          todayEarnings,
-          weekEarnings,
-          monthEarnings,
-          yearEarnings,
-          totalBookings,
-          completedBookings,
-          cancelledBookings,
-          averageBookingValue: Math.round(averageBookingValue),
-          customerRetentionRate: 0,
-          acceptanceRate: Math.round(acceptanceRate),
-          completionRate: Math.round(completionRate),
-        });
-
-        const monthlyRevenue: Record<string, number> = {};
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-        bookings.forEach(booking => {
-          if (booking.status === 'completed' && booking.booking_date) {
-            const date = new Date(booking.booking_date);
-            if (!isNaN(date.getTime())) {
-              const key = monthNames[date.getMonth()];
-              monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (booking.total_price || 0);
-            }
+      bookings.forEach(booking => {
+        if (booking.status === 'completed' && booking.booking_date) {
+          const date = new Date(booking.booking_date);
+          if (!isNaN(date.getTime())) {
+            const key = monthNames[date.getMonth()];
+            monthlyRevenue[key] = (monthlyRevenue[key] || 0) + (booking.total_price || 0);
           }
-        });
-
-        const currentMonth = new Date().getMonth();
-        const last6Months = [];
-        for (let i = 5; i >= 0; i--) {
-          const d = new Date();
-          d.setMonth(currentMonth - i);
-          last6Months.push(monthNames[d.getMonth()]);
         }
+      });
 
-        const trendData = last6Months.map(month => ({
-          month,
-          revenue: monthlyRevenue[month] || 0,
-        }));
-        setRevenueTrend(trendData);
-
-        const serviceCounts: Record<string, number> = {};
-        bookings.forEach(booking => {
-          if (booking.service_name) {
-            serviceCounts[booking.service_name] = (serviceCounts[booking.service_name] || 0) + 1;
-          }
-        });
-
-        const totalServices = Object.values(serviceCounts).reduce((a, b) => a + b, 0);
-        const sortedServices = Object.entries(serviceCounts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 5)
-          .map(([name, count]) => ({
-            name,
-            count,
-            percentage: totalServices > 0 ? Math.round((count / totalServices) * 100) : 0,
-          }));
-        setPopularServices(sortedServices);
-
-      } catch (err: any) {
-        toast.error('Failed to load analytics');
-      } finally {
-        if (isMounted) setLoading(false);
+      const currentMonth = new Date().getMonth();
+      const last6Months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(currentMonth - i);
+        last6Months.push(monthNames[d.getMonth()]);
       }
-    };
 
-    fetchAnalytics();
-    return () => { isMounted = false; };
+      const trendData = last6Months.map(month => ({
+        month,
+        revenue: monthlyRevenue[month] || 0,
+      }));
+      setRevenueTrend(trendData);
+
+      const serviceCounts: Record<string, number> = {};
+      bookings.forEach(booking => {
+        if (booking.service_name) {
+          serviceCounts[booking.service_name] = (serviceCounts[booking.service_name] || 0) + 1;
+        }
+      });
+
+      const totalServices = Object.values(serviceCounts).reduce((a, b) => a + b, 0);
+      const sortedServices = Object.entries(serviceCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => ({
+          name,
+          count,
+          percentage: totalServices > 0 ? Math.round((count / totalServices) * 100) : 0,
+        }));
+      setPopularServices(sortedServices);
+    } catch (err: any) {
+      const message = err?.message || 'Failed to load analytics';
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }, [artistId]);
+
+  useEffect(() => {
+    void loadAnalytics();
+  }, [loadAnalytics]);
 
   const getEarningsForRange = () => {
     if (!analytics) return 0;
@@ -152,6 +148,17 @@ export default function ProfessionalAnalytics({ artistId, onBack }: Professional
       default: return analytics.monthEarnings;
     }
   };
+
+  if (errorMessage) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
+        <p className="text-sm font-semibold text-rose-700">{errorMessage}</p>
+        <button onClick={() => void loadAnalytics()} className="mt-4 rounded-full bg-purple-600 px-4 py-2 text-sm font-semibold text-white">
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

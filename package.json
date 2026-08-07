@@ -58,7 +58,6 @@
     "tailwindcss-animate": "1.0.7",
     "webrtc-adapter": "^9.0.3",
     "zustand": "*",
-    "react-hook-form": "^7.50.0",
     "zod": "^3.22.0",
     "@hookform/resolvers": "^3.3.0"
   },

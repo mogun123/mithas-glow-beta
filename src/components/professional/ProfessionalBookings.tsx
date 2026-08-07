@@ -36,40 +36,43 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
   const [bookingFilter, setBookingFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Fetch bookings from Supabase
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        let query = supabase
-          .from('bookings')
-          .select(`
-            *,
-            customer:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url)
-          `)
-          .eq('artist_id', artistId)
-          .order('booking_date', { ascending: false })
-          .order('booking_time', { ascending: false });
+  const loadBookings = useCallback(async (filter: typeof bookingFilter = bookingFilter) => {
+    try {
+      setLoading(true);
+      setErrorMessage(null);
 
-        if (bookingFilter !== 'all') {
-          query = query.eq('status', bookingFilter);
-        }
+      let query = supabase
+        .from('bookings')
+        .select(`
+          *,
+          customer:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url)
+        `)
+        .eq('artist_id', artistId)
+        .order('booking_date', { ascending: false })
+        .order('booking_time', { ascending: false });
 
-        const { data, error: queryError } = await query;
-
-        if (queryError) throw queryError;
-        setBookings(data || []);
-      } catch (err: any) {
-        console.error('ProfessionalBookings: Bookings fetch error:', err.message);
-        toast.error('Failed to load bookings');
-      } finally {
-        setLoading(false);
+      if (filter !== 'all') {
+        query = query.eq('status', filter);
       }
-    };
 
-    fetchBookings();
+      const { data, error: queryError } = await query;
+      if (queryError) throw queryError;
+
+      setBookings(data || []);
+    } catch (err: any) {
+      const message = err?.message || 'Failed to load bookings';
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }, [artistId, bookingFilter]);
+
+  useEffect(() => {
+    void loadBookings(bookingFilter);
+  }, [artistId, bookingFilter, loadBookings]);
 
   const handleAcceptBooking = useCallback(async (bookingId: string) => {
     try {
@@ -79,13 +82,14 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
         .eq('id', bookingId);
 
       if (error) throw error;
+      await loadBookings(bookingFilter);
       toast.success('Booking accepted!');
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'confirmed' } : b));
     } catch (err: any) {
-      toast.error('Failed to accept booking');
-      console.error(err);
+      const message = err?.message || 'Failed to accept booking';
+      setErrorMessage(message);
+      toast.error(message);
     }
-  }, []);
+  }, [bookingFilter, loadBookings]);
 
   const handleDeclineBooking = useCallback(async (bookingId: string) => {
     try {
@@ -95,13 +99,14 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
         .eq('id', bookingId);
 
       if (error) throw error;
+      await loadBookings(bookingFilter);
       toast.success('Booking declined');
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'cancelled' } : b));
     } catch (err: any) {
-      toast.error('Failed to decline booking');
-      console.error(err);
+      const message = err?.message || 'Failed to decline booking';
+      setErrorMessage(message);
+      toast.error(message);
     }
-  }, []);
+  }, [bookingFilter, loadBookings]);
 
   const handleCompleteBooking = useCallback(async (bookingId: string) => {
     try {
@@ -111,13 +116,14 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
         .eq('id', bookingId);
 
       if (error) throw error;
+      await loadBookings(bookingFilter);
       toast.success('Booking completed!');
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'completed' } : b));
     } catch (err: any) {
-      toast.error('Failed to complete booking');
-      console.error(err);
+      const message = err?.message || 'Failed to complete booking';
+      setErrorMessage(message);
+      toast.error(message);
     }
-  }, []);
+  }, [bookingFilter, loadBookings]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -157,7 +163,14 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
         </div>
 
         {/* Bookings List */}
-        {loading ? (
+        {errorMessage ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
+            <p className="text-sm font-semibold text-rose-700">{errorMessage}</p>
+            <Button variant="outline" className="mt-4" onClick={() => void loadBookings(bookingFilter)}>
+              Retry
+            </Button>
+          </div>
+        ) : loading ? (
           <div className="text-center py-12">
             <div className="relative w-12 h-12 mx-auto mb-4">
               <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
