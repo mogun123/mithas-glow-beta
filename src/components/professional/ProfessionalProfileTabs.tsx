@@ -177,7 +177,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   const [sellerData, setSellerData] = useState<any | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
-  
+  const [portfolioFilter, setPortfolioFilter] = useState('all');
 
   const { control, handleSubmit, reset, watch, formState: { errors, isDirty, isSubmitting } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -1055,8 +1055,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       {['all', 'bridal', 'party', 'before_after', 'engagement'].map((cat) => (
         <button 
           key={cat} 
-          onClick={() => setActiveTab(cat)} 
-          className="rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest bg-pink-50 text-pink-600 hover:bg-pink-100 transition"
+          onClick={() => setPortfolioFilter(cat)} 
+          className={`rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition ${portfolioFilter === cat ? 'bg-pink-500 text-white shadow-md' : 'bg-pink-50 text-pink-600 hover:bg-pink-100'}`}
         >
           {cat.replace('_', ' ')}
         </button>
@@ -1072,7 +1072,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       </div>
     ) : (
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {portfolioItems.filter(item => activeTab === 'all' || item.category === activeTab).map(item => (
+        {portfolioItems.filter(item => portfolioFilter === 'all' || item.category === portfolioFilter).map(item => (
           <div key={item.id} className="group relative overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-sm hover:shadow-md transition-all">
             
             <div className="relative h-48 w-full overflow-hidden bg-slate-100 flex">
