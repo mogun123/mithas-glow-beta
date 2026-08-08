@@ -101,17 +101,14 @@ export function BottomNav({
     return null;
   }
 
-  return (
-    <div className="fixed bottom-0 left-0 w-full bg-pink-50 border-t border-pink-100 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    return (
+    <div className="fixed bottom-0 left-0 w-full bg-[#fdf4f8] border-t border-pink-100 z-50 pb-safe shadow-[0_-4px_20px_rgba(236,72,153,0.15)]">
       <footer
         className="p-3 max-w-lg mx-auto rounded-t-3xl"
         style={{
-          background: 'rgba(255,255,255,0.88)',
-          backdropFilter: 'blur(28px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-          borderTop: '1px solid rgba(168,85,247,0.12)',
-          boxShadow:
-            '0 -4px 28px rgba(236,72,153,.08), inset 0 1px 0 rgba(255,255,255,.92)',
+          background: '#fff0f5', // Solid Pink-Lavender Mix background
+          borderTop: '1px solid rgba(168,85,247,0.2)',
+          boxShadow: '0 -4px 28px rgba(236,72,153,.12)',
         }}
       >
       <nav className="flex justify-around items-end pb-1 pt-2">
@@ -155,14 +152,14 @@ export function BottomNav({
               <item.icon
                 className={cn(
                   "w-6 h-6 transition-colors duration-200",
-                  "text-gray-400"
+                  "text-gray-500 hover:text-pink-600"
                 )}
                 strokeWidth={1.8}
               />
               <span
                 className={cn(
                   "text-xs font-semibold tracking-tight transition-colors duration-200",
-                  "text-gray-400"
+                  "text-gray-600"
                 )}
               >
                 {item.label}
@@ -174,4 +171,5 @@ export function BottomNav({
       </footer>
     </div>
   );
+
 }
