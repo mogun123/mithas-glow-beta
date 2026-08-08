@@ -173,6 +173,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'rejected'>('pending');
   const [sellerData, setSellerData] = useState<any | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  
 
   const { control, handleSubmit, reset, watch, formState: { errors, isDirty, isSubmitting } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
