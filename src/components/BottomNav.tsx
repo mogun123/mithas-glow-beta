@@ -101,75 +101,75 @@ export function BottomNav({
     return null;
   }
 
-    return (
-    <div className="fixed bottom-0 left-0 w-full bg-[#fdf4f8] border-t border-pink-100 z-50 pb-safe shadow-[0_-4px_20px_rgba(236,72,153,0.15)]">
+      return (
+    <div className="fixed bottom-0 left-0 w-full bg-[#fff0f5] border-t border-pink-200 z-50 pb-safe shadow-[0_-4px_20px_rgba(236,72,153,0.2)]">
       <footer
         className="p-3 max-w-lg mx-auto rounded-t-3xl"
         style={{
-          background: '#fff0f5', // Solid Pink-Lavender Mix background
-          borderTop: '1px solid rgba(168,85,247,0.2)',
-          boxShadow: '0 -4px 28px rgba(236,72,153,.12)',
+          background: '#fff0f5', // Solid Pink-Lavender Mix (No Transparency)
+          borderTop: '1px solid rgba(168,85,247,0.25)',
         }}
       >
-      <nav className="flex justify-around items-end pb-1 pt-2">
-        {navItems.map((item) => {
-          const isCenter = item.isCenter;
+        <nav className="flex justify-around items-end pb-1 pt-2">
+          {navItems.map((item) => {
+            const isCenter = item.isCenter;
 
-          if (isCenter) {
-            return (
-              <div
-                key={item.view}
-                className="w-16 h-16 -mt-8 flex flex-col items-center justify-center"
-              >
-                <button
-                  onClick={() => handleNavClick(item.action, item.view)}
-                  className="nav-tap-btn w-16 h-16 rounded-2xl relative cursor-pointer flex flex-col items-center justify-center min-w-[64px] min-h-[64px]"
-                  style={{
-                    background:
-                      'linear-gradient(135deg,#ec4899,#a855f7,#6366f1)',
-                    boxShadow:
-                      '0 8px 24px rgba(168,85,247,.38)',
-                  }}
-                  aria-label={item.label}
+            if (isCenter) {
+              return (
+                <div
+                  key={item.view}
+                  className="w-16 h-16 -mt-8 flex flex-col items-center justify-center"
                 >
-                  <item.icon className="w-7 h-7 text-white" />
-                  <span className="text-xs mt-0.5 font-bold text-white tracking-tight">
-                    {item.label}
-                  </span>
-                </button>
-              </div>
-            );
-          }
+                  <button
+                    onClick={() => handleNavClick(item.action, item.view)}
+                    className="nav-tap-btn w-16 h-16 rounded-2xl relative cursor-pointer flex flex-col items-center justify-center min-w-[64px] min-h-[64px]"
+                    style={{
+                      background:
+                        'linear-gradient(135deg,#ec4899,#a855f7,#6366f1)',
+                      boxShadow:
+                        '0 8px 24px rgba(168,85,247,.38)',
+                    }}
+                    aria-label={item.label}
+                  >
+                    <item.icon className="w-7 h-7 text-white" />
+                    <span className="text-xs mt-0.5 font-bold text-white tracking-tight">
+                      {item.label}
+                    </span>
+                  </button>
+                </div>
+              );
+            }
 
-          return (
-            <button
-              key={item.view}
-              onClick={() => handleNavClick(item.action, item.view)}
-              className="nav-tap-btn flex flex-col items-center justify-center gap-1 cursor-pointer px-2 py-2 min-w-[60px] min-h-[44px]"
-              style={{ width: '22%' }}
-              aria-label={item.label}
-            >
-              <item.icon
-                className={cn(
-                  "w-6 h-6 transition-colors duration-200",
-                  "text-gray-500 hover:text-pink-600"
-                )}
-                strokeWidth={1.8}
-              />
-              <span
-                className={cn(
-                  "text-xs font-semibold tracking-tight transition-colors duration-200",
-                  "text-gray-600"
-                )}
+            return (
+              <button
+                key={item.view}
+                onClick={() => handleNavClick(item.action, item.view)}
+                className="nav-tap-btn flex flex-col items-center justify-center gap-1 cursor-pointer px-2 py-2 min-w-[60px] min-h-[44px]"
+                style={{ width: '22%' }}
+                aria-label={item.label}
               >
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+                <item.icon
+                  className={cn(
+                    "w-6 h-6 transition-colors duration-200",
+                    "text-gray-500 hover:text-pink-600"
+                  )}
+                  strokeWidth={1.8}
+                />
+                <span
+                  className={cn(
+                    "text-xs font-semibold tracking-tight transition-colors duration-200",
+                    "text-gray-700"
+                  )}
+                >
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
       </footer>
     </div>
   );
+
 
 }
