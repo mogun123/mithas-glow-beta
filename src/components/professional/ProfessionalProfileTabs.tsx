@@ -809,13 +809,13 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="flex flex-wrap justify-start gap-2 rounded-3xl border border-pink-100 bg-white/80 p-2 shadow-sm">
-          <TabsTrigger value="overview" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Overview</TabsTrigger>
-          <TabsTrigger value="portfolio" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Portfolio</TabsTrigger>
-          <TabsTrigger value="services" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Services & Rates</TabsTrigger>
-          <TabsTrigger value="availability" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Availability</TabsTrigger>
-          <TabsTrigger value="presence" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Presence</TabsTrigger>
-          <TabsTrigger value="verification" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Verification</TabsTrigger>
+                <TabsList className="flex flex-wrap justify-start gap-2 rounded-3xl border border-pink-100 bg-white/80 p-2 shadow-sm">
+          <TabsTrigger value="overview" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg">Overview</TabsTrigger>
+          <TabsTrigger value="portfolio" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg">Portfolio</TabsTrigger>
+          <TabsTrigger value="services" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg">Services & Rates</TabsTrigger>
+          <TabsTrigger value="availability" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg">Availability</TabsTrigger>
+          <TabsTrigger value="presence" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg">Presence</TabsTrigger>
+          <TabsTrigger value="verification" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg">Verification</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
