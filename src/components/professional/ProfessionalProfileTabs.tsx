@@ -162,7 +162,10 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   const [portfolioItems, setPortfolioItems] = useState<any[]>([]);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [portfolioUploading, setPortfolioUploading] = useState(false);
-  const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', category: 'bridal' as string, isFeatured: false });
+  const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', category: 'bridal', isFeatured: false, service_id: '' });
+  const [portfolioFile, setPortfolioFile] = useState<File | null>(null);
+  const [beforeFile, setBeforeFile] = useState<File | null>(null);
+  const [afterFile, setAfterFile] = useState<File | null>(null);
   const [services, setServices] = useState<any[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [serviceForm, setServiceForm] = useState({ title: '', description: '', price: '', duration: '60', category: 'bridal' as string });
@@ -557,27 +560,52 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     await saveProfileSection(data);
   };
 
-  const handlePortfolioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+    const handlePortfolioSubmit = async () => {
     try {
       setPortfolioUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${artistId}-${Date.now()}.${fileExt}`;
-      const filePath = `portfolio/${fileName}`;
+      const isBeforeAfter = portfolioForm.category === 'before_after';
+      
+      if (isBeforeAfter && (!beforeFile || !afterFile)) {
+        toast.error("Please select both Before and After images.");
+        return;
+      }
+      if (!isBeforeAfter && !portfolioFile) {
+        toast.error("Please select an image.");
+        return;
+      }
 
-      const { error: uploadError } = await supabase.storage.from('portfolio-images').upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
+      let imageUrl = null;
+      let beforeUrl = null;
+      let afterUrl = null;
 
-      const { data: { publicUrl } } = supabase.storage.from('portfolio-images').getPublicUrl(filePath);
+      // Helper function to upload file to Supabase Storage
+      const uploadFile = async (file: File, prefix: string) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${artistId}-${prefix}-${Date.now()}.${fileExt}`;
+        const filePath = `portfolio/${fileName}`;
+        const { error } = await supabase.storage.from('portfolio-images').upload(filePath, file, { upsert: true });
+        if (error) throw error;
+        const { data } = supabase.storage.from('portfolio-images').getPublicUrl(filePath);
+        return data.publicUrl;
+      };
+
+      if (isBeforeAfter) {
+        beforeUrl = await uploadFile(beforeFile!, 'before');
+        afterUrl = await uploadFile(afterFile!, 'after');
+      } else {
+        imageUrl = await uploadFile(portfolioFile!, 'single');
+      }
+
       const insertPayload = {
         artist_id: artistId,
-        title: portfolioForm.title || file.name.split('.')[0],
+        title: portfolioForm.title || 'Work Sample',
         description: portfolioForm.description || '',
-        image_url: publicUrl,
         category: portfolioForm.category,
         is_featured: portfolioForm.isFeatured,
+        service_id: portfolioForm.service_id || null,
+        image_url: imageUrl,
+        before_image_url: beforeUrl,
+        after_image_url: afterUrl,
         display_order: (portfolioItems[0]?.display_order || 0) + 1,
       };
 
@@ -590,14 +618,18 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       }
 
       setPortfolioItems(prev => [data, ...prev]);
-      setPortfolioForm({ title: '', description: '', category: 'bridal', isFeatured: false });
-      toast.success('Portfolio item added');
+      setPortfolioForm({ title: '', description: '', category: 'bridal', isFeatured: false, service_id: '' });
+      setPortfolioFile(null);
+      setBeforeFile(null);
+      setAfterFile(null);
+      toast.success('Portfolio item added successfully!');
     } catch (err: any) {
       toast.error(err?.message || 'Portfolio upload failed');
     } finally {
       setPortfolioUploading(false);
     }
   };
+
 
   const handlePortfolioDelete = async (id: string) => {
     try {
@@ -922,7 +954,10 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
           <input 
             type="checkbox" 
             checked={portfolioForm.category === 'before_after'} 
-            onChange={(e) => setPortfolioForm(prev => ({ ...prev, category: e.target.checked ? 'before_after' : 'bridal' }))} 
+            onChange={(e) => {
+              setPortfolioForm(prev => ({ ...prev, category: e.target.checked ? 'before_after' : 'bridal' }));
+              setPortfolioFile(null); setBeforeFile(null); setAfterFile(null);
+            }} 
             className="h-4 w-4 accent-pink-500 rounded"
           />
           Before / After Mode
@@ -980,11 +1015,39 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
         </label>
       </div>
 
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-400 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-pink-500/20 hover:scale-[1.01] transition-all">
+      {/* Dynamic File Inputs based on Mode */}
+      {portfolioForm.category === 'before_after' ? (
+        <div className="grid gap-3 md:grid-cols-2 mt-4">
+          <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-200 rounded-2xl bg-white cursor-pointer hover:bg-pink-50 transition">
+             <span className="text-[10px] font-black uppercase text-pink-500 mb-1">1. Before Image</span>
+             {beforeFile ? <span className="text-xs font-bold text-slate-800">{beforeFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
+             <input type="file" accept="image/*" onChange={(e) => setBeforeFile(e.target.files?.[0] || null)} className="hidden" />
+          </label>
+          <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-200 rounded-2xl bg-white cursor-pointer hover:bg-pink-50 transition">
+             <span className="text-[10px] font-black uppercase text-pink-500 mb-1">2. After Image</span>
+             {afterFile ? <span className="text-xs font-bold text-slate-800">{afterFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
+             <input type="file" accept="image/*" onChange={(e) => setAfterFile(e.target.files?.[0] || null)} className="hidden" />
+          </label>
+        </div>
+      ) : (
+        <div className="mt-4">
+          <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-200 rounded-2xl bg-white cursor-pointer hover:bg-pink-50 transition">
+             <span className="text-[10px] font-black uppercase text-pink-500 mb-1">Work Image</span>
+             {portfolioFile ? <span className="text-xs font-bold text-slate-800">{portfolioFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
+             <input type="file" accept="image/*" onChange={(e) => setPortfolioFile(e.target.files?.[0] || null)} className="hidden" />
+          </label>
+        </div>
+      )}
+
+      <button 
+        type="button" 
+        onClick={handlePortfolioSubmit} 
+        disabled={portfolioUploading} 
+        className="w-full flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-400 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-pink-500/20 hover:scale-[1.01] transition-all disabled:opacity-50"
+      >
         <ImageIcon className="h-4 w-4" />
-        <span>{portfolioUploading ? 'Uploading Image...' : 'Choose Photo & Save to Portfolio'}</span>
-        <input type="file" accept="image/*" onChange={handlePortfolioUpload} disabled={portfolioUploading} className="hidden" />
-      </label>
+        <span>{portfolioUploading ? 'Uploading Image...' : 'Save to Portfolio'}</span>
+      </button>
     </div>
 
     {/* Gallery Category Filter Tabs */}
@@ -1011,16 +1074,30 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {portfolioItems.filter(item => activeTab === 'all' || item.category === activeTab).map(item => (
           <div key={item.id} className="group relative overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-sm hover:shadow-md transition-all">
-            <div className="relative h-48 w-full overflow-hidden bg-slate-100">
-              <img src={item.image_url} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            
+            <div className="relative h-48 w-full overflow-hidden bg-slate-100 flex">
+              {item.category === 'before_after' && item.before_image_url && item.after_image_url ? (
+                <>
+                  <div className="relative w-1/2 h-full border-r-2 border-white">
+                    <img src={item.before_image_url} alt="Before" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <span className="absolute bottom-3 right-2 bg-black/70 backdrop-blur-sm text-white text-[9px] px-2 py-1 rounded font-black uppercase tracking-widest shadow-sm">Before</span>
+                  </div>
+                  <div className="relative w-1/2 h-full">
+                    <img src={item.after_image_url} alt="After" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <span className="absolute bottom-3 left-2 bg-pink-500/90 backdrop-blur-sm text-white text-[9px] px-2 py-1 rounded font-black uppercase tracking-widest shadow-sm">After</span>
+                  </div>
+                </>
+              ) : (
+                <img src={item.image_url || item.after_image_url} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              )}
               
               {item.is_featured && (
-                <span className="absolute top-3 left-3 rounded-full bg-pink-500/90 backdrop-blur-md px-3 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
+                <span className="absolute top-3 left-3 rounded-full bg-pink-500/90 backdrop-blur-md px-3 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-sm z-10">
                   ★ Cover Shot
                 </span>
               )}
 
-              <span className="absolute bottom-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[9px] font-bold text-white uppercase">
+              <span className="absolute bottom-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[9px] font-bold text-white uppercase z-10">
                 {item.category.replace('_', ' ')}
               </span>
             </div>
@@ -1094,6 +1171,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
   </div>
 </TabsContent>
+
 
 
 
