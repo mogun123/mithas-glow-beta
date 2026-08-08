@@ -317,6 +317,17 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
         setVerification(verificationData);
         setVerificationStatus((verificationData?.status as 'pending' | 'verified' | 'rejected') || 'pending');
       }
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('artist_reviews')
+        .select('*')
+        .eq('artist_id', artistId)
+        .order('created_at', { ascending: false });
+
+      if (!reviewsError && reviewsData) {
+        setReviews(reviewsData);
+      } else {
+        setReviews([]);
+      }
 
       if (missingTables.length) {
         throw new Error(`Professional profile schema is incomplete. Missing table(s): ${missingTables.join(', ')}. Apply the SQL migration before using this section.`);
