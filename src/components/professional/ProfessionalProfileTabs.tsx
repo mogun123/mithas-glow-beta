@@ -9,7 +9,7 @@ import {
   User, MapPin, Clock, Link as LinkIcon, Save, Camera, Building, Phone, RefreshCw,
   AlertCircle, CheckCircle, Globe, Instagram, Youtube, Award, Car, Wallet, Heart,
   ShieldCheck, Landmark, Image as ImageIcon, Sun, Briefcase, Sparkles, BadgeCheck,
-  CalendarDays, CircleDollarSign, PencilLine, Plus, Trash2, IndianRupee
+  CalendarDays, CircleDollarSign, PencilLine, Plus, Trash2, IndianRupee, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -178,6 +178,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [portfolioFilter, setPortfolioFilter] = useState('all');
+  const [selectedImage, setSelectedImage] = useState<any>(null);
 
   const { control, handleSubmit, reset, watch, formState: { errors, isDirty, isSubmitting } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -810,12 +811,12 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="flex flex-wrap justify-start gap-2 rounded-3xl border border-pink-100 bg-white/80 p-2 shadow-sm">
-          <TabsTrigger value="overview" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Overview</TabsTrigger>
-          <TabsTrigger value="portfolio" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Portfolio</TabsTrigger>
-          <TabsTrigger value="services" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Services & Rates</TabsTrigger>
-          <TabsTrigger value="availability" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Availability</TabsTrigger>
-          <TabsTrigger value="presence" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Presence</TabsTrigger>
-          <TabsTrigger value="verification" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider">Verification</TabsTrigger>
+          <TabsTrigger value="overview" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Overview</TabsTrigger>
+          <TabsTrigger value="portfolio" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Portfolio</TabsTrigger>
+          <TabsTrigger value="services" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Services & Rates</TabsTrigger>
+          <TabsTrigger value="availability" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Availability</TabsTrigger>
+          <TabsTrigger value="presence" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Presence</TabsTrigger>
+          <TabsTrigger value="verification" className="rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-pink-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Verification</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -1073,22 +1074,22 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     ) : (
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {portfolioItems.filter(item => portfolioFilter === 'all' || item.category === portfolioFilter).map(item => (
-          <div key={item.id} className="group relative overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-sm hover:shadow-md transition-all">
+          <div key={item.id} className="group relative overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-sm hover:shadow-md transition-all" onClick={() => setSelectedImage(item)}>
             
-            <div className="relative h-48 w-full overflow-hidden bg-slate-100 flex">
+            <div className="relative h-48 w-full overflow-hidden bg-slate-100 flex cursor-pointer">
               {item.category === 'before_after' && item.before_image_url && item.after_image_url ? (
                 <>
                   <div className="relative w-1/2 h-full border-r-2 border-white">
-                    <img src={item.before_image_url} alt="Before" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <img src={item.before_image_url} alt="Before" className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105" />
                     <span className="absolute bottom-3 right-2 bg-black/70 backdrop-blur-sm text-white text-[9px] px-2 py-1 rounded font-black uppercase tracking-widest shadow-sm">Before</span>
                   </div>
                   <div className="relative w-1/2 h-full">
-                    <img src={item.after_image_url} alt="After" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <img src={item.after_image_url} alt="After" className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105" />
                     <span className="absolute bottom-3 left-2 bg-pink-500/90 backdrop-blur-sm text-white text-[9px] px-2 py-1 rounded font-black uppercase tracking-widest shadow-sm">After</span>
                   </div>
                 </>
               ) : (
-                <img src={item.image_url || item.after_image_url} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <img src={item.image_url || item.after_image_url} alt={item.title} className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105" />
               )}
               
               {item.is_featured && (
@@ -1109,7 +1110,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
               <div className="flex items-center justify-between pt-2 border-t border-slate-50">
                 <button 
                   type="button" 
-                  onClick={() => handlePortfolioFeature(item)} 
+                  onClick={(e) => { e.stopPropagation(); handlePortfolioFeature(item); }} 
                   className="text-[10px] font-extrabold text-pink-600 uppercase hover:underline"
                 >
                   Make Cover
@@ -1117,7 +1118,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
                 <button 
                   type="button" 
-                  onClick={() => handlePortfolioDelete(item.id)} 
+                  onClick={(e) => { e.stopPropagation(); handlePortfolioDelete(item.id); }} 
                   className="flex items-center gap-1 text-[10px] font-extrabold text-rose-500 uppercase hover:bg-rose-50 p-1.5 rounded-lg transition"
                 >
                   <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -1358,6 +1359,39 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Instagram-style Image Modal */}
+      {selectedImage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm" onClick={() => setSelectedImage(null)}>
+          <button className="absolute top-4 right-4 z-[101] rounded-full bg-white/20 p-2 text-white hover:bg-white/30 transition" onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}>
+            <X className="h-8 w-8" />
+          </button>
+          
+          <div className="relative max-w-5xl max-h-[90vh] w-full p-4" onClick={(e) => e.stopPropagation()}>
+            {selectedImage.category === 'before_after' && selectedImage.before_image_url && selectedImage.after_image_url ? (
+              <div className="flex h-full w-full gap-2">
+                <div className="relative w-1/2 h-[70vh]">
+                  <img src={selectedImage.before_image_url} alt="Before" className="h-full w-full object-cover object-center rounded-2xl" />
+                  <span className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-lg font-black uppercase tracking-widest shadow-lg">Before</span>
+                </div>
+                <div className="relative w-1/2 h-[70vh]">
+                  <img src={selectedImage.after_image_url} alt="After" className="h-full w-full object-cover object-center rounded-2xl" />
+                  <span className="absolute bottom-4 left-4 bg-pink-500/90 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-lg font-black uppercase tracking-widest shadow-lg">After</span>
+                </div>
+              </div>
+            ) : (
+              <img src={selectedImage.image_url || selectedImage.after_image_url} alt={selectedImage.title} className="max-h-[80vh] max-w-full object-contain rounded-2xl mx-auto" />
+            )}
+            
+            <div className="mt-4 text-center">
+              <h3 className="text-lg font-bold text-white">{selectedImage.title}</h3>
+              {selectedImage.description && (
+                <p className="text-sm text-gray-300 mt-1">{selectedImage.description}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

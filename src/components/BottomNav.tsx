@@ -102,17 +102,18 @@ export function BottomNav({
   }
 
   return (
-    <footer
-      className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto p-3 z-50 rounded-t-3xl"
-      style={{
-        background: 'rgba(255,255,255,0.88)',
-        backdropFilter: 'blur(28px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-        borderTop: '1px solid rgba(168,85,247,0.12)',
-        boxShadow:
-          '0 -4px 28px rgba(236,72,153,.08), inset 0 1px 0 rgba(255,255,255,.92)',
-      }}
-    >
+    <div className="fixed bottom-0 left-0 w-full bg-pink-50 border-t border-pink-100 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <footer
+        className="p-3 max-w-lg mx-auto rounded-t-3xl"
+        style={{
+          background: 'rgba(255,255,255,0.88)',
+          backdropFilter: 'blur(28px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+          borderTop: '1px solid rgba(168,85,247,0.12)',
+          boxShadow:
+            '0 -4px 28px rgba(236,72,153,.08), inset 0 1px 0 rgba(255,255,255,.92)',
+        }}
+      >
       <nav className="flex justify-around items-end pb-1 pt-2">
         {navItems.map((item) => {
           const isCenter = item.isCenter;
@@ -170,6 +171,7 @@ export function BottomNav({
           );
         })}
       </nav>
-    </footer>
+      </footer>
+    </div>
   );
 }
