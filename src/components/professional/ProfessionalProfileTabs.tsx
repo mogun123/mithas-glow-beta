@@ -882,59 +882,207 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
         </TabsContent>
 
         <TabsContent value="portfolio">
-          <div className="space-y-6 rounded-3xl border border-pink-50 bg-white/80 p-6 shadow-sm">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Portfolio Gallery</h3>
-                <p className="mt-1 text-xs text-slate-500">Upload before/after images and mark a cover shot.</p>
+  <div className="space-y-6 rounded-3xl border border-pink-50 bg-white/80 p-6 shadow-sm">
+    
+    {/* Header & Public Preview Button */}
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Portfolio & Asset Gallery</h3>
+        <p className="mt-1 text-xs text-slate-500">Showcase your best makeup transformations to attract clients.</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <button 
+          type="button" 
+          onClick={() => toast.info("Opening Live Client View...")} 
+          className="flex items-center gap-1.5 rounded-full border border-pink-200 bg-pink-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-pink-600 hover:bg-pink-100"
+        >
+          <Globe className="h-3.5 w-3.5" /> Preview Client View
+        </button>
+      </div>
+    </div>
+
+    {/* Upload Form Section */}
+    <div className="rounded-3xl border border-pink-100/80 bg-pink-50/50 p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-black uppercase tracking-wider text-slate-700">Add New Work Sample</span>
+        <label className="flex items-center gap-2 text-xs font-bold text-pink-600 cursor-pointer">
+          <input 
+            type="checkbox" 
+            checked={portfolioForm.category === 'before_after'} 
+            onChange={(e) => setPortfolioForm(prev => ({ ...prev, category: e.target.checked ? 'before_after' : 'bridal' }))} 
+            className="h-4 w-4 accent-pink-500 rounded"
+          />
+          Before / After Mode
+        </label>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <input 
+          value={portfolioForm.title} 
+          onChange={(e) => setPortfolioForm(prev => ({ ...prev, title: e.target.value }))} 
+          placeholder="Image Title (e.g. Royal HD Bridal Look)" 
+          className="rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-pink-300" 
+        />
+        <input 
+          value={portfolioForm.description} 
+          onChange={(e) => setPortfolioForm(prev => ({ ...prev, description: e.target.value }))} 
+          placeholder="Caption / Client Story" 
+          className="rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-pink-300" 
+        />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <select 
+          value={portfolioForm.category} 
+          onChange={(e) => setPortfolioForm(prev => ({ ...prev, category: e.target.value }))} 
+          className="rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold outline-none"
+        >
+          <option value="bridal">Bridal Makeup</option>
+          <option value="party">Party Look</option>
+          <option value="engagement">Engagement</option>
+          <option value="reception">Reception</option>
+          <option value="before_after">Before & After</option>
+          <option value="celebrity">Celebrity / Fashion</option>
+        </select>
+
+        <select 
+          value={portfolioForm.service_id || ''}
+          onChange={(e) => setPortfolioForm(prev => ({ ...prev, service_id: e.target.value }))}
+          className="rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold outline-none"
+        >
+          <option value="">Link to Service Package (Optional)</option>
+          {services.map(s => (
+            <option key={s.id} value={s.id}>{s.title} - ₹{s.price}</option>
+          ))}
+        </select>
+
+        <label className="flex items-center justify-center gap-2 rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-bold text-slate-700 cursor-pointer">
+          <input 
+            type="checkbox" 
+            checked={portfolioForm.isFeatured} 
+            onChange={(e) => setPortfolioForm(prev => ({ ...prev, isFeatured: e.target.checked }))} 
+            className="h-4 w-4 accent-pink-500 rounded" 
+          />
+          Set as Cover Photo
+        </label>
+      </div>
+
+      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-400 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-pink-500/20 hover:scale-[1.01] transition-all">
+        <ImageIcon className="h-4 w-4" />
+        <span>{portfolioUploading ? 'Uploading Image...' : 'Choose Photo & Save to Portfolio'}</span>
+        <input type="file" accept="image/*" onChange={handlePortfolioUpload} disabled={portfolioUploading} className="hidden" />
+      </label>
+    </div>
+
+    {/* Gallery Category Filter Tabs */}
+    <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
+      {['all', 'bridal', 'party', 'before_after', 'engagement'].map((cat) => (
+        <button 
+          key={cat} 
+          onClick={() => setActiveTab(cat)} 
+          className="rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest bg-pink-50 text-pink-600 hover:bg-pink-100 transition"
+        >
+          {cat.replace('_', ' ')}
+        </button>
+      ))}
+    </div>
+
+    {/* Live Uploaded Images Grid */}
+    {portfolioItems.length === 0 ? (
+      <div className="flex flex-col items-center justify-center p-10 rounded-3xl border-2 border-dashed border-pink-100 bg-pink-50/20 text-center">
+        <Sparkles className="h-10 w-10 text-pink-300 mb-2" />
+        <p className="text-xs font-bold text-slate-600">No portfolio images uploaded yet.</p>
+        <p className="text-[10px] text-slate-400 mt-1">Upload your work samples above to show clients your talent!</p>
+      </div>
+    ) : (
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+        {portfolioItems.filter(item => activeTab === 'all' || item.category === activeTab).map(item => (
+          <div key={item.id} className="group relative overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-sm hover:shadow-md transition-all">
+            <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+              <img src={item.image_url} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              
+              {item.is_featured && (
+                <span className="absolute top-3 left-3 rounded-full bg-pink-500/90 backdrop-blur-md px-3 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-sm">
+                  ★ Cover Shot
+                </span>
+              )}
+
+              <span className="absolute bottom-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[9px] font-bold text-white uppercase">
+                {item.category.replace('_', ' ')}
+              </span>
+            </div>
+
+            <div className="p-4 space-y-2">
+              <h4 className="text-sm font-black text-slate-800 line-clamp-1">{item.title}</h4>
+              <p className="text-xs text-slate-500 line-clamp-2">{item.description || 'No caption provided'}</p>
+              
+              <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                <button 
+                  type="button" 
+                  onClick={() => handlePortfolioFeature(item)} 
+                  className="text-[10px] font-extrabold text-pink-600 uppercase hover:underline"
+                >
+                  Make Cover
+                </button>
+
+                <button 
+                  type="button" 
+                  onClick={() => handlePortfolioDelete(item.id)} 
+                  className="flex items-center gap-1 text-[10px] font-extrabold text-rose-500 uppercase hover:bg-rose-50 p-1.5 rounded-lg transition"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
               </div>
-              <label className="flex cursor-pointer items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg">
-                <ImageIcon className="h-3.5 w-3.5" />
-                Upload image
-                <input type="file" accept="image/*" onChange={handlePortfolioUpload} className="hidden" />
-              </label>
-            </div>
-
-            <div className="grid gap-4 rounded-3xl border border-pink-100/80 bg-pink-50/50 p-4 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.6fr]">
-              <input value={portfolioForm.title} onChange={(e) => setPortfolioForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Image title" className="rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold" />
-              <input value={portfolioForm.description} onChange={(e) => setPortfolioForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Caption" className="rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold" />
-              <select value={portfolioForm.category} onChange={(e) => setPortfolioForm(prev => ({ ...prev, category: e.target.value }))} className="rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold">
-                <option value="bridal">Bridal</option>
-                <option value="party">Party</option>
-                <option value="fashion">Fashion</option>
-                <option value="celebrity">Celebrity</option>
-                <option value="editorial">Editorial</option>
-              </select>
-              <label className="flex items-center justify-center gap-2 rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm font-bold text-slate-700">
-                <input type="checkbox" checked={portfolioForm.isFeatured} onChange={(e) => setPortfolioForm(prev => ({ ...prev, isFeatured: e.target.checked }))} className="h-4 w-4 accent-pink-500" />
-                Featured
-              </label>
-            </div>
-
-            {portfolioLoading ? <p className="text-sm text-slate-500">Loading portfolio…</p> : null}
-            <div className="grid gap-4 md:grid-cols-2">
-              {portfolioItems.map(item => (
-                <div key={item.id} className="overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-sm">
-                  <img src={item.image_url} alt={item.title} className="h-48 w-full object-cover" />
-                  <div className="space-y-3 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <h4 className="text-sm font-black text-slate-800">{item.title}</h4>
-                        <p className="text-xs text-slate-500">{item.category}</p>
-                      </div>
-                      {item.is_featured ? <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-600">Cover</span> : null}
-                    </div>
-                    <p className="text-sm text-slate-600">{item.description || 'No caption yet'}</p>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => handlePortfolioFeature(item)} className="rounded-full bg-pink-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-pink-600">Set cover</button>
-                      <button type="button" onClick={() => handlePortfolioDelete(item.id)} className="rounded-full bg-rose-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600">Remove</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
-        </TabsContent>
+        ))}
+      </div>
+    )}
+
+    {/* Section 2: Real Customer Reviews & Ratings from DB */}
+    <div className="mt-8 pt-6 border-t border-pink-100 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">Client Reviews & Testimonials</h4>
+          <p className="text-[10px] text-slate-400">Ratings submitted by verified clients after booking.</p>
+        </div>
+        <div className="flex items-center gap-1 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+          <span className="text-xs font-black text-amber-700">
+            ★ {reviews?.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : "0.0"}
+          </span>
+          <span className="text-[9px] text-amber-600 font-bold">({reviews?.length || 0} Reviews)</span>
+        </div>
+      </div>
+
+      {(!reviews || reviews.length === 0) ? (
+        <div className="flex flex-col items-center justify-center p-8 rounded-3xl border border-pink-100 bg-pink-50/30 text-center">
+          <p className="text-xs font-bold text-slate-500">No client reviews yet.</p>
+          <p className="text-[10px] text-slate-400 mt-1">Once clients book and review your services, they will appear here.</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {reviews.map((review) => (
+            <div key={review.id} className="p-4 rounded-2xl bg-pink-50/40 border border-pink-100 space-y-2 hover:bg-pink-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-800">{review.client_name}</span>
+                <span className="text-[10px] font-bold text-amber-500">
+                  {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 italic">"{review.comment}"</p>
+              <span className="text-[9px] font-bold text-slate-400 block">
+                Booked: {review.service_name || 'General Service'} • {new Date(review.created_at).toLocaleDateString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+  </div>
+</TabsContent>
+
+
 
         <TabsContent value="services">
           <div className="space-y-6 rounded-3xl border border-pink-50 bg-white/80 p-6 shadow-sm">
