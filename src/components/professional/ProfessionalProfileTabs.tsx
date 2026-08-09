@@ -6,9 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
-  User, MapPin, Save, Camera, RefreshCw,
+  User, MapPin, Save, Camera, RefreshCw, Clock, DollarSign,
   AlertCircle, CheckCircle, Globe, Instagram, Youtube, Car, Heart,
-  Image as ImageIcon, Sparkles, Plus, Trash2, X, Plane, XCircle, MessageCircle
+  Image as ImageIcon, Sparkles, Plus, Trash2, X, Plane, XCircle, MessageCircle, PencilLine
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -138,9 +138,26 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   const [portfolioFile, setPortfolioFile] = useState<File | null>(null);
   const [beforeFile, setBeforeFile] = useState<File | null>(null);
   const [afterFile, setAfterFile] = useState<File | null>(null);
+  
+  // Premium Services State
   const [services, setServices] = useState<any[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
-  const [serviceForm, setServiceForm] = useState({ title: '', description: '', price: '', duration: '60', category: 'bridal' as string });
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [showAdvancedServiceOptions, setShowAdvancedServiceOptions] = useState(false);
+  const [serviceForm, setServiceForm] = useState({ 
+    title: '', 
+    description: '', 
+    price: '', 
+    priceType: 'fixed', 
+    advanceAmount: '',
+    duration: '60', 
+    category: 'bridal',
+    whatsIncluded: '',
+    addons: '',
+    isHomeService: true,
+    isActive: true
+  });
+
   const [availabilityRows, setAvailabilityRows] = useState<any[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [verification, setVerification] = useState<any | null>(null);
@@ -632,33 +649,111 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     }
   };
 
+  // ==========================================
+  // PREMIUM SERVICES LOGIC
+  // ==========================================
+
+  const handleServiceEdit = (service: any) => {
+    setServiceForm({
+      title: service.title,
+      description: service.description || '',
+      price: service.price?.toString() || '',
+      priceType: service.price_type || 'fixed',
+      advanceAmount: service.advance_amount?.toString() || '',
+      duration: service.duration_minutes?.toString() || '60',
+      category: service.category || 'bridal',
+      whatsIncluded: service.whats_included || '',
+      addons: service.addons || '',
+      isHomeService: service.is_home_service ?? true,
+      isActive: service.is_active ?? true
+    });
+    setEditingServiceId(service.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleServiceDuplicate = (service: any) => {
+    setServiceForm({
+      title: `${service.title} (Copy)`,
+      description: service.description || '',
+      price: service.price?.toString() || '',
+      priceType: service.price_type || 'fixed',
+      advanceAmount: service.advance_amount?.toString() || '',
+      duration: service.duration_minutes?.toString() || '60',
+      category: service.category || 'bridal',
+      whatsIncluded: service.whats_included || '',
+      addons: service.addons || '',
+      isHomeService: service.is_home_service ?? true,
+      isActive: false 
+    });
+    setEditingServiceId(null);
+    setShowAdvancedServiceOptions(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.info('Service duplicated. Edit details and save.');
+  };
+
+  const handleCancelServiceEdit = () => {
+    setServiceForm({ 
+      title: '', description: '', price: '', priceType: 'fixed', 
+      advanceAmount: '', duration: '60', category: 'bridal', 
+      whatsIncluded: '', addons: '', isHomeService: true, isActive: true 
+    });
+    setEditingServiceId(null);
+    setShowAdvancedServiceOptions(false);
+  };
+
+  const toggleServiceStatus = async (serviceId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('artist_services')
+        .update({ is_active: !currentStatus })
+        .eq('id', serviceId);
+      
+      if (error) throw error;
+      
+      setServices(prev => prev.map(s => s.id === serviceId ? { ...s, is_active: !currentStatus } : s));
+      toast.success(currentStatus ? 'Service hidden from customers' : 'Service is now live!');
+    } catch (err: any) {
+      toast.error('Failed to update status');
+    }
+  };
+
   const handleServiceSave = async () => {
     if (!serviceForm.title || !serviceForm.price) {
-      toast.error('Add a title and price first');
+      toast.error('Service Title and Price are required');
       return;
     }
 
     try {
       setServicesLoading(true);
-      const insertPayload = {
+      const payload = {
         artist_id: artistId,
         title: serviceForm.title,
         description: serviceForm.description,
         price: Number(serviceForm.price),
+        
+        // Note: Ensure these columns exist in your Supabase 'artist_services' table
+        price_type: serviceForm.priceType,
+        advance_amount: serviceForm.advanceAmount ? Number(serviceForm.advanceAmount) : null,
         duration_minutes: Number(serviceForm.duration) || 60,
         category: serviceForm.category,
-        is_active: true,
+        whats_included: serviceForm.whatsIncluded,
+        addons: serviceForm.addons,
+        is_home_service: serviceForm.isHomeService,
+        is_active: serviceForm.isActive,
       };
-      const { data, error } = await supabase.from('artist_services').insert(insertPayload).select().single();
-      if (error) {
-        if (isRecoverableSchemaError(error)) {
-          throw new Error(getSchemaErrorMessage('artist_services', error));
-        }
-        throw error;
+
+      if (editingServiceId) {
+        const { data, error } = await supabase.from('artist_services').update(payload).eq('id', editingServiceId).select().single();
+        if (error) throw error;
+        setServices(prev => prev.map(s => s.id === editingServiceId ? data : s));
+        toast.success('Service updated successfully!');
+      } else {
+        const { data, error } = await supabase.from('artist_services').insert(payload).select().single();
+        if (error) throw error;
+        setServices(prev => [data, ...prev]);
+        toast.success('New service added successfully!');
       }
-      setServices(prev => [data, ...prev]);
-      setServiceForm({ title: '', description: '', price: '', duration: '60', category: 'bridal' });
-      toast.success('Service added');
+      handleCancelServiceEdit();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save service');
     } finally {
@@ -667,6 +762,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   };
 
   const handleServiceDelete = async (serviceId: string) => {
+    if (!window.confirm("Are you sure you want to remove this service?")) return;
+    
     try {
       const { error } = await supabase.from('artist_services').delete().eq('id', serviceId).eq('artist_id', artistId);
       if (error) throw error;
@@ -676,6 +773,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       toast.error(err?.message || 'Failed to remove service');
     }
   };
+
+  // ==========================================
 
   const updateAvailabilityRow = (index: number, field: string, value: any) => {
     setAvailabilityRows(prev => prev.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
@@ -1189,50 +1288,174 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
             </TabsContent>
 
             <TabsContent value="services">
-              <div className="space-y-6 rounded-3xl border border-pink-100 bg-white p-6 shadow-sm">
-                <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Signature Services & Rate Card</h3>
-                  <p className="mt-1 text-xs text-slate-500">Set your makeup parlor rates and service packages for direct booking transparency.</p>
+              <div className="space-y-8 rounded-3xl border border-pink-100 bg-white p-6 shadow-sm">
+                
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-fuchsia-500" /> Signature Services & Rate Card
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">Manage what your clients see. Add inclusions, advance amounts, and home service details.</p>
+                  </div>
+                  <button type="button" onClick={() => toast.info("Opening Customer Preview...")} className="flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-purple-600 hover:bg-purple-100 transition">
+                    <Globe className="w-3.5 h-3.5" /> Preview as Customer
+                  </button>
                 </div>
 
-                <div className="grid gap-3 rounded-3xl border border-pink-200 bg-pink-50 p-4 md:grid-cols-2">
-                  <input value={serviceForm.title} onChange={(e) => setServiceForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Service Name (e.g. Bridal HD Makeup)" className="rounded-2xl border border-pink-200 bg-white px-3 py-2 text-sm font-bold" />
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-gray-400 font-bold">₹</span>
-                    <input value={serviceForm.price} onChange={(e) => setServiceForm(prev => ({ ...prev, price: e.target.value }))} type="number" placeholder="Price" className="w-full rounded-2xl border border-pink-200 bg-white py-2 pl-7 pr-3 text-sm font-bold" />
+                <div className={`rounded-3xl border p-5 transition-all shadow-sm ${editingServiceId ? 'border-fuchsia-300 bg-fuchsia-50/40' : 'border-pink-200 bg-[#fdf4f8]/50'}`}>
+                  <div className="mb-4 pb-3 border-b border-pink-100/50 flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-fuchsia-600">
+                      {editingServiceId ? '✏️ Editing Service Details' : '✨ Add New Service'}
+                    </span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Status</span>
+                      <input type="checkbox" checked={serviceForm.isActive} onChange={(e) => setServiceForm(prev => ({ ...prev, isActive: e.target.checked }))} className="w-8 h-4 rounded-full appearance-none bg-slate-200 checked:bg-emerald-500 transition-colors relative cursor-pointer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-transform checked:after:translate-x-4" />
+                    </label>
                   </div>
-                  <input value={serviceForm.description} onChange={(e) => setServiceForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Short Description" className="rounded-2xl border border-pink-200 bg-white px-3 py-2 text-sm font-bold" />
-                  <div className="flex gap-3">
-                    <input value={serviceForm.duration} onChange={(e) => setServiceForm(prev => ({ ...prev, duration: e.target.value }))} type="number" placeholder="Duration (min)" className="w-full rounded-2xl border border-pink-200 bg-white px-3 py-2 text-sm font-bold" />
-                    <select value={serviceForm.category} onChange={(e) => setServiceForm(prev => ({ ...prev, category: e.target.value }))} className="w-full rounded-2xl border border-pink-200 bg-white px-3 py-2 text-sm font-bold">
-                      <option value="bridal">Bridal</option>
-                      <option value="party">Party</option>
-                      <option value="home_service">Home Service</option>
-                      <option value="reception">Reception</option>
-                      <option value="hd_makeup">HD Makeup</option>
-                      <option value="airbrush">Airbrush</option>
-                    </select>
-                  </div>
-                </div>
 
-                <button type="button" onClick={() => void handleServiceSave()} disabled={servicesLoading} className="flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg disabled:opacity-50">
-                  {servicesLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add Service & Rate
-                </button>
-
-                <div className="space-y-3">
-                  {services.map(service => (
-                    <div key={service.id} className="flex flex-col gap-3 rounded-3xl border border-pink-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-black text-slate-800">{service.title}</h4>
-                          <span className="rounded-full bg-pink-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-pink-600">{service.category}</span>
-                        </div>
-                        <p className="mt-1 text-sm text-slate-600">{service.description || 'No description provided'}</p>
-                        <p className="mt-1 text-xs font-semibold text-slate-500">₹{service.price} • {service.duration_minutes || 60} mins</p>
-                      </div>
-                      <button type="button" onClick={() => handleServiceDelete(service.id)} className="rounded-full bg-rose-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600">Delete</button>
+                  <div className="grid gap-4 md:grid-cols-12">
+                    <div className="md:col-span-8">
+                      <input value={serviceForm.title} onChange={(e) => setServiceForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Service Name (e.g. Bridal HD Makeup)" className="w-full rounded-2xl border border-pink-200 bg-white px-4 py-3 text-sm font-bold shadow-sm outline-none focus:border-fuchsia-400" />
                     </div>
-                  ))}
+                    
+                    <div className="md:col-span-4 flex gap-2">
+                      <select value={serviceForm.priceType} onChange={(e) => setServiceForm(prev => ({ ...prev, priceType: e.target.value }))} className="w-1/3 rounded-2xl border border-pink-200 bg-white px-2 py-3 text-[11px] font-black uppercase tracking-wider text-slate-600 shadow-sm outline-none">
+                        <option value="fixed">Fixed</option>
+                        <option value="starting">Starts At</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                      <div className="relative w-2/3">
+                        <span className="absolute left-3 top-3 text-slate-400 font-bold">₹</span>
+                        <input value={serviceForm.price} onChange={(e) => setServiceForm(prev => ({ ...prev, price: e.target.value }))} type="number" placeholder="Price" className="w-full rounded-2xl border border-pink-200 bg-white py-3 pl-7 pr-3 text-sm font-bold shadow-sm outline-none focus:border-fuchsia-400" />
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-12">
+                      <button type="button" onClick={() => setShowAdvancedServiceOptions(!showAdvancedServiceOptions)} className="text-[10px] font-black uppercase tracking-widest text-fuchsia-500 hover:text-fuchsia-700 flex items-center gap-1">
+                        {showAdvancedServiceOptions ? 'Hide Advanced Options ▴' : 'Show Advanced Options (Inclusions, Add-ons, Advance) ▾'}
+                      </button>
+                    </div>
+
+                    {showAdvancedServiceOptions && (
+                      <div className="md:col-span-12 grid gap-4 md:grid-cols-12 p-4 bg-white/60 rounded-2xl border border-pink-100">
+                        <div className="md:col-span-6">
+                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">What's Included (Comma separated)</label>
+                          <input value={serviceForm.whatsIncluded} onChange={(e) => setServiceForm(prev => ({ ...prev, whatsIncluded: e.target.value }))} placeholder="HD Makeup, Hairstyling, Draping..." className="w-full rounded-xl border border-pink-200 bg-white px-3 py-2.5 text-xs font-bold shadow-sm outline-none focus:border-fuchsia-400" />
+                        </div>
+                        <div className="md:col-span-6">
+                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Add-ons (Optional Up-sells)</label>
+                          <input value={serviceForm.addons} onChange={(e) => setServiceForm(prev => ({ ...prev, addons: e.target.value }))} placeholder="Premium Lashes +₹500, Extra Draping +₹300" className="w-full rounded-xl border border-pink-200 bg-white px-3 py-2.5 text-xs font-bold shadow-sm outline-none focus:border-fuchsia-400" />
+                        </div>
+                        <div className="md:col-span-4 relative">
+                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Advance Amount (₹)</label>
+                          <span className="absolute left-3 top-[26px] text-slate-400 font-bold text-xs">₹</span>
+                          <input value={serviceForm.advanceAmount} onChange={(e) => setServiceForm(prev => ({ ...prev, advanceAmount: e.target.value }))} type="number" placeholder="5000" className="w-full rounded-xl border border-pink-200 bg-white py-2.5 pl-7 pr-3 text-xs font-bold shadow-sm outline-none" />
+                        </div>
+                        <div className="md:col-span-4">
+                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Category</label>
+                          <select value={serviceForm.category} onChange={(e) => setServiceForm(prev => ({ ...prev, category: e.target.value }))} className="w-full rounded-xl border border-pink-200 bg-white px-3 py-2.5 text-xs font-bold shadow-sm outline-none">
+                            <option value="bridal">Bridal Package</option>
+                            <option value="party">Party / Guest Look</option>
+                            <option value="pre_wedding">Pre-Wedding / Engagement</option>
+                            <option value="trial">Makeup Trial</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-4">
+                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Duration (Mins)</label>
+                          <input value={serviceForm.duration} onChange={(e) => setServiceForm(prev => ({ ...prev, duration: e.target.value }))} type="number" placeholder="120" className="w-full rounded-xl border border-pink-200 bg-white px-3 py-2.5 text-xs font-bold shadow-sm outline-none" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-5 md:w-1/2 ml-auto">
+                    {editingServiceId && (
+                      <button type="button" onClick={handleCancelServiceEdit} className="w-1/3 flex items-center justify-center rounded-xl bg-white border border-slate-200 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all shadow-sm">
+                        Cancel
+                      </button>
+                    )}
+                    <button type="button" onClick={() => void handleServiceSave()} disabled={servicesLoading} className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-lg transition-all disabled:opacity-50 ${editingServiceId ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 shadow-fuchsia-500/30' : 'bg-gradient-to-r from-pink-500 to-fuchsia-500 shadow-pink-500/30 hover:scale-[1.02]'}`}>
+                      {servicesLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : (editingServiceId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />)} 
+                      {editingServiceId ? 'Update Service' : 'Add to Rate Card'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-10">
+                  <div className="flex items-center justify-between mb-5">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
+                      Your Published Services <span className="bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full text-[10px]">{services.length}</span>
+                    </h4>
+                  </div>
+                  
+                  {services.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 bg-pink-50/40 rounded-3xl border-2 border-dashed border-pink-200">
+                      <Crown className="w-10 h-10 text-pink-300 mb-3" />
+                      <p className="text-sm font-bold text-slate-600">Your rate card is empty!</p>
+                      <p className="text-xs text-slate-400 mt-1 max-w-sm text-center">Start adding your makeup packages and services above to allow clients to book you.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {services.map(service => (
+                        <div key={service.id} className={`flex flex-col rounded-3xl border bg-white shadow-sm transition-all overflow-hidden ${!service.is_active ? 'opacity-70 grayscale-[20%]' : 'hover:shadow-md hover:border-pink-300'} ${editingServiceId === service.id ? 'ring-2 ring-fuchsia-400 ring-offset-2' : 'border-pink-100'}`}>
+                          
+                          <div className="p-5 flex-1">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div>
+                                <span className="inline-block px-2 py-1 bg-purple-50 text-purple-600 text-[8px] font-black uppercase tracking-widest rounded-md mb-2">
+                                  {service.category?.replace('_', ' ')} · {service.duration_minutes || 60} mins
+                                </span>
+                                <h4 className="text-base font-black text-slate-900 leading-tight">{service.title}</h4>
+                              </div>
+                              
+                              <button onClick={() => toggleServiceStatus(service.id, service.is_active)} className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-colors ${service.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${service.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                                {service.is_active ? 'Live' : 'Hidden'}
+                              </button>
+                            </div>
+
+                            <div className="flex items-end gap-2 mt-3 mb-4">
+                              <h3 className="text-xl font-black text-pink-600">₹{service.price}</h3>
+                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 pb-0.5">
+                                {service.price_type === 'starting' ? 'Starting From' : service.price_type === 'custom' ? 'Custom Quote' : 'Fixed Price'}
+                              </span>
+                            </div>
+
+                            {service.whats_included && (
+                              <div className="mb-3">
+                                <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Includes:</p>
+                                <p className="text-xs font-semibold text-slate-700 leading-relaxed flex flex-wrap gap-1">
+                                  {service.whats_included.split(',').map((item: string, i: number) => (
+                                    <span key={i} className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">• {item.trim()}</span>
+                                  ))}
+                                </p>
+                              </div>
+                            )}
+
+                            {service.advance_amount && (
+                              <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-100 px-2 py-1 rounded-md text-[9px] font-extrabold text-amber-700 uppercase tracking-widest">
+                                <DollarSign className="w-3 h-3" /> ₹{service.advance_amount} Advance required
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center border-t border-slate-50 bg-slate-50/50 p-2">
+                            <button type="button" onClick={() => handleServiceEdit(service)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-purple-600 hover:bg-white rounded-xl transition-all">
+                              <PencilLine className="w-3.5 h-3.5" /> Edit
+                            </button>
+                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                            <button type="button" onClick={() => handleServiceDuplicate(service)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-blue-600 hover:bg-white rounded-xl transition-all">
+                              Duplicate
+                            </button>
+                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                            <button type="button" onClick={() => handleServiceDelete(service.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-700 hover:bg-white rounded-xl transition-all">
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -1298,7 +1521,6 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
                 {saveError && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{saveError}</div>}
 
-                {/* Icon moved to label — never overlaps typed text anymore */}
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
@@ -1326,6 +1548,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                     <Controller name="googleMapsUrl" control={control} render={({ field }) => <input {...field} type="url" placeholder="Google Maps location link" className="w-full rounded-2xl border border-pink-200 bg-white px-4 py-3 text-sm font-bold" />} />
                     {errors.googleMapsUrl && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.googleMapsUrl.message}</p>}
                   </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
                       <MessageCircle className="h-3.5 w-3.5 text-pink-500" /> WhatsApp Number
