@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
 import { 
   Calendar, Clock, DollarSign, Star, Users, AlertCircle, 
-  CheckCircle, XCircle, MapPin, Zap, Crown, RefreshCw, Home
+  CheckCircle, XCircle, MapPin, Zap, Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProfessionalBottomNav from './ProfessionalBottomNav';
@@ -83,8 +83,6 @@ export default function ProfessionalDashboard({
   
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  // Realtime subscription state is managed per artistId
 
   // Offline detection
   const { isOnline } = useOfflineDetection();
@@ -194,12 +192,11 @@ export default function ProfessionalDashboard({
     };
   }, [artistId, isProfessionalUser, loadDashboardData]);
 
-  // 7. ✨ FIX: Single Source of Truth for Stats (Calculated via actual review count)
   const stats = useMemo(() => {
     return calculateDashboardStats({
       bookings: allBookings,
       avgRating: reviewData.avgRating,
-      reviewCount: reviewData.count, // Real data instead of fake math!
+      reviewCount: reviewData.count, 
     });
   }, [allBookings, reviewData]);
 
@@ -255,7 +252,6 @@ export default function ProfessionalDashboard({
     };
   }, [artistId, loadDashboardData]);
 
-  // Loading Screens & Restrictions
   if (initialLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA] relative overflow-hidden pb-32">
@@ -302,16 +298,9 @@ export default function ProfessionalDashboard({
               </div>
               <p className="text-[10px] text-slate-600 font-bold tracking-widest mt-0.5">PROFESSIONAL DASHBOARD</p>
             </div>
+            
             <div className="flex items-center gap-2">
-              {/* 10. ✨ FIX: Dashboard Refresh Button added */}
-              <button
-                onClick={handleRetry}
-                className="w-8 h-8 rounded-full bg-white border border-purple-200 shadow-sm flex items-center justify-center text-slate-600 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                title="Refresh Dashboard"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-
+              {/* Home and Refresh icons have been removed from here! */}
               <button
                 onClick={() => {
                   globalStore.toggleAppViewMode();
@@ -327,13 +316,7 @@ export default function ProfessionalDashboard({
                 <Zap className="w-3 h-3 inline mr-1" />
                 {globalStore.appViewMode === 'self' ? 'SELF' : 'PRO'}
               </button>
-              <button
-                onClick={onNavigateHome}
-                className="w-8 h-8 rounded-full bg-white border border-purple-200 shadow-sm flex items-center justify-center text-slate-600 hover:text-purple-600"
-                title="Go Home"
-              >
-                <Home className="w-4 h-4" />
-              </button>
+              
               <button
                 onClick={onNavigateToProfile}
                 className="w-8 h-8 rounded-full bg-white border border-purple-200 shadow-sm flex items-center justify-center overflow-hidden"
