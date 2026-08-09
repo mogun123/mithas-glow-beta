@@ -13,7 +13,7 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // DUAL-MODE STATE - Use global store as single source of truth
+  // DUAL-MODE STATE
   const {
     appViewMode,
     toggleAppViewMode,
@@ -23,7 +23,6 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
   const isProfessional = isProUser();
 
-  // Get user data from global store
   const profile = user;
   const glowCoins = user?.glow_points ?? 0;
   const hasUnreadNotifications = true;
@@ -31,19 +30,16 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      // Global store will be cleared by auth state listener in App.tsx
       window.dispatchEvent(new CustomEvent('navigateToHome'));
     } catch (err) {
       console.error("Logout failed", err);
     }
   };
 
-  // DUAL-MODE TOGGLE HANDLER - Triggers actual state change and navigation
   const handleModeToggle = () => {
     toggleAppViewMode();
     const newMode = useGlobalStore.getState().appViewMode;
 
-    // Navigate based on new mode - this triggers App.tsx re-render
     if (newMode === 'self') {
       toast.success('Switched to Customer View');
       window.dispatchEvent(new CustomEvent('navigateToHome'));
@@ -75,48 +71,49 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
     <>
       <header className="px-4 py-3 flex justify-between items-center sticky top-0 z-10 backdrop-blur-xl shadow-sm bg-[#fdf4f8]/90 border-b border-pink-100">
         
-        {/* MITHAS GLOW LOGO */}
-        <div className="flex items-center gap-1.5">
-          <Crown className="w-6 h-6 text-pink-500" strokeWidth={2.5} />
-          <h1 className="text-xl sm:text-2xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-fuchsia-500">
+        {/* MITHAS GLOW LOGO - FIXED (No Wrapping) */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-pink-500 shrink-0" strokeWidth={2.5} />
+          <h1 className="text-lg sm:text-2xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-fuchsia-500 whitespace-nowrap">
             MITHAS GLOW
           </h1>
         </div>
 
-        <div className="flex space-x-2.5 sm:space-x-3 items-center">
+        <div className="flex space-x-2.5 sm:space-x-3 items-center shrink-0">
           
-          {/* DUAL-MODE TOGGLE - ONLY FOR PROFESSIONALS */}
+          {/* DUAL-MODE TOGGLE - FIXED (No Overlapping, Clear Marquee) */}
           {isProfessional && (
             <button
               onClick={handleModeToggle}
               className={`
-                relative px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300
-                shadow-md border flex flex-col items-center justify-center min-w-[130px]
+                relative rounded-xl font-black uppercase tracking-wider transition-all duration-300
+                shadow-md border flex flex-col items-center justify-center shrink-0 overflow-hidden
+                w-[130px] sm:w-[150px]
                 ${appViewMode === 'pro'
-                  ? 'bg-white text-pink-600 border-pink-200 hover:bg-pink-50 shadow-pink-500/10' // When in Pro mode
-                  : 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white border-fuchsia-400 shadow-fuchsia-500/30' // When in Customer mode
+                  ? 'bg-white text-pink-600 border-pink-200 hover:bg-pink-50 shadow-pink-500/10 py-2 sm:py-2.5' 
+                  : 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white border-fuchsia-400 shadow-fuchsia-500/30 py-1.5'
                 }
                 hover:scale-105 active:scale-95
               `}
             >
-              <span className="flex items-center gap-1.5">
+              <div className="flex items-center justify-center gap-1.5 w-full">
                 {appViewMode === 'pro' ? (
                   <>
-                    <User className="w-3.5 h-3.5" />
-                    <span>Customer View</span>
+                    <User className="w-3.5 h-3.5 shrink-0" />
+                    <span className="text-[10px] sm:text-xs whitespace-nowrap">Customer View</span>
                   </>
                 ) : (
                   <>
-                    <Briefcase className="w-3.5 h-3.5" />
-                    <span>Studio Dashboard</span>
+                    <Briefcase className="w-3.5 h-3.5 shrink-0" />
+                    <span className="text-[10px] sm:text-xs whitespace-nowrap">Studio Dashboard</span>
                   </>
                 )}
-              </span>
+              </div>
               
-              {/* MOVING TEXT (MARQUEE) - Shows only when user is in customer mode */}
+              {/* MOVING TEXT - Fixed height and spacing to prevent overlap */}
               {appViewMode === 'self' && (
-                <div className="w-[110px] overflow-hidden mt-0.5">
-                   <marquee scrollamount="3" className="text-[8px] font-extrabold tracking-widest text-white/90">
+                <div className="w-full mt-0.5 h-[12px] flex items-center">
+                   <marquee scrollamount="3" className="text-[8px] font-extrabold tracking-widest text-white whitespace-nowrap leading-none">
                      EXPLORE YOUR PROFESSIONAL DASHBOARD ✨
                    </marquee>
                 </div>
@@ -124,10 +121,10 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
             </button>
           )}
 
-          {/* Notifications - Solid Background for Visibility */}
+          {/* Notifications - Fixed Size */}
           <button
             onClick={() => setShowNotifications(true)}
-            className="relative w-9 h-9 rounded-full bg-white flex items-center justify-center border border-pink-200 shadow-sm hover:bg-pink-50 transition-all"
+            className="relative w-9 h-9 min-w-[36px] min-h-[36px] shrink-0 rounded-full bg-white flex items-center justify-center border border-pink-200 shadow-sm hover:bg-pink-50 transition-all"
           >
             <Bell className="w-4 h-4 text-slate-700" />
             {hasUnreadNotifications && (
@@ -135,17 +132,17 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
             )}
           </button>
 
-          {/* Glow Coins - Solid Background for Visibility */}
-          <div className="hidden sm:flex items-center px-3 py-1.5 bg-white border border-pink-200 shadow-sm rounded-full">
+          {/* Glow Coins - Hidden on very small screens, visible on Desktop */}
+          <div className="hidden sm:flex shrink-0 items-center px-3 py-1.5 bg-white border border-pink-200 shadow-sm rounded-full">
             <Gem className="w-4 h-4 text-amber-500 mr-1.5" />
             <span className="text-xs font-black text-slate-800">{glowCoins}</span>
           </div>
 
-          {/* Profile Dropdown */}
-          <div className="relative">
+          {/* Profile Dropdown - Fixed Size (Won't become giant) */}
+          <div className="relative shrink-0">
             <button
               onClick={() => setShowDropdown((p) => !p)}
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-fuchsia-500 flex items-center justify-center shadow-md border-2 border-white hover:scale-105 transition-transform overflow-hidden"
+              className="w-10 h-10 min-w-[40px] min-h-[40px] max-w-[40px] max-h-[40px] shrink-0 rounded-full bg-gradient-to-br from-pink-500 to-fuchsia-500 flex items-center justify-center shadow-md border-2 border-white hover:scale-105 transition-transform overflow-hidden"
             >
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
@@ -156,12 +153,10 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-pink-100 py-1 z-50">
-                {/* Profile Name Display */}
                 <p className="px-4 py-3 text-xs font-black uppercase tracking-wider text-slate-800 border-b border-pink-50 mb-1 truncate">
                   {profile?.full_name || profile?.display_name || profile?.username || "Glow User"}
                 </p>
 
-                {/* Show coins in dropdown for mobile view */}
                 <div className="sm:hidden flex items-center px-4 py-2 text-xs font-bold text-slate-700 border-b border-pink-50 mb-1">
                   <Gem className="w-3.5 h-3.5 text-amber-500 mr-2" />
                   {glowCoins} Glow Coins
