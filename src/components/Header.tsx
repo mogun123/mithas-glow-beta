@@ -93,8 +93,8 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
                 relative px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300
                 shadow-md border flex flex-col items-center justify-center min-w-[130px]
                 ${appViewMode === 'pro'
-                  ? 'bg-white text-pink-600 border-pink-200 hover:bg-pink-50 shadow-pink-500/10' // வென் இன் ப்ரோ மோட்
-                  : 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white border-fuchsia-400 shadow-fuchsia-500/30' // வென் இன் கஸ்டமர் மோட்
+                  ? 'bg-white text-pink-600 border-pink-200 hover:bg-pink-50 shadow-pink-500/10' // When in Pro mode
+                  : 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white border-fuchsia-400 shadow-fuchsia-500/30' // When in Customer mode
                 }
                 hover:scale-105 active:scale-95
               `}
