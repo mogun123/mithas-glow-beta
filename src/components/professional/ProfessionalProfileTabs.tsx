@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   User, MapPin, Save, Camera, RefreshCw, Clock, DollarSign,
   AlertCircle, CheckCircle, Globe, Instagram, Youtube, Car, Heart,
-  Image as ImageIcon, Sparkles, Plus, Trash2, X, Plane, XCircle, MessageCircle, PencilLine
+  Image as ImageIcon, Sparkles, Plus, Trash2, X, Plane, XCircle, MessageCircle, PencilLine, Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
 
