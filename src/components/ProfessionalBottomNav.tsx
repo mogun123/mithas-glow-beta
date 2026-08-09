@@ -34,8 +34,8 @@ const ProfessionalBottomNav = memo(function ProfessionalBottomNav({ currentView,
         </button>
       )}
 
-      {/* 📱 Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-purple-100 shadow-[0_-8px_32px_-10px_rgba(168,85,247,0.2)] z-50 safe-area-bottom">
+      {/* 📱 Bottom Navigation Bar - TRULY SOLID PREMIUM COLOR (No Transparency) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#fff0f5] border-t border-purple-200 shadow-[0_-8px_32px_-10px_rgba(168,85,247,0.15)] z-50 safe-area-bottom">
         <div className="flex justify-around items-center h-16 md:h-18 max-w-lg mx-auto px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -76,8 +76,8 @@ const ProfessionalBottomNav = memo(function ProfessionalBottomNav({ currentView,
           })}
         </div>
 
-        {/* Safe area for modern edge-to-edge mobile screens */}
-        <div className="h-safe-area-inset-bottom bg-white/90 backdrop-blur-2xl" />
+        {/* Safe area for modern edge-to-edge mobile screens - Solid Color Matching */}
+        <div className="h-safe-area-inset-bottom bg-[#fff0f5]" />
       </div>
     </>
   );
