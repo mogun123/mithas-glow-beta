@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Gem, User, Settings, LogOut, Bell, BarChart3, Sparkles, Briefcase } from 'lucide-react';
+import { useState } from 'react';
+import { Gem, User, Settings, LogOut, Bell, BarChart3, Sparkles, Briefcase, Crown } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
@@ -19,8 +19,6 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
     toggleAppViewMode,
     isProUser,
     user,
-    setCurrentUserRole,
-    refreshProfile
   } = useGlobalStore();
 
   const isProfessional = isProUser();
@@ -42,7 +40,6 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
   // DUAL-MODE TOGGLE HANDLER - Triggers actual state change and navigation
   const handleModeToggle = () => {
-    const previousMode = appViewMode;
     toggleAppViewMode();
     const newMode = useGlobalStore.getState().appViewMode;
 
@@ -76,36 +73,42 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
   return (
     <>
-      <header className="p-4 flex justify-between items-start sticky top-0 z-10 backdrop-blur-md shadow-lg bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-yellow-500/20 border-b border-white/10">
-        <h1 className="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-yellow-400 font-bold tracking-tight">
-          GLOW
-        </h1>
+      <header className="px-4 py-3 flex justify-between items-center sticky top-0 z-10 backdrop-blur-xl shadow-sm bg-[#f8f0fc]/90 border-b border-pink-100">
+        
+        {/* MITHAS GLOW LOGO */}
+        <div className="flex items-center gap-1.5">
+          <Crown className="w-6 h-6 text-purple-600" strokeWidth={2.5} />
+          <h1 className="text-xl sm:text-2xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-purple-500">
+            MITHAS GLOW
+          </h1>
+        </div>
 
-        <div className="flex space-x-3 items-center">
+        <div className="flex space-x-2.5 sm:space-x-3 items-center">
+          
           {/* DUAL-MODE TOGGLE - ONLY FOR PROFESSIONALS */}
           {isProfessional && (
             <button
               onClick={handleModeToggle}
               className={`
-                relative px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300
-                backdrop-blur-md border border-white/20 shadow-lg
+                relative px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300
+                shadow-sm border
                 ${appViewMode === 'pro'
-                  ? 'bg-gradient-to-r from-purple-600/80 to-pink-600/80 text-white shadow-purple-500/30'
-                  : 'bg-gradient-to-r from-yellow-400/80 to-orange-400/80 text-white shadow-yellow-500/30'
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-400 text-white border-purple-400 shadow-purple-500/30'
+                  : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50'
                 }
                 hover:scale-105 active:scale-95
               `}
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5">
                 {appViewMode === 'pro' ? (
                   <>
-                    <Briefcase className="w-4 h-4" />
+                    <Briefcase className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Pro Mode</span>
                     <span className="sm:hidden">Pro</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Self Mode</span>
                     <span className="sm:hidden">Self</span>
                   </>
@@ -114,42 +117,48 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
             </button>
           )}
 
-          {/* Notifications */}
+          {/* Notifications - Solid Background for Visibility */}
           <button
             onClick={() => setShowNotifications(true)}
-            className="relative w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 hover:bg-white/30 transition-all"
+            className="relative w-9 h-9 rounded-full bg-white flex items-center justify-center border border-pink-100 shadow-sm hover:bg-pink-50 transition-all"
           >
-            <Bell className="w-5 h-5 text-white" />
+            <Bell className="w-4 h-4 text-slate-700" />
             {hasUnreadNotifications && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white/50" />
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
             )}
           </button>
 
-          {/* Glow Coins */}
-          <div className="flex items-center px-3 py-1.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full">
-            <Gem className="w-4 h-4 text-yellow-300 mr-1.5" />
-            <span className="text-sm font-semibold text-white">{glowCoins}</span>
+          {/* Glow Coins - Solid Background for Visibility */}
+          <div className="hidden sm:flex items-center px-3 py-1.5 bg-white border border-pink-100 shadow-sm rounded-full">
+            <Gem className="w-4 h-4 text-amber-500 mr-1.5" />
+            <span className="text-xs font-black text-slate-800">{glowCoins}</span>
           </div>
 
-          {/* Profile */}
+          {/* Profile Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowDropdown((p) => !p)}
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-md border-2 border-white hover:scale-105 transition-transform"
             >
-              <User className="w-5 h-5 text-white" />
+              <User className="w-4 h-4 text-white" />
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-pink-100 py-1 z-50">
                 {/* Profile Name Display */}
-                <p className="px-4 py-2 text-sm font-medium text-gray-800 border-b border-gray-100 mb-1">
+                <p className="px-4 py-3 text-xs font-black uppercase tracking-wider text-slate-800 border-b border-pink-50 mb-1 truncate">
                   {profile?.full_name || profile?.display_name || profile?.username || "Glow User"}
                 </p>
 
+                {/* Show coins in dropdown for mobile view */}
+                <div className="sm:hidden flex items-center px-4 py-2 text-xs font-bold text-slate-700 border-b border-pink-50 mb-1">
+                  <Gem className="w-3.5 h-3.5 text-amber-500 mr-2" />
+                  {glowCoins} Glow Coins
+                </div>
+
                 <button
                   onClick={() => handleProfileAction('My Account')}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition-colors"
+                  className="flex items-center w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition-colors"
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   My Account
@@ -157,7 +166,7 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
                 <button
                   onClick={() => handleProfileAction('Event Dashboard')}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition-colors"
+                  className="flex items-center w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition-colors"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Event Dashboard
@@ -165,7 +174,7 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  className="flex items-center w-full px-4 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-50 transition-colors"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
