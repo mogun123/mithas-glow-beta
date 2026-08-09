@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Gem, User, Settings, LogOut, Bell, BarChart3, Sparkles, Briefcase, Crown } from 'lucide-react';
+import { Gem, User, Settings, LogOut, Bell, BarChart3, Briefcase, Crown } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
@@ -45,10 +45,10 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
     // Navigate based on new mode - this triggers App.tsx re-render
     if (newMode === 'self') {
-      toast.success('Switched to Self Mode - Browsing as Customer');
+      toast.success('Switched to Customer View');
       window.dispatchEvent(new CustomEvent('navigateToHome'));
     } else {
-      toast.success('Switched to Pro Mode - Professional Dashboard');
+      toast.success('Switched to Studio Dashboard');
       window.dispatchEvent(new CustomEvent('navigateToProfessional'));
     }
   };
@@ -56,7 +56,7 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
   const handleProfileAction = (action: string) => {
     setShowDropdown(false);
 
-    if (action === "My Account" && onNavigateToProfile) {
+    if (action === "Settings" && onNavigateToProfile) {
       onNavigateToProfile();
       return;
     }
@@ -73,12 +73,12 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
   return (
     <>
-      <header className="px-4 py-3 flex justify-between items-center sticky top-0 z-10 backdrop-blur-xl shadow-sm bg-[#f8f0fc]/90 border-b border-pink-100">
+      <header className="px-4 py-3 flex justify-between items-center sticky top-0 z-10 backdrop-blur-xl shadow-sm bg-[#fdf4f8]/90 border-b border-pink-100">
         
         {/* MITHAS GLOW LOGO */}
         <div className="flex items-center gap-1.5">
-          <Crown className="w-6 h-6 text-purple-600" strokeWidth={2.5} />
-          <h1 className="text-xl sm:text-2xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-purple-500">
+          <Crown className="w-6 h-6 text-pink-500" strokeWidth={2.5} />
+          <h1 className="text-xl sm:text-2xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-fuchsia-500">
             MITHAS GLOW
           </h1>
         </div>
@@ -90,11 +90,11 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
             <button
               onClick={handleModeToggle}
               className={`
-                relative px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300
-                shadow-sm border
+                relative px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300
+                shadow-md border flex flex-col items-center justify-center min-w-[130px]
                 ${appViewMode === 'pro'
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-400 text-white border-purple-400 shadow-purple-500/30'
-                  : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50'
+                  ? 'bg-white text-pink-600 border-pink-200 hover:bg-pink-50 shadow-pink-500/10' // வென் இன் ப்ரோ மோட்
+                  : 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white border-fuchsia-400 shadow-fuchsia-500/30' // வென் இன் கஸ்டமர் மோட்
                 }
                 hover:scale-105 active:scale-95
               `}
@@ -102,25 +102,32 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
               <span className="flex items-center gap-1.5">
                 {appViewMode === 'pro' ? (
                   <>
-                    <Briefcase className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Pro Mode</span>
-                    <span className="sm:hidden">Pro</span>
+                    <User className="w-3.5 h-3.5" />
+                    <span>Customer View</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Self Mode</span>
-                    <span className="sm:hidden">Self</span>
+                    <Briefcase className="w-3.5 h-3.5" />
+                    <span>Studio Dashboard</span>
                   </>
                 )}
               </span>
+              
+              {/* MOVING TEXT (MARQUEE) - Shows only when user is in customer mode */}
+              {appViewMode === 'self' && (
+                <div className="w-[110px] overflow-hidden mt-0.5">
+                   <marquee scrollamount="3" className="text-[8px] font-extrabold tracking-widest text-white/90">
+                     EXPLORE YOUR PROFESSIONAL DASHBOARD ✨
+                   </marquee>
+                </div>
+              )}
             </button>
           )}
 
           {/* Notifications - Solid Background for Visibility */}
           <button
             onClick={() => setShowNotifications(true)}
-            className="relative w-9 h-9 rounded-full bg-white flex items-center justify-center border border-pink-100 shadow-sm hover:bg-pink-50 transition-all"
+            className="relative w-9 h-9 rounded-full bg-white flex items-center justify-center border border-pink-200 shadow-sm hover:bg-pink-50 transition-all"
           >
             <Bell className="w-4 h-4 text-slate-700" />
             {hasUnreadNotifications && (
@@ -129,7 +136,7 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
           </button>
 
           {/* Glow Coins - Solid Background for Visibility */}
-          <div className="hidden sm:flex items-center px-3 py-1.5 bg-white border border-pink-100 shadow-sm rounded-full">
+          <div className="hidden sm:flex items-center px-3 py-1.5 bg-white border border-pink-200 shadow-sm rounded-full">
             <Gem className="w-4 h-4 text-amber-500 mr-1.5" />
             <span className="text-xs font-black text-slate-800">{glowCoins}</span>
           </div>
@@ -138,9 +145,13 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
           <div className="relative">
             <button
               onClick={() => setShowDropdown((p) => !p)}
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-md border-2 border-white hover:scale-105 transition-transform"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-fuchsia-500 flex items-center justify-center shadow-md border-2 border-white hover:scale-105 transition-transform overflow-hidden"
             >
-              <User className="w-4 h-4 text-white" />
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-4 h-4 text-white" />
+              )}
             </button>
 
             {showDropdown && (
@@ -157,11 +168,11 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
                 </div>
 
                 <button
-                  onClick={() => handleProfileAction('My Account')}
+                  onClick={() => handleProfileAction('Settings')}
                   className="flex items-center w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition-colors"
                 >
                   <Settings className="w-4 h-4 mr-2" />
-                  My Account
+                  Settings
                 </button>
 
                 <button
