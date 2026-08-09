@@ -79,21 +79,26 @@ const isRecoverableSchemaError = (error: any) => {
 };
 
 const getSchemaErrorMessage = (tableName: string, error: any) => {
-  if (isRecoverableSchemaError(error)) return `The database schema is missing or inaccessible for ${tableName}. Apply the SQL migration.`;
+  if (isRecoverableSchemaError(error)) {
+    return `The database schema is missing or inaccessible for ${tableName}. Apply the SQL migration before using this section.`;
+  }
   return error?.message || `Unable to access ${tableName}.`;
 };
 
 class ProfileErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: React.ReactNode }) { super(props); this.state = { hasError: false }; }
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
   static getDerivedStateFromError() { return { hasError: true }; }
   resetBoundary = () => this.setState({ hasError: false });
   render() {
     if (this.state.hasError) {
       return (
-        <div className="m-4 flex min-h-[50vh] flex-col items-center justify-center rounded-3xl border border-rose-200 bg-rose-50 p-6 text-center">
+        <div className="m-4 flex min-h-[50vh] flex-col items-center justify-center rounded-[32px] border border-rose-100 bg-rose-50/50 p-6 text-center">
           <AlertCircle className="mb-4 h-12 w-12 text-rose-500" />
-          <h2 className="text-lg font-black text-slate-800">Module Crashed</h2>
-          <button onClick={this.resetBoundary} className="mt-6 rounded-full bg-rose-500 px-6 py-2 text-xs font-black uppercase tracking-widest text-white transition hover:scale-105">Retry Component</button>
+          <h2 className="text-lg font-bold text-slate-800 tracking-tight">Module Crashed</h2>
+          <button onClick={this.resetBoundary} className="mt-6 rounded-xl bg-rose-500 px-6 py-2.5 text-xs font-bold text-white transition hover:bg-rose-600 shadow-sm">Retry Component</button>
         </div>
       );
     }
@@ -102,11 +107,11 @@ class ProfileErrorBoundary extends React.Component<{ children: React.ReactNode }
 }
 
 const ProfileSkeleton = () => (
-  <div className="animate-pulse space-y-6 p-6">
-    <div className="h-16 w-full rounded-3xl bg-slate-100" />
+  <div className="animate-pulse space-y-6 p-4 sm:p-6">
+    <div className="h-16 w-full rounded-[24px] bg-slate-100" />
     <div className="flex justify-center"><div className="h-28 w-28 rounded-full bg-slate-100" /></div>
-    <div className="h-64 w-full rounded-3xl bg-slate-100" />
-    <div className="h-40 w-full rounded-3xl bg-slate-100" />
+    <div className="h-64 w-full rounded-[24px] bg-slate-100" />
+    <div className="h-40 w-full rounded-[24px] bg-slate-100" />
   </div>
 );
 
@@ -121,7 +126,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
-  // Portfolio
+  // Portfolio State
   const [portfolioItems, setPortfolioItems] = useState<any[]>([]);
   const [portfolioUploading, setPortfolioUploading] = useState(false);
   const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', category: 'bridal', isFeatured: false, service_id: '' });
@@ -130,8 +135,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   const [afterFile, setAfterFile] = useState<File | null>(null);
   const [portfolioFilter, setPortfolioFilter] = useState('all');
   const [selectedImage, setSelectedImage] = useState<any>(null);
-  
-  // Services
+
+  // Premium Services State
   const [services, setServices] = useState<any[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
@@ -141,7 +146,6 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     duration: '60', category: 'bridal', whatsIncluded: '', addons: '', isHomeService: true, isActive: true
   });
 
-  // Availability & Others
   const [availabilityRows, setAvailabilityRows] = useState<any[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [verification, setVerification] = useState<any | null>(null);
@@ -181,6 +185,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
       if (signal.aborted) return;
       if (pRes.status === 'rejected' || (pRes.status === 'fulfilled' && pRes.value.error)) throw pRes.status === 'rejected' ? pRes.reason : pRes.value.error;
+      if (sRes.status === 'fulfilled' && sRes.value.error) throw sRes.value.error;
+      if (sellerRes.status === 'fulfilled' && sellerRes.value.error) throw sellerRes.value.error;
 
       const pData = pRes.value?.data || {};
       const sData = sRes.status === 'fulfilled' && !sRes.value?.error ? (sRes.value.data || {}) : {};
@@ -189,15 +195,18 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
       setAvatarUrl(pData.avatar_url || '');
       setImgError(false);
-      if (pData.avatar_url) setOldAvatarPath(pData.avatar_url.split('/').pop() || '');
+      if (pData.avatar_url) {
+        const urlParts = pData.avatar_url.split('/');
+        setOldAvatarPath(urlParts[urlParts.length - 1]);
+      }
 
       const normalizedValues = {
-        fullName: pData.full_name || '', shopName: sData.shop_name || sellerDataResult?.shop_name || '',
-        city: sData.business_address || pData.city || '', phone: pData.phone || '', experience: pData.experience ? Number(pData.experience) : null,
-        bio: sData.professional_bio || pData.bio || '', emergencyContact: sData.emergency_contact || '', languages: sData.languages || '',
-        specialities: sData.specialities || '', certifications: sData.certifications || '', awards: sData.awards || '',
-        website: sData.website || '', instagram: sData.instagram || '', youtube: sData.youtube || '', whatsapp: sData.whatsapp || '',
-        googleMapsUrl: sData.google_maps_url || '', isBridalSpecialist: sData.is_bridal_specialist || false, isHomeService: sData.is_home_service || false,
+        fullName: pData.full_name || '', shopName: sData.shop_name || sellerDataResult?.shop_name || '', city: sData.business_address || pData.city || '',
+        phone: pData.phone || '', experience: pData.experience ? Number(pData.experience) : null, bio: sData.professional_bio || pData.bio || '',
+        emergencyContact: sData.emergency_contact || '', languages: sData.languages || '', specialities: sData.specialities || '',
+        certifications: sData.certifications || '', awards: sData.awards || '', website: sData.website || '', instagram: sData.instagram || '',
+        youtube: sData.youtube || '', whatsapp: sData.whatsapp || '', googleMapsUrl: sData.google_maps_url || '',
+        isBridalSpecialist: sData.is_bridal_specialist || false, isHomeService: sData.is_home_service || false,
         travelRadius: sData.travel_radius ?? null, travelCharges: sData.travel_charges ?? null, startingPrice: sData.starting_price ?? null,
         gstNumber: sData.gst_number || sellerDataResult?.gst_number || '', panNumber: sData.pan_number || sellerDataResult?.pan_number || '',
         aadhaarVerification: sData.aadhaar_verification || '', bankAccount: sellerDataResult?.bank_account_number || sData.bank_account || '',
@@ -205,6 +214,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
         travelPolicy: sData.travel_policy || '', cancellationPolicy: sData.cancellation_policy || '', serviceAreas: sData.service_areas || '',
         lunchBreakStart: sData.lunch_break_start || '', lunchBreakEnd: sData.lunch_break_end || '', isVacation: sData.is_vacation || false
       };
+
       reset(normalizedValues);
 
       const [portfolioRes, servicesRes, availabilityRes, verificationRes] = await Promise.allSettled([
@@ -214,19 +224,34 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
         supabase.from('artist_verification').select('*').eq('artist_id', artistId).maybeSingle().abortSignal(signal),
       ]);
 
-      if (portfolioRes.status === 'fulfilled' && !portfolioRes.value.error) setPortfolioItems(portfolioRes.value.data || []);
-      if (servicesRes.status === 'fulfilled' && !servicesRes.value.error) setServices(servicesRes.value.data || []);
-      if (availabilityRes.status === 'fulfilled' && !availabilityRes.value.error) setAvailabilityRows((availabilityRes.value.data || []) as any[]);
-      if (verificationRes.status === 'fulfilled' && !verificationRes.value.error) {
-        setVerification(verificationRes.value.data);
+      if (signal.aborted) return;
+      const missingTables: string[] = [];
+
+      if (portfolioRes.status === 'fulfilled' && portfolioRes.value.error) {
+        if (isRecoverableSchemaError(portfolioRes.value.error)) missingTables.push('artist_portfolio'); else throw portfolioRes.value.error;
+      } else if (portfolioRes.status === 'fulfilled') setPortfolioItems(portfolioRes.value.data || []);
+
+      if (servicesRes.status === 'fulfilled' && servicesRes.value.error) {
+        if (isRecoverableSchemaError(servicesRes.value.error)) missingTables.push('artist_services'); else throw servicesRes.value.error;
+      } else if (servicesRes.status === 'fulfilled') setServices(servicesRes.value.data || []);
+
+      if (availabilityRes.status === 'fulfilled' && availabilityRes.value.error) {
+        if (isRecoverableSchemaError(availabilityRes.value.error)) missingTables.push('artist_availability'); else throw availabilityRes.value.error;
+      } else if (availabilityRes.status === 'fulfilled') setAvailabilityRows((availabilityRes.value.data || []) as any[]);
+
+      if (verificationRes.status === 'fulfilled' && verificationRes.value.error) {
+        if (isRecoverableSchemaError(verificationRes.value.error)) missingTables.push('artist_verification'); else throw verificationRes.value.error;
+      } else if (verificationRes.status === 'fulfilled') {
+        setVerification(verificationRes.value.data as any);
         setVerificationStatus((verificationRes.value.data as any)?.status || 'pending');
       }
 
       const { data: reviewsData } = await supabase.from('artist_reviews').select('*').eq('artist_id', artistId).order('created_at', { ascending: false });
       if (reviewsData) setReviews(reviewsData);
 
+      if (missingTables.length) throw new Error(`Professional profile schema is incomplete. Missing table(s): ${missingTables.join(', ')}.`);
     } catch (err: any) {
-      if (err.name !== 'AbortError') { setLoadError(err?.message || 'Failed to load profile data'); toast.error('Error loading data'); }
+      if (err.name !== 'AbortError') { setLoadError(err?.message || 'Failed to load profile data'); toast.error(err?.message); }
     } finally {
       if (!signal.aborted) setLoading(false);
     }
@@ -244,22 +269,24 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     return () => { if (abortControllerRef.current) abortControllerRef.current.abort(); supabase.removeChannel(channel); };
   }, [artistId, loadData]);
 
-  // IMAGE COMPRESSION & UPLOAD
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => { if (isDirty) { event.preventDefault(); event.returnValue = ''; } };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // IMAGE HANDLING
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
+      const reader = new FileReader(); reader.readAsDataURL(file);
       reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
+        const img = new Image(); img.src = event.target?.result as string;
         img.onload = () => {
           const MAX_WIDTH = 800;
           if (img.width <= MAX_WIDTH) { resolve(file); return; }
           const scaleSize = MAX_WIDTH / img.width;
-          const canvas = document.createElement('canvas');
-          canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const canvas = document.createElement('canvas'); canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
+          const ctx = canvas.getContext('2d'); ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
           canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Compression failed')), 'image/webp', 0.8);
         };
       };
@@ -291,6 +318,20 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     } catch (err) { toast.error('Avatar upload failed'); } finally { setUploadingAvatar(false); }
   };
 
+  const persistShopProfile = async (shopPayload: any) => {
+    const { data: existingShop, error: selectError } = await supabase.from('shops').select('id').eq('user_id', artistId).maybeSingle();
+    if (selectError && !isRecoverableSchemaError(selectError)) throw selectError;
+    if (existingShop?.id) await supabase.from('shops').update(shopPayload).eq('id', existingShop.id);
+    else await supabase.from('shops').insert(shopPayload);
+  };
+
+  const persistSellerProfile = async (sellerPayload: any) => {
+    const { data: existingSeller, error: selectError } = await supabase.from('sellers').select('id').eq('user_id', artistId).maybeSingle();
+    if (selectError && !isRecoverableSchemaError(selectError)) throw selectError;
+    if (existingSeller?.id) await supabase.from('sellers').update(sellerPayload).eq('id', existingSeller.id);
+    else await supabase.from('sellers').insert(sellerPayload);
+  };
+
   const saveProfileSection = async (data: ProfileFormValues) => {
     setSaveError(null);
     data.bio = data.bio.trim();
@@ -306,29 +347,28 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       languages: data.languages || null, specialities: data.specialities || null, certifications: data.certifications || null, awards: data.awards || null,
       website: data.website || null, instagram: normalizedInsta || null, youtube: data.youtube || null, whatsapp: data.whatsapp || null, google_maps_url: data.googleMapsUrl || null,
       is_bridal_specialist: data.isBridalSpecialist, is_home_service: data.isHomeService, travel_radius: data.travelRadius ?? null, travel_charges: data.travelCharges ?? null,
-      starting_price: data.startingPrice ?? null, travel_policy: data.travelPolicy || null, cancellation_policy: data.cancellationPolicy || null,
-      service_areas: data.serviceAreas || null, lunch_break_start: data.lunchBreakStart || null, lunch_break_end: data.lunchBreakEnd || null, is_vacation: data.isVacation,
+      starting_price: data.startingPrice ?? null, travel_policy: data.travelPolicy || null, cancellation_policy: data.cancellationPolicy || null, service_areas: data.serviceAreas || null,
+      lunch_break_start: data.lunchBreakStart || null, lunch_break_end: data.lunchBreakEnd || null, is_vacation: data.isVacation,
       gst_number: data.gstNumber || null, pan_number: data.panNumber || null, aadhaar_verification: data.aadhaarVerification || null,
       bank_account: data.bankAccount || null, ifsc_code: data.ifscCode || null, upi_id: data.upiId || null,
     };
-
-    const { data: existingShop } = await supabase.from('shops').select('id').eq('user_id', artistId).maybeSingle();
-    if (existingShop?.id) await supabase.from('shops').update(shopPayload).eq('id', existingShop.id);
-    else await supabase.from('shops').insert(shopPayload);
+    await persistShopProfile(shopPayload);
 
     const sellerPayload = {
       user_id: artistId, shop_type: 'makeup', shop_description: data.bio, gst_number: data.gstNumber || null, pan_number: data.panNumber || null,
       bank_account_number: data.bankAccount || null, bank_ifsc_code: data.ifscCode || null, upi_id: data.upiId || null,
       kyc_status: verificationStatus || 'pending', is_verified: verificationStatus === 'verified',
     };
-
-    const { data: existingSeller } = await supabase.from('sellers').select('id').eq('user_id', artistId).maybeSingle();
-    if (existingSeller?.id) await supabase.from('sellers').update(sellerPayload).eq('id', existingSeller.id);
-    else await supabase.from('sellers').insert(sellerPayload);
+    await persistSellerProfile(sellerPayload);
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
     try { await saveProfileSection(data); setSaveSuccess(true); window.setTimeout(() => setSaveSuccess(false), 1800); toast.success('Profile saved successfully'); } 
+    catch (err: any) { setSaveError(err.message); toast.error('Save failed'); }
+  };
+
+  const onSubmitVerificationTab = async (data: ProfileFormValues) => {
+    try { await saveProfileSection(data); await handleVerificationSave(); setSaveSuccess(true); window.setTimeout(() => setSaveSuccess(false), 1800); toast.success('Verification details saved'); } 
     catch (err: any) { setSaveError(err.message); toast.error('Save failed'); }
   };
 
@@ -352,9 +392,9 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       else { imageUrl = await uploadFile(portfolioFile!, 'single'); }
 
       const insertPayload = {
-        artist_id: artistId, title: portfolioForm.title || 'Work Sample', description: portfolioForm.description || '',
-        category: portfolioForm.category, is_featured: portfolioForm.isFeatured, service_id: portfolioForm.service_id || null,
-        image_url: imageUrl, before_image_url: beforeUrl, after_image_url: afterUrl, display_order: (portfolioItems[0]?.display_order || 0) + 1,
+        artist_id: artistId, title: portfolioForm.title || 'Work Sample', description: portfolioForm.description || '', category: portfolioForm.category,
+        is_featured: portfolioForm.isFeatured, service_id: portfolioForm.service_id || null, image_url: imageUrl, before_image_url: beforeUrl, after_image_url: afterUrl,
+        display_order: (portfolioItems[0]?.display_order || 0) + 1,
       };
 
       const { data, error } = await supabase.from('artist_portfolio').insert(insertPayload).select().single();
@@ -367,21 +407,25 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   };
 
   const handlePortfolioDelete = async (id: string) => {
+    try { await supabase.from('artist_portfolio').delete().eq('id', id).eq('artist_id', artistId); setPortfolioItems(prev => prev.filter(item => item.id !== id)); toast.success('Portfolio item removed'); } 
+    catch (err: any) { toast.error('Failed to remove'); }
+  };
+
+  const handlePortfolioFeature = async (item: any) => {
     try {
-      await supabase.from('artist_portfolio').delete().eq('id', id).eq('artist_id', artistId);
-      setPortfolioItems(prev => prev.filter(item => item.id !== id));
-      toast.success('Portfolio item removed');
-    } catch (err: any) { toast.error('Failed to remove'); }
+      await supabase.from('artist_portfolio').update({ is_featured: false }).eq('artist_id', artistId);
+      await supabase.from('artist_portfolio').update({ is_featured: true }).eq('id', item.id);
+      setPortfolioItems(prev => prev.map(entry => ({ ...entry, is_featured: entry.id === item.id })));
+      toast.success('Cover image updated');
+    } catch (err: any) { toast.error('Update failed'); }
   };
 
   // SERVICES LOGIC
   const handleServiceEdit = (service: any) => {
     setServiceForm({
-      title: service.title, description: service.description || '', price: service.price?.toString() || '',
-      priceType: service.price_type || 'fixed', advanceAmount: service.advance_amount?.toString() || '',
-      duration: service.duration_minutes?.toString() || '60', category: service.category || 'bridal',
-      whatsIncluded: service.whats_included || '', addons: service.addons || '',
-      isHomeService: service.is_home_service ?? true, isActive: service.is_active ?? true
+      title: service.title, description: service.description || '', price: service.price?.toString() || '', priceType: service.price_type || 'fixed',
+      advanceAmount: service.advance_amount?.toString() || '', duration: service.duration_minutes?.toString() || '60', category: service.category || 'bridal',
+      whatsIncluded: service.whats_included || '', addons: service.addons || '', isHomeService: service.is_home_service ?? true, isActive: service.is_active ?? true
     });
     setEditingServiceId(service.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -389,11 +433,9 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
   const handleServiceDuplicate = (service: any) => {
     setServiceForm({
-      title: `${service.title} (Copy)`, description: service.description || '', price: service.price?.toString() || '',
-      priceType: service.price_type || 'fixed', advanceAmount: service.advance_amount?.toString() || '',
-      duration: service.duration_minutes?.toString() || '60', category: service.category || 'bridal',
-      whatsIncluded: service.whats_included || '', addons: service.addons || '',
-      isHomeService: service.is_home_service ?? true, isActive: false 
+      title: `${service.title} (Copy)`, description: service.description || '', price: service.price?.toString() || '', priceType: service.price_type || 'fixed',
+      advanceAmount: service.advance_amount?.toString() || '', duration: service.duration_minutes?.toString() || '60', category: service.category || 'bridal',
+      whatsIncluded: service.whats_included || '', addons: service.addons || '', isHomeService: service.is_home_service ?? true, isActive: false 
     });
     setEditingServiceId(null);
     setShowAdvancedServiceOptions(true);
@@ -403,37 +445,30 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
   const handleCancelServiceEdit = () => {
     setServiceForm({ title: '', description: '', price: '', priceType: 'fixed', advanceAmount: '', duration: '60', category: 'bridal', whatsIncluded: '', addons: '', isHomeService: true, isActive: true });
-    setEditingServiceId(null);
-    setShowAdvancedServiceOptions(false);
+    setEditingServiceId(null); setShowAdvancedServiceOptions(false);
   };
 
   const toggleServiceStatus = async (serviceId: string, currentStatus: boolean) => {
-    try {
-      await supabase.from('artist_services').update({ is_active: !currentStatus }).eq('id', serviceId);
-      setServices(prev => prev.map(s => s.id === serviceId ? { ...s, is_active: !currentStatus } : s));
-      toast.success(currentStatus ? 'Service hidden' : 'Service is live!');
-    } catch (err: any) { toast.error('Failed to update'); }
+    try { await supabase.from('artist_services').update({ is_active: !currentStatus }).eq('id', serviceId); setServices(prev => prev.map(s => s.id === serviceId ? { ...s, is_active: !currentStatus } : s)); toast.success(currentStatus ? 'Service hidden' : 'Service is live!'); } 
+    catch (err: any) { toast.error('Failed to update'); }
   };
 
   const handleServiceSave = async () => {
-    if (!serviceForm.title || !serviceForm.price) return toast.error('Title and Price required');
+    if (!serviceForm.title || !serviceForm.price) return toast.error('Title and Price are required');
     try {
       setServicesLoading(true);
       const payload = {
-        artist_id: artistId, title: serviceForm.title, description: serviceForm.description, price: Number(serviceForm.price),
-        price_type: serviceForm.priceType, advance_amount: serviceForm.advanceAmount ? Number(serviceForm.advanceAmount) : null,
-        duration_minutes: Number(serviceForm.duration) || 60, category: serviceForm.category, whats_included: serviceForm.whatsIncluded,
-        addons: serviceForm.addons, is_home_service: serviceForm.isHomeService, is_active: serviceForm.isActive,
+        artist_id: artistId, title: serviceForm.title, description: serviceForm.description, price: Number(serviceForm.price), price_type: serviceForm.priceType,
+        advance_amount: serviceForm.advanceAmount ? Number(serviceForm.advanceAmount) : null, duration_minutes: Number(serviceForm.duration) || 60, category: serviceForm.category,
+        whats_included: serviceForm.whatsIncluded, addons: serviceForm.addons, is_home_service: serviceForm.isHomeService, is_active: serviceForm.isActive,
       };
 
       if (editingServiceId) {
         const { data } = await supabase.from('artist_services').update(payload).eq('id', editingServiceId).select().single();
-        setServices(prev => prev.map(s => s.id === editingServiceId ? data : s));
-        toast.success('Updated successfully!');
+        setServices(prev => prev.map(s => s.id === editingServiceId ? data : s)); toast.success('Service updated!');
       } else {
         const { data } = await supabase.from('artist_services').insert(payload).select().single();
-        setServices(prev => [data, ...prev]);
-        toast.success('New service added!');
+        setServices(prev => [data, ...prev]); toast.success('New service published!');
       }
       handleCancelServiceEdit();
     } catch (err: any) { toast.error('Failed to save'); } finally { setServicesLoading(false); }
@@ -441,11 +476,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
   const handleServiceDelete = async (serviceId: string) => {
     if (!window.confirm("Archive this service?")) return;
-    try {
-      await supabase.from('artist_services').update({ is_active: false }).eq('id', serviceId).eq('artist_id', artistId); // Soft Delete
-      setServices(prev => prev.filter(item => item.id !== serviceId));
-      toast.success('Service archived');
-    } catch (err: any) { toast.error('Failed to remove'); }
+    try { await supabase.from('artist_services').update({ is_active: false }).eq('id', serviceId).eq('artist_id', artistId); setServices(prev => prev.filter(item => item.id !== serviceId)); toast.success('Service archived'); } 
+    catch (err: any) { toast.error('Failed to remove'); }
   };
 
   // AVAILABILITY LOGIC
@@ -454,13 +486,8 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     try {
       setAvailabilityLoading(true);
       for (const row of availabilityRows) {
-        const payload = {
-          artist_id: artistId, day_of_week: row.day_of_week, start_time: row.start_time || '09:00', end_time: row.end_time || '18:00',
-          is_working_day: row.is_working_day ?? true, slot_duration_minutes: Number(row.slot_duration_minutes || 60),
-          max_bookings_per_day: Number(row.max_bookings_per_day || 1),
-        };
-        if (row.id) await supabase.from('artist_availability').update(payload).eq('id', row.id);
-        else await supabase.from('artist_availability').insert(payload);
+        const payload = { artist_id: artistId, day_of_week: row.day_of_week, start_time: row.start_time || '09:00', end_time: row.end_time || '18:00', is_working_day: row.is_working_day ?? true, slot_duration_minutes: Number(row.slot_duration_minutes || 60), max_bookings_per_day: Number(row.max_bookings_per_day || 1), };
+        if (row.id) await supabase.from('artist_availability').update(payload).eq('id', row.id); else await supabase.from('artist_availability').insert(payload);
       }
       toast.success('Availability updated'); await loadData();
     } catch (err: any) { toast.error('Update failed'); } finally { setAvailabilityLoading(false); }
@@ -471,18 +498,11 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     try {
       setVerificationLoading(true);
       const payload = { artist_id: artistId, status: verificationStatus };
-      if (verification?.id) await supabase.from('artist_verification').update(payload).eq('id', verification.id);
-      else await supabase.from('artist_verification').insert(payload);
+      if (verification?.id) await supabase.from('artist_verification').update(payload).eq('id', verification.id); else await supabase.from('artist_verification').insert(payload);
       setVerification(prev => prev ? { ...prev, status: verificationStatus } : { artist_id: artistId, status: verificationStatus });
-      toast.success('Saved');
+      toast.success('Verification status updated');
     } catch (err: any) { toast.error('Save failed'); } finally { setVerificationLoading(false); }
   };
-
-  const onSubmitVerificationTab = async (data: ProfileFormValues) => {
-    try { await saveProfileSection(data); await handleVerificationSave(); setSaveSuccess(true); window.setTimeout(() => setSaveSuccess(false), 1800); toast.success('Verification & payouts saved'); } 
-    catch (err: any) { setSaveError(err.message); toast.error('Save failed'); }
-  };
-
 
   if (loading) return <ProfileSkeleton />;
 
@@ -504,8 +524,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                 { id: 'verification', label: 'Verification' }
               ].map((tab) => (
                 <TabsTrigger 
-                  key={tab.id} 
-                  value={tab.id} 
+                  key={tab.id} value={tab.id} 
                   className="rounded-xl px-4 py-2.5 text-[11px] font-semibold tracking-wide text-slate-500 transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/60"
                 >
                   {tab.label}
@@ -562,55 +581,91 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                       <Controller name="city" control={control} render={({ field }) => <input {...field} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Phone</label>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Primary Phone</label>
                       <Controller name="phone" control={control} render={({ field }) => <input {...field} type="tel" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Bio</label>
-                      <Controller name="bio" control={control} render={({ field }) => <textarea {...field} rows={3} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none" />} />
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Emergency Contact</label>
+                      <Controller name="emergencyContact" control={control} render={({ field }) => <input {...field} type="tel" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Experience (Yrs)</label>
-                      <Controller name="experience" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(Number(e.target.value))} {...rest} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
+                      <Controller name="experience" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
                     </div>
                   </div>
                   
+                  <div className="mt-6">
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Professional Bio <span className="lowercase font-normal float-right">{bioContent.length}/500</span></label>
+                    <Controller name="bio" control={control} render={({ field }) => <textarea {...field} rows={3} maxLength={500} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none" />} />
+                  </div>
+
+                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Languages Known</label>
+                      <Controller name="languages" control={control} render={({ field }) => <input {...field} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Specialities</label>
+                      <Controller name="specialities" control={control} render={({ field }) => <input {...field} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-4 md:grid-cols-3">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Starting Price (₹)</label>
+                      <Controller name="startingPrice" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Travel Radius (KM)</label>
+                      <Controller name="travelRadius" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Charge / KM (₹)</label>
+                      <Controller name="travelCharges" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
+                    </div>
+                  </div>
+
                   <div className="mt-6 flex flex-wrap gap-4 pt-4 border-t border-slate-100">
-                    <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
-                      <Controller name="isBridalSpecialist" control={control} render={({ field: { value, onChange } }) => <input type="checkbox" checked={value} onChange={onChange} className="w-4 h-4 accent-pink-500 rounded" />} />
-                      <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-pink-500" /> Bridal Specialist</span>
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
+                      <Controller name="isBridalSpecialist" control={control} render={({ field: { value, onChange } }) => <input type="checkbox" checked={value} onChange={onChange} className="w-4 h-4 accent-fuchsia-500 rounded" />} />
+                      <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-fuchsia-500" /> Bridal Specialist</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
-                      <Controller name="isHomeService" control={control} render={({ field: { value, onChange } }) => <input type="checkbox" checked={value} onChange={onChange} className="w-4 h-4 accent-pink-500 rounded" />} />
-                      <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-pink-500" /> Home Services</span>
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
+                      <Controller name="isHomeService" control={control} render={({ field: { value, onChange } }) => <input type="checkbox" checked={value} onChange={onChange} className="w-4 h-4 accent-fuchsia-500 rounded" />} />
+                      <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-fuchsia-500" /> Home Services</span>
                     </label>
                   </div>
                 </div>
 
-                {/* Booking Policies */}
+                {/* Booking Policies within Overview */}
                 <div className="rounded-[24px] border border-slate-100 bg-white p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
                   <div className="mb-6">
                     <h3 className="text-lg font-bold text-slate-900 tracking-tight">Booking Policies</h3>
                     <p className="mt-1 text-xs text-slate-500 font-medium">Terms shown to clients before booking.</p>
                   </div>
-
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Travel Policy</label>
-                      <Controller name="travelPolicy" control={control} render={({ field }) => <textarea {...field} rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none" />} />
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Lunch Break Start</label>
+                      <Controller name="lunchBreakStart" control={control} render={({ field }) => <input {...field} type="time" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Cancellation Policy</label>
-                      <Controller name="cancellationPolicy" control={control} render={({ field }) => <textarea {...field} rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none" />} />
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Lunch Break End</label>
+                      <Controller name="lunchBreakEnd" control={control} render={({ field }) => <input {...field} type="time" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all" />} />
                     </div>
-                    <div className="md:col-span-2 pt-2">
-                      <label className={`flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border transition-colors ${isVacationActive ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
-                        <Controller name="isVacation" control={control} render={({ field: { value, onChange } }) => <input type="checkbox" checked={value} onChange={onChange} className="w-4 h-4 accent-amber-500 rounded" />} />
-                        <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                          <Plane className="w-4 h-4 text-amber-500" /> On Vacation (Pause all new bookings)
-                        </span>
-                      </label>
-                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Travel Policy</label>
+                    <Controller name="travelPolicy" control={control} render={({ field }) => <textarea {...field} rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none" />} />
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Cancellation Policy</label>
+                    <Controller name="cancellationPolicy" control={control} render={({ field }) => <textarea {...field} rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none" />} />
+                  </div>
+                  <div className="mt-4 pt-2">
+                    <label className={`flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl border transition-colors ${isVacationActive ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+                      <Controller name="isVacation" control={control} render={({ field: { value, onChange } }) => <input type="checkbox" checked={value} onChange={onChange} className="w-4 h-4 accent-amber-500 rounded" />} />
+                      <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><Plane className="w-4 h-4 text-amber-500" /> On Vacation (Pause all new bookings)</span>
+                    </label>
                   </div>
                 </div>
               </form>
@@ -680,7 +735,6 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                   </button>
                 </div>
 
-                {/* Filter & Grid */}
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-8">
                   {['all', 'bridal', 'party', 'before_after'].map((cat) => (
                     <button key={cat} onClick={() => setPortfolioFilter(cat)} className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-colors ${portfolioFilter === cat ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{cat.replace('_', ' ')}</button>
@@ -721,163 +775,185 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
               </div>
             </TabsContent>
 
-            {/* 🔥 MODERN PREMIUM SERVICES TAB */}
-            <TabsContent value="services" className="space-y-6 sm:space-y-8 focus:outline-none">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-fuchsia-500" /> Service Catalog
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-500 font-medium">Manage the packages and rates shown on your profile.</p>
-                </div>
-              </div>
-
-              {/* COMPACT ADD/EDIT FORM */}
-              <div className={`relative overflow-hidden rounded-[24px] transition-all duration-300 ${editingServiceId ? 'bg-fuchsia-50/30 border border-fuchsia-200 shadow-[0_8px_30px_rgba(217,70,239,0.08)]' : 'bg-white border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)]'}`}>
-                <div className={`px-5 py-4 border-b flex justify-between items-center ${editingServiceId ? 'border-fuchsia-100' : 'border-slate-100'}`}>
-                  <h4 className={`text-xs font-bold uppercase tracking-wider ${editingServiceId ? 'text-fuchsia-600' : 'text-slate-800'}`}>
-                    {editingServiceId ? 'Edit Service' : 'Add New Service'}
-                  </h4>
-                  <label className="flex items-center gap-2.5 cursor-pointer group">
-                    <span className="text-[11px] font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">Visible to Clients</span>
-                    <div className={`relative w-10 h-5 rounded-full transition-colors duration-300 ${serviceForm.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                      <div className={`absolute top-[2px] left-[2px] w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm ${serviceForm.isActive ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                    </div>
-                  </label>
+            {/* ----------------- SERVICES TAB ----------------- */}
+            <TabsContent value="services" className="focus:outline-none">
+              <div className="space-y-6 sm:space-y-8 rounded-[24px] border border-slate-100 bg-white p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-fuchsia-500" /> Service Catalog
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500 font-medium">Manage the packages and rates shown on your profile.</p>
+                  </div>
                 </div>
 
-                <div className="p-5 grid gap-4 md:grid-cols-12">
-                  <div className="md:col-span-8">
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Service Title</label>
-                    <input value={serviceForm.title} onChange={(e) => setServiceForm(prev => ({ ...prev, title: e.target.value }))} placeholder="e.g. Premium Bridal HD Makeup" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 focus:ring-4 focus:ring-fuchsia-500/10 outline-none transition-all placeholder:text-slate-400" />
-                  </div>
-                  <div className="md:col-span-4 flex gap-3">
-                    <div className="w-1/2">
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Pricing</label>
-                      <select value={serviceForm.priceType} onChange={(e) => setServiceForm(prev => ({ ...prev, priceType: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-xs font-medium text-slate-700 focus:bg-white focus:border-fuchsia-300 outline-none transition-all appearance-none">
-                        <option value="fixed">Fixed Rate</option>
-                        <option value="starting">Starts At</option>
-                        <option value="custom">Custom</option>
-                      </select>
-                    </div>
-                    <div className="w-1/2 relative">
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Amount</label>
-                      <span className="absolute left-3 top-[30px] text-slate-400 font-medium">₹</span>
-                      <input value={serviceForm.price} onChange={(e) => setServiceForm(prev => ({ ...prev, price: e.target.value }))} type="number" placeholder="25000" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-7 pr-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 focus:ring-4 focus:ring-fuchsia-500/10 outline-none transition-all placeholder:text-slate-400" />
-                    </div>
+                <div className={`relative overflow-hidden rounded-[24px] transition-all duration-300 ${editingServiceId ? 'bg-fuchsia-50/30 border border-fuchsia-200 shadow-[0_8px_30px_rgba(217,70,239,0.08)]' : 'bg-white border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)]'}`}>
+                  <div className={`px-5 py-4 border-b flex justify-between items-center ${editingServiceId ? 'border-fuchsia-100' : 'border-slate-100'}`}>
+                    <h4 className={`text-xs font-bold uppercase tracking-wider ${editingServiceId ? 'text-fuchsia-600' : 'text-slate-800'}`}>
+                      {editingServiceId ? 'Edit Service' : 'Add New Service'}
+                    </h4>
+                    <label className="flex items-center gap-2.5 cursor-pointer group">
+                      <span className="text-[11px] font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">Visible</span>
+                      <div className={`relative w-10 h-5 rounded-full transition-colors duration-300 ${serviceForm.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                        <div className={`absolute top-[2px] left-[2px] w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm ${serviceForm.isActive ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                      </div>
+                    </label>
                   </div>
 
-                  <div className="md:col-span-12 pt-2">
-                    <button type="button" onClick={() => setShowAdvancedServiceOptions(!showAdvancedServiceOptions)} className="flex items-center gap-1.5 text-[11px] font-bold text-fuchsia-600 hover:text-fuchsia-700 transition-colors bg-fuchsia-50/50 px-3 py-1.5 rounded-lg border border-fuchsia-100">
-                      <Sparkles className="w-3.5 h-3.5" /> {showAdvancedServiceOptions ? 'Hide Details' : 'Add Inclusions, Advance & Add-ons'} {showAdvancedServiceOptions ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> : <ChevronDown className="w-3.5 h-3.5 ml-1" />}
-                    </button>
-                  </div>
-
-                  {showAdvancedServiceOptions && (
-                    <div className="md:col-span-12 grid gap-4 md:grid-cols-12 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="md:col-span-6">
-                        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">What's Included <span className="normal-case font-normal text-slate-400">(Comma separated)</span></label>
-                        <textarea value={serviceForm.whatsIncluded} onChange={(e) => setServiceForm(prev => ({ ...prev, whatsIncluded: e.target.value }))} rows={2} placeholder="HD Makeup, Premium Hairstyling, Saree Draping..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-700 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none placeholder:text-slate-400" />
-                      </div>
-                      <div className="md:col-span-6">
-                        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Optional Add-ons <span className="normal-case font-normal text-slate-400">(e.g. Lashes +500)</span></label>
-                        <textarea value={serviceForm.addons} onChange={(e) => setServiceForm(prev => ({ ...prev, addons: e.target.value }))} rows={2} placeholder="Premium Lashes +₹500, Extra Draping +₹300" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-700 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none placeholder:text-slate-400" />
-                      </div>
-                      <div className="md:col-span-4 relative">
-                        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Advance Amount</label>
-                        <span className="absolute left-3 top-[30px] text-slate-400 font-medium text-sm">₹</span>
-                        <input value={serviceForm.advanceAmount} onChange={(e) => setServiceForm(prev => ({ ...prev, advanceAmount: e.target.value }))} type="number" placeholder="5000" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-7 pr-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all placeholder:text-slate-400" />
-                      </div>
-                      <div className="md:col-span-4">
-                        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Category</label>
-                        <select value={serviceForm.category} onChange={(e) => setServiceForm(prev => ({ ...prev, category: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-xs font-medium text-slate-700 focus:bg-white focus:border-fuchsia-300 outline-none transition-all appearance-none">
-                          <option value="bridal">Bridal Package</option>
-                          <option value="party">Party / Guest</option>
-                          <option value="pre_wedding">Pre-Wedding</option>
-                          <option value="trial">Makeup Trial</option>
+                  <div className="p-5 grid gap-4 md:grid-cols-12">
+                    <div className="md:col-span-8">
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Service Title</label>
+                      <input value={serviceForm.title} onChange={(e) => setServiceForm(prev => ({ ...prev, title: e.target.value }))} placeholder="e.g. Bridal HD Makeup" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all placeholder:text-slate-400" />
+                    </div>
+                    
+                    <div className="md:col-span-4 flex gap-3">
+                      <div className="w-1/2">
+                        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Pricing</label>
+                        <select value={serviceForm.priceType} onChange={(e) => setServiceForm(prev => ({ ...prev, priceType: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-xs font-medium text-slate-700 focus:bg-white focus:border-fuchsia-300 outline-none transition-all appearance-none">
+                          <option value="fixed">Fixed</option>
+                          <option value="starting">Starts At</option>
+                          <option value="custom">Custom</option>
                         </select>
                       </div>
-                      <div className="md:col-span-4 relative">
-                        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Duration</label>
-                        <input value={serviceForm.duration} onChange={(e) => setServiceForm(prev => ({ ...prev, duration: e.target.value }))} type="number" placeholder="120" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 pr-12 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all placeholder:text-slate-400" />
-                        <span className="absolute right-4 top-[32px] text-[10px] font-bold text-slate-400">MIN</span>
+                      <div className="w-1/2 relative">
+                        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Amount</label>
+                        <span className="absolute left-3 top-[30px] text-slate-400 font-medium">₹</span>
+                        <input value={serviceForm.price} onChange={(e) => setServiceForm(prev => ({ ...prev, price: e.target.value }))} type="number" placeholder="25000" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-7 pr-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all placeholder:text-slate-400" />
                       </div>
                     </div>
-                  )}
 
-                  <div className="md:col-span-12 flex items-center justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
-                    {editingServiceId && (
-                      <button type="button" onClick={handleCancelServiceEdit} className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">Cancel</button>
-                    )}
-                    <button type="button" onClick={() => void handleServiceSave()} disabled={servicesLoading} className={`flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold text-white shadow-lg transition-all disabled:opacity-50 ${editingServiceId ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20' : 'bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:shadow-pink-500/25 hover:scale-[1.02]'}`}>
-                      {servicesLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : (editingServiceId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />)} 
-                      {editingServiceId ? 'Save Changes' : 'Publish Service'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+                    <div className="md:col-span-12 pt-2">
+                      <button type="button" onClick={() => setShowAdvancedServiceOptions(!showAdvancedServiceOptions)} className="flex items-center gap-1.5 text-[11px] font-bold text-fuchsia-600 hover:text-fuchsia-700 transition-colors bg-fuchsia-50/50 px-3 py-1.5 rounded-lg border border-fuchsia-100">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {showAdvancedServiceOptions ? 'Hide Details' : 'Add Inclusions, Advance & Add-ons'}
+                        {showAdvancedServiceOptions ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> : <ChevronDown className="w-3.5 h-3.5 ml-1" />}
+                      </button>
+                    </div>
 
-              {/* CARDS VIEW */}
-              <div className="mt-8 pt-4">
-                <div className="flex items-center justify-between mb-5 px-1">
-                  <h4 className="text-base font-bold text-slate-900 tracking-tight">Active Catalog</h4>
-                  <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold">{services.length} items</span>
-                </div>
-                
-                {services.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200">
-                    <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4"><Sparkles className="w-6 h-6 text-slate-300" /></div>
-                    <p className="text-sm font-semibold text-slate-700">No services added yet</p>
-                    <p className="text-xs text-slate-500 mt-1 max-w-[250px] text-center leading-relaxed">Add your first package above to allow clients to discover and book you.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-                    {services.map(service => (
-                      <div key={service.id} className={`group flex flex-col rounded-[24px] bg-white border shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 overflow-hidden ${!service.is_active ? 'opacity-60 border-slate-200' : 'border-slate-100 hover:border-pink-200'} ${editingServiceId === service.id ? 'ring-2 ring-fuchsia-400 ring-offset-2' : ''}`}>
-                        <div className="p-5 sm:p-6 flex-1 relative">
-                          <div className="flex items-start justify-between gap-4 mb-3">
-                            <span className="inline-flex px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">{service.category?.replace('_', ' ')}</span>
-                            <button onClick={() => toggleServiceStatus(service.id, service.is_active)} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors ${service.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${service.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>{service.is_active ? 'Live' : 'Hidden'}
-                            </button>
-                          </div>
-                          <h4 className="text-lg font-bold text-slate-900 tracking-tight leading-tight mb-2 pr-4">{service.title}</h4>
-                          <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mb-4"><Clock className="w-3.5 h-3.5" /> {service.duration_minutes || 60} minutes</p>
-
-                          <div className="flex items-baseline gap-1.5 mb-5">
-                            {service.price_type === 'starting' && <span className="text-xs font-semibold text-slate-400 mb-1">From</span>}
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">₹{service.price}</h3>
-                            {service.price_type === 'custom' && <span className="text-xs font-semibold text-slate-400 mb-1">(Custom)</span>}
-                          </div>
-
-                          {service.whats_included && (
-                            <div className="mb-4">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Package Includes</p>
-                              <div className="flex flex-col gap-1.5">
-                                {service.whats_included.split(',').slice(0, 3).map((item: string, i: number) => (
-                                  <div key={i} className="flex items-start gap-2"><div className="mt-0.5 w-3.5 h-3.5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Check className="w-2.5 h-2.5 text-emerald-600" /></div><span className="text-xs font-medium text-slate-700 leading-tight">{item.trim()}</span></div>
-                                ))}
-                                {service.whats_included.split(',').length > 3 && <span className="text-[10px] font-semibold text-slate-400 ml-5">+ {service.whats_included.split(',').length - 3} more</span>}
-                              </div>
-                            </div>
-                          )}
-
-                          {service.advance_amount && (
-                            <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-amber-100/50">
-                              <DollarSign className="w-3.5 h-3.5" /> Advance: ₹{service.advance_amount}
-                            </div>
-                          )}
+                    {showAdvancedServiceOptions && (
+                      <div className="md:col-span-12 grid gap-4 md:grid-cols-12 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="md:col-span-6">
+                          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">What's Included <span className="normal-case font-normal text-slate-400">(Comma separated)</span></label>
+                          <textarea value={serviceForm.whatsIncluded} onChange={(e) => setServiceForm(prev => ({ ...prev, whatsIncluded: e.target.value }))} rows={2} placeholder="HD Makeup, Premium Hairstyling, Saree Draping..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-700 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none placeholder:text-slate-400" />
                         </div>
-                        
-                        <div className="grid grid-cols-3 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
-                          <button type="button" onClick={() => handleServiceEdit(service)} className="flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 transition-colors"><PencilLine className="w-3.5 h-3.5" /> Edit</button>
-                          <button type="button" onClick={() => handleServiceDuplicate(service)} className="flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 transition-colors"><Copy className="w-3.5 h-3.5" /> Clone</button>
-                          <button type="button" onClick={() => handleServiceDelete(service.id)} className="flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-rose-500 hover:text-rose-600 hover:bg-rose-50/50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <div className="md:col-span-6">
+                          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Optional Add-ons <span className="normal-case font-normal text-slate-400">(e.g. Lashes +500)</span></label>
+                          <textarea value={serviceForm.addons} onChange={(e) => setServiceForm(prev => ({ ...prev, addons: e.target.value }))} rows={2} placeholder="Premium Lashes +₹500, Extra Draping +₹300" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-700 focus:bg-white focus:border-fuchsia-300 outline-none transition-all resize-none placeholder:text-slate-400" />
+                        </div>
+                        <div className="md:col-span-4 relative">
+                          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Advance Amount</label>
+                          <span className="absolute left-3 top-[30px] text-slate-400 font-medium text-sm">₹</span>
+                          <input value={serviceForm.advanceAmount} onChange={(e) => setServiceForm(prev => ({ ...prev, advanceAmount: e.target.value }))} type="number" placeholder="5000" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-7 pr-3 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all placeholder:text-slate-400" />
+                        </div>
+                        <div className="md:col-span-4">
+                          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Category</label>
+                          <select value={serviceForm.category} onChange={(e) => setServiceForm(prev => ({ ...prev, category: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-xs font-medium text-slate-700 focus:bg-white focus:border-fuchsia-300 outline-none transition-all appearance-none">
+                            <option value="bridal">Bridal Package</option>
+                            <option value="party">Party / Guest</option>
+                            <option value="pre_wedding">Pre-Wedding</option>
+                            <option value="trial">Makeup Trial</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-4 relative">
+                          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Duration</label>
+                          <input value={serviceForm.duration} onChange={(e) => setServiceForm(prev => ({ ...prev, duration: e.target.value }))} type="number" placeholder="120" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 pr-12 text-sm font-medium text-slate-900 focus:bg-white focus:border-fuchsia-300 outline-none transition-all placeholder:text-slate-400" />
+                          <span className="absolute right-4 top-[32px] text-[10px] font-bold text-slate-400">MIN</span>
                         </div>
                       </div>
-                    ))}
+                    )}
+
+                    <div className="md:col-span-12 flex items-center justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+                      {editingServiceId && (
+                        <button type="button" onClick={handleCancelServiceEdit} className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+                          Cancel
+                        </button>
+                      )}
+                      <button type="button" onClick={() => void handleServiceSave()} disabled={servicesLoading} className={`flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold text-white shadow-lg transition-all disabled:opacity-50 ${editingServiceId ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/20' : 'bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:shadow-pink-500/25 hover:scale-[1.02]'}`}>
+                        {servicesLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : (editingServiceId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />)} 
+                        {editingServiceId ? 'Save Changes' : 'Publish Service'}
+                      </button>
+                    </div>
                   </div>
-                )}
+                </div>
+
+                <div className="mt-8 pt-4">
+                  <div className="flex items-center justify-between mb-5 px-1">
+                    <h4 className="text-base font-bold text-slate-900 tracking-tight">Active Catalog</h4>
+                    <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold">{services.length} items</span>
+                  </div>
+                  
+                  {services.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 bg-slate-50/50 rounded-[32px] border border-dashed border-slate-200">
+                      <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4"><Sparkles className="w-6 h-6 text-slate-300" /></div>
+                      <p className="text-sm font-semibold text-slate-700">No services added yet</p>
+                      <p className="text-xs text-slate-500 mt-1 max-w-[250px] text-center leading-relaxed">Add your first package above to allow clients to discover and book you.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+                      {services.map(service => (
+                        <div key={service.id} className={`group flex flex-col rounded-[24px] bg-white border shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 overflow-hidden ${!service.is_active ? 'opacity-60 border-slate-200' : 'border-slate-100 hover:border-pink-200'} ${editingServiceId === service.id ? 'ring-2 ring-fuchsia-400 ring-offset-2' : ''}`}>
+                          <div className="p-5 sm:p-6 flex-1 relative">
+                            <div className="flex items-start justify-between gap-4 mb-3">
+                              <span className="inline-flex px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
+                                {service.category?.replace('_', ' ')}
+                              </span>
+                              <button onClick={() => toggleServiceStatus(service.id, service.is_active)} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors ${service.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${service.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                                {service.is_active ? 'Live' : 'Hidden'}
+                              </button>
+                            </div>
+
+                            <h4 className="text-lg font-bold text-slate-900 tracking-tight leading-tight mb-2 pr-4">{service.title}</h4>
+                            <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mb-4">
+                              <Clock className="w-3.5 h-3.5" /> {service.duration_minutes || 60} minutes
+                            </p>
+
+                            <div className="flex items-baseline gap-1.5 mb-5">
+                              {service.price_type === 'starting' && <span className="text-xs font-semibold text-slate-400 mb-1">From</span>}
+                              <h3 className="text-2xl font-black text-slate-900 tracking-tight">₹{service.price}</h3>
+                              {service.price_type === 'custom' && <span className="text-xs font-semibold text-slate-400 mb-1">(Custom)</span>}
+                            </div>
+
+                            {service.whats_included && (
+                              <div className="mb-4">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Package Includes</p>
+                                <div className="flex flex-col gap-1.5">
+                                  {service.whats_included.split(',').slice(0, 3).map((item: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <div className="mt-0.5 w-3.5 h-3.5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Check className="w-2.5 h-2.5 text-emerald-600" /></div>
+                                      <span className="text-xs font-medium text-slate-700 leading-tight">{item.trim()}</span>
+                                    </div>
+                                  ))}
+                                  {service.whats_included.split(',').length > 3 && (
+                                    <span className="text-[10px] font-semibold text-slate-400 ml-5">+ {service.whats_included.split(',').length - 3} more</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {service.advance_amount && (
+                              <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-amber-100/50">
+                                <DollarSign className="w-3.5 h-3.5" /> Advance: ₹{service.advance_amount}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="grid grid-cols-3 border-t border-slate-100 bg-slate-50/50 divide-x divide-slate-100">
+                            <button type="button" onClick={() => handleServiceEdit(service)} className="flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 transition-colors">
+                              <PencilLine className="w-3.5 h-3.5" /> Edit
+                            </button>
+                            <button type="button" onClick={() => handleServiceDuplicate(service)} className="flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 transition-colors">
+                              <Copy className="w-3.5 h-3.5" /> Clone
+                            </button>
+                            <button type="button" onClick={() => handleServiceDelete(service.id)} className="flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-rose-500 hover:text-rose-600 hover:bg-rose-50/50 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
@@ -1032,6 +1108,25 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
           </div>
         </Tabs>
       </div>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4" onClick={() => setSelectedImage(null)}>
+          <button className="absolute top-6 right-6 z-[101] rounded-full bg-white/10 p-2.5 text-white hover:bg-white/20 transition" onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}>
+            <X className="h-6 w-6" />
+          </button>
+          <div className="relative max-w-5xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {selectedImage.category === 'before_after' && selectedImage.before_image_url && selectedImage.after_image_url ? (
+              <div className="flex h-full w-full gap-1 sm:gap-2">
+                <div className="relative w-1/2 h-full"><img src={selectedImage.before_image_url} alt="Before" className="h-full w-full object-contain rounded-xl sm:rounded-2xl bg-black/50" /><span className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest shadow-lg">Before</span></div>
+                <div className="relative w-1/2 h-full"><img src={selectedImage.after_image_url} alt="After" className="h-full w-full object-contain rounded-xl sm:rounded-2xl bg-black/50" /><span className="absolute bottom-4 right-4 bg-fuchsia-500/90 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest shadow-lg">After</span></div>
+              </div>
+            ) : (
+              <img src={selectedImage.image_url || selectedImage.after_image_url} alt={selectedImage.title} className="max-h-full max-w-full object-contain rounded-2xl mx-auto bg-black/50" />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
