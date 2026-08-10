@@ -209,6 +209,18 @@ export const useGlobalStore = create<GlobalState>()(
             seller_status: profileData.seller_status ?? (profileData.user_type === 'pro' ? 'pending' : null)
           };
 
+          // Ensure a row exists in the 'users' table first (required by artist_services FK)
+          const { error: usersError } = await supabase
+            .from('users')
+            .upsert({
+              id: authUser.id,
+              email: authUser.email,
+              password_hash: 'auth_managed', // Placeholder since auth is handled by Supabase Auth
+              is_active: true
+            });
+
+          if (usersError) throw usersError;
+
           const { data: savedProfile, error: profileError } = await supabase
             .from('profiles')
             .upsert(profileUpdate)
