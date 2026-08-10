@@ -20,14 +20,15 @@ import {
   CheckCircle,
   XCircle,
   MapPin,
-  ArrowUpRight,
-  Sparkles,
+  Zap,
+  Crown,
   TrendingUp,
   RefreshCw,
+  Sparkles,
+  ArrowUpRight,
 } from 'lucide-react';
 
 import { toast } from 'sonner';
-
 import ProfessionalBottomNav from './ProfessionalBottomNav';
 import { logger } from '../lib/logger';
 
@@ -59,10 +60,6 @@ import {
   OfflineBanner,
 } from './common/OfflineSupport';
 
-/* -------------------------------------------------------------------------- */
-/* Types                                                                      */
-/* -------------------------------------------------------------------------- */
-
 interface BookingWithCustomer extends BookingWithDetails {
   customer?: {
     full_name: string | null;
@@ -75,10 +72,6 @@ interface ReviewData {
   avgRating: number;
   count: number;
 }
-
-/* -------------------------------------------------------------------------- */
-/* Lazy Components                                                            */
-/* -------------------------------------------------------------------------- */
 
 const ProfessionalBookings = lazy(
   () => import('./professional/ProfessionalBookings')
@@ -101,22 +94,22 @@ const ProfessionalProfile = lazy(
 );
 
 /* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
+/* UI HELPERS                                                                  */
 /* -------------------------------------------------------------------------- */
 
 const getStatusColor = (status: BookingStatus): string => {
   switch (status) {
     case 'pending':
-      return 'border-amber-200/80 bg-amber-50 text-amber-700';
+      return 'border-amber-200 bg-amber-50 text-amber-700';
 
     case 'confirmed':
-      return 'border-blue-200/80 bg-blue-50 text-blue-700';
+      return 'border-blue-200 bg-blue-50 text-blue-700';
 
     case 'completed':
-      return 'border-emerald-200/80 bg-emerald-50 text-emerald-700';
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 
     case 'cancelled':
-      return 'border-rose-200/80 bg-rose-50 text-rose-600';
+      return 'border-rose-200 bg-rose-50 text-rose-600';
 
     default:
       return 'border-slate-200 bg-slate-100 text-slate-600';
@@ -126,13 +119,11 @@ const getStatusColor = (status: BookingStatus): string => {
 const formatIndustry = (industry?: string | null): string => {
   if (!industry) return 'PROFESSIONAL';
 
-  return industry
-    .replace(/_/g, ' ')
-    .toUpperCase();
+  return industry.replace(/_/g, ' ').toUpperCase();
 };
 
 /* -------------------------------------------------------------------------- */
-/* Reusable UI                                                                */
+/* PREMIUM UI COMPONENTS                                                       */
 /* -------------------------------------------------------------------------- */
 
 function GlassCard({
@@ -145,11 +136,12 @@ function GlassCard({
   return (
     <div
       className={`
-        rounded-[28px]
+        relative overflow-hidden
+        rounded-[26px]
         border border-white/80
         bg-white/65
         backdrop-blur-2xl
-        shadow-[0_18px_60px_rgba(88,28,135,0.08)]
+        shadow-[0_16px_50px_rgba(76,29,149,0.07)]
         ${className}
       `}
     >
@@ -164,22 +156,26 @@ function StatCard({
   value,
   subtext,
   iconClass,
-  accent,
+  glowClass,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   subtext?: string;
   iconClass: string;
-  accent: string;
+  glowClass: string;
 }) {
   return (
-    <GlassCard className="group relative overflow-hidden p-4 sm:p-5">
+    <GlassCard className="group p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_55px_rgba(76,29,149,0.11)]">
       <div
         className={`
-          pointer-events-none absolute -right-8 -top-8
-          h-24 w-24 rounded-full blur-3xl opacity-30
-          ${accent}
+          pointer-events-none absolute
+          -right-8 -top-8
+          h-24 w-24
+          rounded-full
+          blur-3xl
+          opacity-30
+          ${glowClass}
         `}
       />
 
@@ -187,8 +183,10 @@ function StatCard({
         <div className="mb-4 flex items-center justify-between">
           <div
             className={`
-              flex h-10 w-10 items-center justify-center
-              rounded-2xl border border-white/80
+              flex h-10 w-10
+              items-center justify-center
+              rounded-2xl
+              border border-white
               shadow-sm
               ${iconClass}
             `}
@@ -198,25 +196,28 @@ function StatCard({
 
           <ArrowUpRight
             className="
-              h-4 w-4 text-slate-300
-              transition-transform duration-300
+              h-4 w-4
+              text-slate-300
+              transition-all
+              duration-300
               group-hover:-translate-y-0.5
               group-hover:translate-x-0.5
+              group-hover:text-purple-400
             "
           />
         </div>
 
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
           {label}
         </p>
 
-        <div className="mt-1 flex items-end gap-2">
-          <h3 className="text-2xl font-black tracking-tight text-slate-900">
+        <div className="mt-1 flex items-end gap-1.5">
+          <h3 className="text-[22px] font-black tracking-tight text-slate-900">
             {value}
           </h3>
 
           {subtext && (
-            <span className="mb-1 text-[10px] font-bold text-slate-400">
+            <span className="mb-1 text-[9px] font-bold text-slate-400">
               {subtext}
             </span>
           )}
@@ -226,46 +227,8 @@ function StatCard({
   );
 }
 
-function StatusBadge({
-  status,
-}: {
-  status: BookingStatus;
-}) {
-  return (
-    <span
-      className={`
-        inline-flex items-center gap-1.5
-        rounded-full border
-        px-2.5 py-1
-        text-[9px]
-        font-black
-        uppercase
-        tracking-[0.12em]
-        ${getStatusColor(status)}
-      `}
-    >
-      <span
-        className={`
-          h-1.5 w-1.5 rounded-full
-          ${
-            status === 'confirmed'
-              ? 'bg-blue-500'
-              : status === 'completed'
-              ? 'bg-emerald-500'
-              : status === 'pending'
-              ? 'animate-pulse bg-amber-500'
-              : 'bg-rose-500'
-          }
-        `}
-      />
-
-      {status}
-    </span>
-  );
-}
-
 /* -------------------------------------------------------------------------- */
-/* Main Dashboard                                                             */
+/* MAIN DASHBOARD                                                              */
 /* -------------------------------------------------------------------------- */
 
 export default function ProfessionalDashboard({
@@ -300,10 +263,6 @@ export default function ProfessionalDashboard({
   const profile = globalStore.user;
   const artistId = profile?.id;
 
-  /* ------------------------------------------------------------------------ */
-  /* Professional Access                                                      */
-  /* ------------------------------------------------------------------------ */
-
   const isProfessionalUser = useMemo(() => {
     return (
       isProfessionalRole(profile?.role) ||
@@ -317,7 +276,7 @@ export default function ProfessionalDashboard({
   ]);
 
   /* ------------------------------------------------------------------------ */
-  /* Safe Extractors                                                          */
+  /* SAFE EXTRACTORS                                                           */
   /* ------------------------------------------------------------------------ */
 
   const getSafeDate = useCallback(
@@ -346,7 +305,7 @@ export default function ProfessionalDashboard({
   );
 
   /* ------------------------------------------------------------------------ */
-  /* Fetch Bookings                                                           */
+  /* SUPABASE                                                                  */
   /* ------------------------------------------------------------------------ */
 
   const fetchBookings = useCallback(
@@ -373,18 +332,12 @@ export default function ProfessionalDashboard({
           ascending: false,
         });
 
-      if (bookingsError) {
-        throw bookingsError;
-      }
+      if (bookingsError) throw bookingsError;
 
       return (bookingsData || []) as BookingWithCustomer[];
     },
     []
   );
-
-  /* ------------------------------------------------------------------------ */
-  /* Fetch Reviews                                                            */
-  /* ------------------------------------------------------------------------ */
 
   const fetchReviews = useCallback(
     async (
@@ -398,16 +351,14 @@ export default function ProfessionalDashboard({
         .select('rating')
         .eq('artist_id', targetArtistId);
 
-      if (reviewsError) {
-        throw reviewsError;
-      }
+      if (reviewsError) throw reviewsError;
 
       const count = reviews?.length || 0;
 
       const avgRating =
         count > 0
           ? reviews.reduce(
-              (sum, review) => sum + review.rating,
+              (sum, r) => sum + r.rating,
               0
             ) / count
           : 0;
@@ -419,10 +370,6 @@ export default function ProfessionalDashboard({
     },
     []
   );
-
-  /* ------------------------------------------------------------------------ */
-  /* Load Dashboard                                                           */
-  /* ------------------------------------------------------------------------ */
 
   const loadDashboardData = useCallback(
     async (targetArtistId: string) => {
@@ -439,10 +386,6 @@ export default function ProfessionalDashboard({
     },
     [fetchBookings, fetchReviews]
   );
-
-  /* ------------------------------------------------------------------------ */
-  /* Retry                                                                    */
-  /* ------------------------------------------------------------------------ */
 
   const handleRetry = useCallback(
     async () => {
@@ -473,7 +416,7 @@ export default function ProfessionalDashboard({
   );
 
   /* ------------------------------------------------------------------------ */
-  /* Initial Load                                                             */
+  /* INITIAL LOAD                                                              */
   /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
@@ -519,7 +462,7 @@ export default function ProfessionalDashboard({
   ]);
 
   /* ------------------------------------------------------------------------ */
-  /* Stats                                                                     */
+  /* STATS                                                                     */
   /* ------------------------------------------------------------------------ */
 
   const stats = useMemo(() => {
@@ -530,23 +473,18 @@ export default function ProfessionalDashboard({
     });
   }, [allBookings, reviewData]);
 
-  /* ------------------------------------------------------------------------ */
-  /* Displayed Bookings                                                       */
-  /* ------------------------------------------------------------------------ */
-
   const displayedBookings = useMemo(() => {
     if (bookingFilter === 'all') {
       return allBookings;
     }
 
     return allBookings.filter(
-      (booking) =>
-        booking.status === bookingFilter
+      (b) => b.status === bookingFilter
     );
   }, [allBookings, bookingFilter]);
 
   /* ------------------------------------------------------------------------ */
-  /* Booking Status Update                                                     */
+  /* BOOKING STATUS                                                            */
   /* ------------------------------------------------------------------------ */
 
   const updateBookingStatus = async (
@@ -570,9 +508,7 @@ export default function ProfessionalDashboard({
         })
         .eq('id', bookingId);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       const refreshedBookings =
         await fetchBookings(artistId);
@@ -591,7 +527,7 @@ export default function ProfessionalDashboard({
   };
 
   /* ------------------------------------------------------------------------ */
-  /* Realtime                                                                  */
+  /* REALTIME                                                                  */
   /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
@@ -611,10 +547,12 @@ export default function ProfessionalDashboard({
           try {
             await loadDashboardData(artistId);
           } catch (err) {
-            logger.error(
-              'Realtime refresh failed',
-              err
-            );
+            const message =
+              err instanceof Error
+                ? err.message
+                : 'Realtime refresh failed';
+
+            toast.error(message);
           }
         }
       )
@@ -626,15 +564,15 @@ export default function ProfessionalDashboard({
   }, [artistId, loadDashboardData]);
 
   /* ------------------------------------------------------------------------ */
-  /* Loading                                                                   */
+  /* LOADING                                                                    */
   /* ------------------------------------------------------------------------ */
 
   if (initialLoading) {
     return (
-      <div className="relative min-h-screen overflow-hidden bg-[#faf7ff] pb-32">
-        <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-fuchsia-300/20 blur-[100px]" />
+      <div className="relative min-h-screen overflow-hidden bg-[#f8f6ff] pb-32">
+        <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-purple-300/20 blur-[100px]" />
 
-        <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-purple-300/20 blur-[100px]" />
+        <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-fuchsia-300/20 blur-[100px]" />
 
         <OfflineBanner
           isOnline={isOnline}
@@ -649,12 +587,12 @@ export default function ProfessionalDashboard({
   }
 
   /* ------------------------------------------------------------------------ */
-  /* Access Restricted                                                        */
+  /* ACCESS RESTRICTED                                                         */
   /* ------------------------------------------------------------------------ */
 
   if (!isProfessionalUser || !profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#faf7ff] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-[#f8f6ff] px-4">
         <GlassCard className="w-full max-w-sm p-8 text-center">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-purple-100 to-fuchsia-100">
             <AlertCircle className="h-8 w-8 text-purple-500" />
@@ -689,156 +627,136 @@ export default function ProfessionalDashboard({
   }
 
   /* ------------------------------------------------------------------------ */
-  /* Dashboard                                                                 */
+  /* DASHBOARD                                                                 */
   /* ------------------------------------------------------------------------ */
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#faf7ff] pb-32">
+    <div className="relative min-h-screen overflow-hidden bg-[#f8f6ff] pb-32">
 
-      {/* Ambient Background */}
+      {/* Futuristic ambient background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -right-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-purple-300/20 blur-[110px]" />
+        <div className="absolute -right-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-purple-300/20 blur-[120px]" />
 
-        <div className="absolute -left-40 bottom-0 h-[28rem] w-[28rem] rounded-full bg-fuchsia-300/15 blur-[110px]" />
+        <div className="absolute -left-40 bottom-0 h-[28rem] w-[28rem] rounded-full bg-fuchsia-300/15 blur-[120px]" />
 
-        <div className="absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-pink-200/10 blur-[100px]" />
+        <div className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full bg-pink-200/10 blur-[110px]" />
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Professional Header                                                */}
-      {/* IMPORTANT: No Self/Pro navigation here.                           */}
-      {/* Main Header.tsx handles Customer ↔ Studio navigation.             */}
+      {/* HEADER                                                             */}
       {/* ------------------------------------------------------------------ */}
 
-      <header className="sticky top-0 z-40 border-b border-white/70 bg-white/60 backdrop-blur-2xl">
+      <header className="sticky top-0 z-30 border-b border-white/80 bg-white/70 shadow-[0_8px_30px_rgba(76,29,149,0.05)] backdrop-blur-2xl">
         <div className="mx-auto max-w-4xl px-4 py-3">
           <div className="flex items-center justify-between">
 
-            {/* Logo / Title */}
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="
-                relative flex h-11 w-11 flex-shrink-0
-                items-center justify-center
-                overflow-hidden rounded-2xl
-                bg-gradient-to-br
-                from-purple-600
-                via-fuchsia-500
-                to-pink-500
-                shadow-[0_8px_25px_rgba(168,85,247,0.3)]
-              ">
-                <Sparkles className="h-5 w-5 text-white" />
-
-                <div className="
-                  absolute -right-2 -top-2
-                  h-6 w-6 rounded-full
-                  bg-white/20 blur-md
-                " />
-              </div>
-
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h1 className="
-                    truncate text-lg font-black
-                    tracking-tight text-slate-900
-                  ">
-                    MITHAS
-                    <span className="
-                      bg-gradient-to-r
-                      from-purple-600
-                      via-fuchsia-500
-                      to-pink-500
-                      bg-clip-text
-                      text-transparent
-                    ">
-                      {' '}
-                      GLOW
-                    </span>
-                  </h1>
-
-                  <span className="
-                    rounded-full
-                    border border-purple-200
-                    bg-purple-50
-                    px-1.5 py-0.5
-                    text-[7px]
-                    font-black
-                    uppercase
-                    tracking-widest
-                    text-purple-600
-                  ">
-                    PRO
-                  </span>
+            {/* Brand */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 via-fuchsia-500 to-pink-500 shadow-[0_6px_18px_rgba(168,85,247,0.25)]">
+                  <Crown
+                    className="h-4 w-4 text-white"
+                    strokeWidth={2.5}
+                  />
                 </div>
 
-                <p className="
-                  mt-0.5
+                <h1 className="text-[17px] font-black italic tracking-[-0.04em] text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500">
+                  MITHAS GLOW
+                </h1>
+
+                <span className="rounded-full border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[7px] font-black tracking-widest text-purple-600">
+                  PRO
+                </span>
+              </div>
+
+              <p className="mt-1 pl-0.5 text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">
+                Professional Studio
+              </p>
+            </div>
+
+            {/* Existing mode + profile buttons */}
+            <div className="flex items-center gap-2">
+
+              <button
+                onClick={() => {
+                  globalStore.toggleAppViewMode();
+
+                  const newMode =
+                    useGlobalStore.getState()
+                      .appViewMode;
+
+                  toast.success(
+                    newMode === 'self'
+                      ? 'Switched to Self Mode'
+                      : 'Switched to Pro Mode'
+                  );
+                }}
+                className={`
+                  flex items-center gap-1.5
+                  rounded-xl
+                  border
+                  px-3 py-2
                   text-[9px]
                   font-black
                   uppercase
-                  tracking-[0.18em]
-                  text-slate-400
-                ">
-                  Professional Studio
-                </p>
-              </div>
-            </div>
+                  tracking-wider
+                  transition-all
+                  active:scale-95
+                  ${
+                    globalStore.appViewMode === 'pro'
+                      ? 'border-transparent bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white shadow-[0_7px_20px_rgba(168,85,247,0.25)]'
+                      : 'border-purple-100 bg-white/90 text-slate-600 shadow-sm'
+                  }
+                `}
+              >
+                <Zap className="h-3 w-3" />
 
-            {/* Profile Only */}
-            <div className="flex items-center gap-2">
+                {globalStore.appViewMode === 'self'
+                  ? 'SELF'
+                  : 'PRO'}
+              </button>
+
               <button
                 onClick={onNavigateToProfile}
-                aria-label="Open professional profile"
                 className="
-                  relative h-10 w-10
+                  relative
+                  h-10 w-10
                   overflow-hidden
                   rounded-2xl
-                  border border-white
+                  border-2 border-white
                   bg-white
-                  shadow-sm
-                  transition-transform
+                  shadow-[0_6px_20px_rgba(76,29,149,0.10)]
+                  transition-all
                   hover:scale-105
                   active:scale-95
                 "
               >
-                {profile.avatar_url ? (
+                {profile?.avatar_url ? (
                   <img
                     src={profile.avatar_url}
-                    alt="Profile"
+                    alt=""
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="
-                    flex h-full w-full
-                    items-center justify-center
-                    bg-gradient-to-br
-                    from-purple-100
-                    to-fuchsia-100
-                  ">
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-100 to-fuchsia-100">
                     <Users className="h-4 w-4 text-purple-500" />
                   </div>
                 )}
 
-                <span className="
-                  absolute bottom-0.5 right-0.5
-                  h-2.5 w-2.5
-                  rounded-full
-                  border-2 border-white
-                  bg-emerald-500
-                " />
+                <span className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
               </button>
             </div>
-
           </div>
         </div>
       </header>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Main                                                                */}
+      {/* MAIN                                                                */}
       {/* ------------------------------------------------------------------ */}
 
       <main className="mx-auto max-w-4xl px-4 pt-5">
 
-        {/* Dashboard */}
+        {/* DASHBOARD TAB */}
         {activeTab === 'dashboard' && (
           <ErrorBoundaryWrapper
             moduleName="DashboardOverview"
@@ -848,26 +766,12 @@ export default function ProfessionalDashboard({
               setActiveTab('dashboard')
             }
           >
-            <div className="
-              animate-in
-              fade-in
-              slide-in-from-bottom-3
-              duration-500
-            ">
+            <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
 
               {/* Error */}
               {loadError && (
-                <div className="
-                  mb-4 flex items-center gap-3
-                  rounded-2xl
-                  border border-amber-200
-                  bg-amber-50
-                  p-3
-                  text-xs
-                  font-bold
-                  text-amber-700
-                ">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <div className="mb-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-3 text-xs font-bold text-amber-700">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
 
                   <span className="flex-1">
                     {loadError}
@@ -875,109 +779,63 @@ export default function ProfessionalDashboard({
 
                   <button
                     onClick={handleRetry}
-                    className="
-                      rounded-xl
-                      bg-white
-                      px-3 py-1.5
-                      text-[10px]
-                      font-black
-                      shadow-sm
-                    "
+                    className="rounded-xl bg-white px-3 py-1.5 text-[10px] font-black shadow-sm"
                   >
                     Retry
                   </button>
                 </div>
               )}
 
-              {/* Hero */}
-              <GlassCard className="relative mb-5 overflow-hidden p-5">
-                <div className="
-                  pointer-events-none
-                  absolute -right-16 -top-16
-                  h-40 w-40
-                  rounded-full
-                  bg-purple-300/20
-                  blur-3xl
-                " />
+              {/* ---------------------------------------------------------- */}
+              {/* HERO                                                         */}
+              {/* ---------------------------------------------------------- */}
+
+              <GlassCard className="mb-5 p-5">
+                <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-purple-300/20 blur-3xl" />
 
                 <div className="relative flex items-center gap-4">
-                  <div className="
-                    relative flex h-16 w-16
-                    flex-shrink-0
-                    items-center justify-center
-                    overflow-hidden
-                    rounded-[22px]
-                    border-2 border-white
-                    bg-gradient-to-br
-                    from-purple-100
-                    to-fuchsia-100
-                    shadow-lg
-                  ">
-                    {profile.avatar_url ? (
+
+                  <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-[22px] border-2 border-white bg-gradient-to-br from-purple-100 to-fuchsia-100 shadow-[0_10px_30px_rgba(168,85,247,0.15)]">
+                    {profile?.avatar_url ? (
                       <img
                         src={profile.avatar_url}
-                        alt="Profile"
+                        alt=""
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="text-2xl">
+                      <div className="flex h-full w-full items-center justify-center text-2xl">
                         👤
-                      </span>
+                      </div>
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="
-                      mb-1 flex items-center gap-1
-                      text-[9px]
-                      font-black
-                      uppercase
-                      tracking-[0.18em]
-                      text-purple-500
-                    ">
-                      <Sparkles className="h-3 w-3" />
-                      Welcome back
-                    </p>
 
-                    <h2 className="
-                      truncate
-                      text-xl
-                      font-black
-                      tracking-tight
-                      text-slate-900
-                    ">
-                      {profile.shop_name ||
-                        profile.display_name ||
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-purple-500" />
+
+                      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-purple-500">
+                        Welcome back
+                      </p>
+                    </div>
+
+                    <h2 className="truncate text-[19px] font-black tracking-tight text-slate-900">
+                      {profile?.shop_name ||
+                        profile?.display_name ||
                         'Professional'}
                     </h2>
 
-                    <div className="
-                      mt-1 flex flex-wrap
-                      items-center gap-2
-                    ">
-                      <span className="
-                        rounded-full
-                        bg-purple-50
-                        px-2 py-1
-                        text-[9px]
-                        font-black
-                        uppercase
-                        tracking-wider
-                        text-purple-600
-                      ">
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+
+                      <span className="rounded-full border border-purple-100 bg-purple-50 px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-purple-600">
                         {formatIndustry(
-                          profile.industry
+                          profile?.industry
                         )}
                       </span>
 
-                      {profile.city && (
-                        <span className="
-                          flex items-center gap-1
-                          text-[10px]
-                          font-bold
-                          text-slate-400
-                        ">
-                          <MapPin className="h-3 w-3" />
+                      {profile?.city && (
+                        <span className="flex items-center gap-1 rounded-full bg-white/70 px-2 py-1 text-[9px] font-bold text-slate-400">
+                          <MapPin className="h-3 w-3 text-purple-500" />
                           {profile.city}
                         </span>
                       )}
@@ -986,7 +844,10 @@ export default function ProfessionalDashboard({
                 </div>
               </GlassCard>
 
-              {/* KPI Stats */}
+              {/* ---------------------------------------------------------- */}
+              {/* KPI GRID                                                     */}
+              {/* ---------------------------------------------------------- */}
+
               <div className="mb-5 grid grid-cols-2 gap-3">
 
                 <StatCard
@@ -994,7 +855,7 @@ export default function ProfessionalDashboard({
                     <Calendar className="h-4 w-4 text-purple-600" />
                   }
                   iconClass="bg-purple-50"
-                  accent="bg-purple-500"
+                  glowClass="bg-purple-500"
                   label="Today's Bookings"
                   value={String(
                     stats.todayBookings
@@ -1006,7 +867,7 @@ export default function ProfessionalDashboard({
                     <AlertCircle className="h-4 w-4 text-fuchsia-600" />
                   }
                   iconClass="bg-fuchsia-50"
-                  accent="bg-fuchsia-500"
+                  glowClass="bg-fuchsia-500"
                   label="Pending Requests"
                   value={String(
                     stats.pendingRequests
@@ -1018,7 +879,7 @@ export default function ProfessionalDashboard({
                     <DollarSign className="h-4 w-4 text-emerald-600" />
                   }
                   iconClass="bg-emerald-50"
-                  accent="bg-emerald-500"
+                  glowClass="bg-emerald-500"
                   label="Today's Earnings"
                   value={`₹${stats.todaysEarnings.toLocaleString()}`}
                 />
@@ -1028,111 +889,66 @@ export default function ProfessionalDashboard({
                     <Star className="h-4 w-4 text-amber-500" />
                   }
                   iconClass="bg-amber-50"
-                  accent="bg-amber-500"
+                  glowClass="bg-amber-500"
                   label="Rating"
                   value={stats.averageRating.toFixed(1)}
                   subtext={`(${stats.reviewCount})`}
                 />
-
               </div>
 
-              {/* Performance */}
-              <GlassCard className="mb-5 overflow-hidden">
+              {/* ---------------------------------------------------------- */}
+              {/* PERFORMANCE                                                  */}
+              {/* ---------------------------------------------------------- */}
+
+              <GlassCard className="mb-5">
                 <div className="flex items-center gap-3 p-4">
 
-                  <div className="
-                    flex h-10 w-10
-                    flex-shrink-0
-                    items-center justify-center
-                    rounded-2xl
-                    bg-gradient-to-br
-                    from-emerald-100
-                    to-teal-50
-                  ">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-50">
                     <TrendingUp className="h-5 w-5 text-emerald-600" />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="
-                      text-[9px]
-                      font-black
-                      uppercase
-                      tracking-[0.16em]
-                      text-slate-400
-                    ">
-                      Studio performance
+                    <p className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">
+                      Studio Performance
                     </p>
 
-                    <p className="
-                      mt-0.5
-                      text-xs
-                      font-black
-                      text-slate-800
-                    ">
+                    <p className="mt-1 text-[11px] font-black leading-relaxed text-slate-700">
                       Keep your availability updated to receive more bookings.
                     </p>
                   </div>
 
-                  <Sparkles className="
-                    h-4 w-4
-                    flex-shrink-0
-                    text-purple-400
-                  " />
-
+                  <Sparkles className="h-4 w-4 shrink-0 text-purple-400" />
                 </div>
               </GlassCard>
 
-              {/* Bookings */}
-              <GlassCard className="mb-6 overflow-hidden">
+              {/* ---------------------------------------------------------- */}
+              {/* BOOKINGS                                                     */}
+              {/* ---------------------------------------------------------- */}
 
-                <div className="
-                  border-b
-                  border-purple-100/60
-                  p-4
-                ">
-                  <div className="
-                    mb-4 flex
-                    items-center
-                    justify-between
-                  ">
+              <GlassCard className="mb-6">
+
+                <div className="border-b border-purple-100/70 bg-white/30 p-4">
+
+                  <div className="mb-4 flex items-center justify-between">
+
                     <div>
-                      <div className="
-                        flex items-center gap-2
-                      ">
-                        <h3 className="
-                          text-lg
-                          font-black
-                          tracking-tight
-                          text-slate-900
-                        ">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-[18px] font-black tracking-tight text-slate-900">
                           Bookings
                         </h3>
 
-                        <span className="
-                          rounded-full
-                          bg-purple-100
-                          px-2 py-0.5
-                          text-[9px]
-                          font-black
-                          text-purple-600
-                        ">
+                        <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[8px] font-black text-purple-600">
                           {displayedBookings.length}
                         </span>
                       </div>
 
-                      <p className="
-                        mt-0.5
-                        text-[10px]
-                        font-bold
-                        text-slate-400
-                      ">
+                      <p className="mt-0.5 text-[9px] font-bold text-slate-400">
                         Manage your client appointments
                       </p>
                     </div>
 
                     <button
                       onClick={handleRetry}
-                      aria-label="Refresh bookings"
                       className="
                         flex h-9 w-9
                         items-center justify-center
@@ -1141,22 +957,19 @@ export default function ProfessionalDashboard({
                         bg-white
                         text-purple-500
                         shadow-sm
-                        transition
+                        transition-all
                         hover:bg-purple-50
                         active:scale-95
                       "
+                      aria-label="Refresh bookings"
                     >
                       <RefreshCw className="h-4 w-4" />
                     </button>
                   </div>
 
                   {/* Filters */}
-                  <div className="
-                    -mx-1 flex gap-2
-                    overflow-x-auto
-                    px-1 pb-1
-                    scrollbar-hide
-                  ">
+                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
+
                     {(
                       [
                         'all',
@@ -1181,18 +994,19 @@ export default function ProfessionalDashboard({
                               )
                             }
                             className={`
-                              flex-shrink-0
+                              shrink-0
                               rounded-full
                               border
                               px-3.5 py-2
-                              text-[9px]
+                              text-[8px]
                               font-black
                               uppercase
                               tracking-wider
                               transition-all
+                              active:scale-95
                               ${
                                 active
-                                  ? 'border-transparent bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white shadow-[0_6px_18px_rgba(168,85,247,0.25)]'
+                                  ? 'border-transparent bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 text-white shadow-[0_6px_18px_rgba(168,85,247,0.22)]'
                                   : 'border-purple-100 bg-white text-slate-500 hover:bg-purple-50'
                               }
                             `}
@@ -1205,250 +1019,168 @@ export default function ProfessionalDashboard({
                   </div>
                 </div>
 
+                {/* Booking list */}
                 <div className="p-3">
+
                   {displayedBookings.length === 0 ? (
-                    <div className="
-                      flex flex-col
-                      items-center
-                      justify-center
-                      rounded-3xl
-                      border border-dashed
-                      border-purple-200
-                      bg-purple-50/40
-                      py-12
-                      text-center
-                    ">
-                      <div className="
-                        mb-4 flex h-14 w-14
-                        items-center justify-center
-                        rounded-2xl
-                        bg-white
-                        shadow-sm
-                      ">
-                        <Calendar className="
-                          h-6 w-6
-                          text-purple-300
-                        " />
+
+                    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-purple-200 bg-purple-50/40 py-12 text-center">
+
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">
+                        <Calendar className="h-6 w-6 text-purple-300" />
                       </div>
 
-                      <p className="
-                        text-sm
-                        font-black
-                        text-slate-700
-                      ">
+                      <p className="text-sm font-black text-slate-700">
                         No bookings found
                       </p>
 
-                      <p className="
-                        mt-1
-                        max-w-xs
-                        text-[11px]
-                        font-medium
-                        leading-relaxed
-                        text-slate-400
-                      ">
+                      <p className="mt-1 text-[10px] font-medium text-slate-400">
                         New client appointments will appear here automatically.
                       </p>
                     </div>
+
                   ) : (
+
                     <div className="space-y-3">
 
                       {displayedBookings.map(
                         (booking) => (
+
                           <div
                             key={booking.id}
                             className="
                               group
-                              rounded-[24px]
-                              border
-                              border-slate-100
+                              rounded-[22px]
+                              border border-slate-100
                               bg-white/90
                               p-4
                               shadow-sm
                               transition-all
+                              duration-300
                               hover:-translate-y-0.5
                               hover:border-purple-200
-                              hover:shadow-[0_12px_35px_rgba(88,28,135,0.08)]
+                              hover:shadow-[0_14px_35px_rgba(76,29,149,0.08)]
                             "
                           >
 
-                            {/* Customer */}
-                            <div className="
-                              flex items-start gap-3
-                            ">
-                              <div className="
-                                relative h-12 w-12
-                                flex-shrink-0
-                                overflow-hidden
-                                rounded-2xl
-                                bg-gradient-to-br
-                                from-purple-50
-                                to-fuchsia-50
-                              ">
+                            <div className="flex items-start gap-3">
+
+                              {/* Customer Avatar */}
+                              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 to-fuchsia-50 ring-1 ring-purple-100">
+
                                 {booking.customer?.avatar_url ? (
                                   <img
                                     src={
-                                      booking.customer.avatar_url
+                                      booking
+                                        .customer
+                                        .avatar_url
                                     }
-                                    alt="Customer"
-                                    className="
-                                      h-full
-                                      w-full
-                                      object-cover
-                                    "
+                                    alt=""
+                                    className="h-full w-full object-cover"
                                   />
                                 ) : (
-                                  <div className="
-                                    flex h-full w-full
-                                    items-center
-                                    justify-center
-                                    text-lg
-                                  ">
+                                  <div className="flex h-full w-full items-center justify-center text-lg">
                                     👤
                                   </div>
                                 )}
+
                               </div>
 
-                              <div className="
-                                min-w-0 flex-1
-                              ">
-                                <div className="
-                                  flex items-start
-                                  justify-between
-                                  gap-2
-                                ">
+                              <div className="min-w-0 flex-1">
+
+                                <div className="flex items-start justify-between gap-2">
+
                                   <div className="min-w-0">
-                                    <h4 className="
-                                      truncate
-                                      text-sm
-                                      font-black
-                                      text-slate-900
-                                    ">
+
+                                    <h4 className="truncate text-[14px] font-black text-slate-900">
                                       {booking.customer
                                         ?.full_name ||
                                         'Customer'}
                                     </h4>
 
-                                    <p className="
-                                      mt-0.5
-                                      truncate
-                                      text-[11px]
-                                      font-bold
-                                      text-purple-600
-                                    ">
+                                    <p className="mt-0.5 truncate text-[10px] font-black text-purple-600">
                                       {booking.service_name ||
                                         'Service'}
                                     </p>
+
                                   </div>
 
-                                  <StatusBadge
-                                    status={
-                                      booking.status
-                                    }
-                                  />
+                                  <span
+                                    className={`
+                                      shrink-0
+                                      rounded-full
+                                      border
+                                      px-2 py-1
+                                      text-[8px]
+                                      font-black
+                                      uppercase
+                                      tracking-wider
+                                      ${getStatusColor(
+                                        booking.status
+                                      )}
+                                    `}
+                                  >
+                                    {booking.status}
+                                  </span>
+
                                 </div>
 
                                 {/* Metadata */}
-                                <div className="
-                                  mt-3
-                                  flex flex-wrap
-                                  gap-1.5
-                                ">
-                                  <span className="
-                                    flex items-center gap-1
-                                    rounded-lg
-                                    border border-slate-100
-                                    bg-slate-50
-                                    px-2 py-1
-                                    text-[9px]
-                                    font-bold
-                                    text-slate-500
-                                  ">
-                                    <Calendar className="
-                                      h-3 w-3
-                                      text-purple-500
-                                    " />
+                                <div className="mt-3 flex flex-wrap gap-1.5">
 
+                                  <span className="flex items-center gap-1 rounded-lg border border-slate-100 bg-slate-50 px-2 py-1 text-[8px] font-bold text-slate-500">
+                                    <Calendar className="h-3 w-3 text-purple-500" />
                                     {getSafeDate(
                                       booking
                                     )}
                                   </span>
 
-                                  <span className="
-                                    flex items-center gap-1
-                                    rounded-lg
-                                    border border-slate-100
-                                    bg-slate-50
-                                    px-2 py-1
-                                    text-[9px]
-                                    font-bold
-                                    text-slate-500
-                                  ">
-                                    <Clock className="
-                                      h-3 w-3
-                                      text-purple-500
-                                    " />
-
+                                  <span className="flex items-center gap-1 rounded-lg border border-slate-100 bg-slate-50 px-2 py-1 text-[8px] font-bold text-slate-500">
+                                    <Clock className="h-3 w-3 text-purple-500" />
                                     {getSafeTime(
                                       booking
                                     )}
                                   </span>
 
                                   {booking.total_price && (
-                                    <span className="
-                                      flex items-center gap-1
-                                      rounded-lg
-                                      border border-emerald-100
-                                      bg-emerald-50
-                                      px-2 py-1
-                                      text-[9px]
-                                      font-black
-                                      text-emerald-700
-                                    ">
+                                    <span className="flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-1 text-[8px] font-black text-emerald-700">
                                       <DollarSign className="h-3 w-3" />
                                       ₹
                                       {booking.total_price}
                                     </span>
                                   )}
+
                                 </div>
                               </div>
                             </div>
 
-                            {/* Pending Actions */}
+                            {/* Actions */}
                             {booking.status ===
                               'pending' && (
-                              <div className="
-                                mt-4
-                                grid grid-cols-2
-                                gap-2
-                                border-t
-                                border-slate-100
-                                pt-3
-                              ">
+                              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+
                                 <button
                                   onClick={() =>
                                     updateBookingStatus(
                                       booking.id,
                                       'confirmed',
-                                      'Booking accepted!'
+                                      'Accepted!'
                                     )
                                   }
                                   className="
-                                    flex
-                                    items-center
-                                    justify-center
-                                    gap-1.5
+                                    flex items-center
+                                    justify-center gap-1.5
                                     rounded-xl
                                     bg-gradient-to-r
                                     from-emerald-500
                                     to-teal-500
                                     py-2.5
-                                    text-[10px]
+                                    text-[9px]
                                     font-black
                                     uppercase
                                     tracking-wider
                                     text-white
-                                    shadow-[0_6px_16px_rgba(16,185,129,0.2)]
+                                    shadow-[0_6px_16px_rgba(16,185,129,0.18)]
                                     transition-all
                                     hover:-translate-y-0.5
                                     active:scale-95
@@ -1463,20 +1195,17 @@ export default function ProfessionalDashboard({
                                     updateBookingStatus(
                                       booking.id,
                                       'cancelled',
-                                      'Booking declined'
+                                      'Declined'
                                     )
                                   }
                                   className="
-                                    flex
-                                    items-center
-                                    justify-center
-                                    gap-1.5
+                                    flex items-center
+                                    justify-center gap-1.5
                                     rounded-xl
-                                    border
-                                    border-rose-200
+                                    border border-rose-200
                                     bg-rose-50
                                     py-2.5
-                                    text-[10px]
+                                    text-[9px]
                                     font-black
                                     uppercase
                                     tracking-wider
@@ -1489,10 +1218,10 @@ export default function ProfessionalDashboard({
                                   <XCircle className="h-3.5 w-3.5" />
                                   Decline
                                 </button>
+
                               </div>
                             )}
 
-                            {/* Confirmed Action */}
                             {booking.status ===
                               'confirmed' && (
                               <button
@@ -1500,12 +1229,11 @@ export default function ProfessionalDashboard({
                                   updateBookingStatus(
                                     booking.id,
                                     'completed',
-                                    'Booking completed!'
+                                    'Completed!'
                                   )
                                 }
                                 className="
-                                  mt-4
-                                  flex w-full
+                                  mt-4 flex w-full
                                   items-center
                                   justify-center
                                   gap-1.5
@@ -1514,12 +1242,12 @@ export default function ProfessionalDashboard({
                                   from-purple-600
                                   to-fuchsia-500
                                   py-2.5
-                                  text-[10px]
+                                  text-[9px]
                                   font-black
                                   uppercase
                                   tracking-wider
                                   text-white
-                                  shadow-[0_7px_20px_rgba(168,85,247,0.22)]
+                                  shadow-[0_7px_20px_rgba(168,85,247,0.2)]
                                   transition-all
                                   hover:-translate-y-0.5
                                   active:scale-95
@@ -1538,12 +1266,13 @@ export default function ProfessionalDashboard({
                   )}
                 </div>
               </GlassCard>
+
             </div>
           </ErrorBoundaryWrapper>
         )}
 
         {/* ---------------------------------------------------------------- */}
-        {/* Bookings Tab                                                      */}
+        {/* BOOKINGS                                                           */}
         {/* ---------------------------------------------------------------- */}
 
         {activeTab === 'bookings' && (
@@ -1567,7 +1296,7 @@ export default function ProfessionalDashboard({
         )}
 
         {/* ---------------------------------------------------------------- */}
-        {/* Availability Tab                                                  */}
+        {/* AVAILABILITY                                                       */}
         {/* ---------------------------------------------------------------- */}
 
         {activeTab === 'availability' && (
@@ -1593,7 +1322,7 @@ export default function ProfessionalDashboard({
         )}
 
         {/* ---------------------------------------------------------------- */}
-        {/* AI Assistant Tab                                                  */}
+        {/* AI ASSISTANT                                                       */}
         {/* ---------------------------------------------------------------- */}
 
         {activeTab === 'ai-assistant' && (
@@ -1617,7 +1346,7 @@ export default function ProfessionalDashboard({
         )}
 
         {/* ---------------------------------------------------------------- */}
-        {/* Analytics Tab                                                     */}
+        {/* ANALYTICS                                                          */}
         {/* ---------------------------------------------------------------- */}
 
         {activeTab === 'analytics' && (
@@ -1643,7 +1372,7 @@ export default function ProfessionalDashboard({
         )}
 
         {/* ---------------------------------------------------------------- */}
-        {/* Profile Tab                                                       */}
+        {/* PROFILE                                                            */}
         {/* ---------------------------------------------------------------- */}
 
         {activeTab === 'profile' && (
@@ -1671,16 +1400,15 @@ export default function ProfessionalDashboard({
       </main>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Professional Bottom Navigation                                     */}
+      {/* EXISTING BOTTOM NAV — UNCHANGED                                    */}
       {/* ------------------------------------------------------------------ */}
 
       <ProfessionalBottomNav
         currentView={activeTab}
-        onNavigate={(view: DashboardTab) => {
-          setActiveTab(view);
-        }}
+        onNavigate={(view: DashboardTab) =>
+          setActiveTab(view)
+        }
       />
-
     </div>
   );
 }
