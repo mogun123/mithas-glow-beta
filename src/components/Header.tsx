@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Gem, User, Settings, LogOut, Bell, BarChart3, Briefcase, Crown } from 'lucide-react';
+import {
+  Gem,
+  User,
+  Settings,
+  LogOut,
+  Bell,
+  BarChart3,
+  Briefcase,
+  Crown,
+  Sparkles,
+} from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
@@ -13,7 +23,9 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // DUAL-MODE STATE
+  // ---------------------------------------------------------
+  // GLOBAL APP STATE
+  // ---------------------------------------------------------
   const {
     appViewMode,
     toggleAppViewMode,
@@ -25,172 +37,651 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
 
   const profile = user;
   const glowCoins = user?.glow_points ?? 0;
+
+  // Replace this later with your real notification unread count.
   const hasUnreadNotifications = true;
 
+  // ---------------------------------------------------------
+  // LOGOUT
+  // ---------------------------------------------------------
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
-      window.dispatchEvent(new CustomEvent('navigateToHome'));
+      setShowDropdown(false);
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Logged out successfully');
+
+      window.dispatchEvent(
+        new CustomEvent('navigateToHome')
+      );
     } catch (err) {
-      console.error("Logout failed", err);
+      console.error('Logout failed:', err);
+      toast.error('Logout failed. Please try again.');
     }
   };
 
+  // ---------------------------------------------------------
+  // SELF <-> PRO MODE
+  // ---------------------------------------------------------
   const handleModeToggle = () => {
     toggleAppViewMode();
+
     const newMode = useGlobalStore.getState().appViewMode;
 
     if (newMode === 'self') {
       toast.success('Switched to Customer View');
-      window.dispatchEvent(new CustomEvent('navigateToHome'));
+
+      window.dispatchEvent(
+        new CustomEvent('navigateToHome')
+      );
     } else {
       toast.success('Switched to Studio Dashboard');
-      window.dispatchEvent(new CustomEvent('navigateToProfessional'));
+
+      window.dispatchEvent(
+        new CustomEvent('navigateToProfessional')
+      );
     }
   };
 
+  // ---------------------------------------------------------
+  // PROFILE DROPDOWN ACTIONS
+  // ---------------------------------------------------------
   const handleProfileAction = (action: string) => {
     setShowDropdown(false);
 
-    if (action === "Settings" && onNavigateToProfile) {
-      onNavigateToProfile();
+    if (action === 'Settings') {
+      onNavigateToProfile?.();
       return;
     }
 
-    if (action === "Event Dashboard") {
-      window.dispatchEvent(new CustomEvent('navigateToEventSection'));
+    if (action === 'Event Dashboard') {
+      window.dispatchEvent(
+        new CustomEvent('navigateToEventSection')
+      );
       return;
     }
 
-    if (action === "Logout") {
-      handleLogout();
+    if (action === 'Logout') {
+      void handleLogout();
     }
   };
 
   return (
     <>
-      <header className="px-4 py-3 flex justify-between items-center sticky top-0 z-10 backdrop-blur-xl shadow-sm bg-[#fdf4f8]/90 border-b border-pink-100">
-        
-        {/* MITHAS GLOW LOGO - FIXED (No Wrapping) */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-pink-500 shrink-0" strokeWidth={2.5} />
-          <h1 className="text-lg sm:text-2xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-fuchsia-500 whitespace-nowrap">
-            MITHAS GLOW
-          </h1>
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
+      <header
+        className="
+          sticky top-0 z-40
+          flex items-center justify-between
+          border-b border-pink-100
+          bg-[#fdf4f8]/90
+          px-4 py-3
+          shadow-sm
+          backdrop-blur-2xl
+        "
+      >
+        {/* ===================================================
+            LEFT — LOGO
+        ==================================================== */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div
+            className="
+              flex h-8 w-8 items-center justify-center
+              rounded-xl
+              bg-gradient-to-br
+              from-pink-500
+              via-fuchsia-500
+              to-purple-600
+              shadow-md
+              shadow-pink-500/20
+            "
+          >
+            <Crown
+              className="h-4 w-4 text-white"
+              strokeWidth={2.5}
+            />
+          </div>
+
+          <div className="min-w-0">
+            <h1
+              className="
+                whitespace-nowrap
+                bg-gradient-to-r
+                from-pink-600
+                via-fuchsia-500
+                to-purple-600
+                bg-clip-text
+                text-lg
+                font-black
+                italic
+                tracking-tight
+                text-transparent
+                sm:text-2xl
+              "
+            >
+              MITHAS GLOW
+            </h1>
+
+            {/* Small status label on larger screens */}
+            <div className="hidden items-center gap-1 sm:flex">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              <span className="text-[8px] font-extrabold uppercase tracking-[0.18em] text-slate-400">
+                Beauty • AI • AR
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex space-x-2.5 sm:space-x-3 items-center shrink-0">
-          
-          {/* DUAL-MODE TOGGLE - FIXED (No Overlapping, Clear Marquee) */}
+        {/* ===================================================
+            RIGHT ACTIONS
+        ==================================================== */}
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+
+          {/* =================================================
+              FUTURISTIC SELF / PRO MODE SWITCH
+          ================================================= */}
           {isProfessional && (
             <button
+              type="button"
               onClick={handleModeToggle}
-              className={`
-                relative rounded-xl font-black uppercase tracking-wider transition-all duration-300
-                shadow-md border flex flex-col items-center justify-center shrink-0 overflow-hidden
-                w-[130px] sm:w-[150px]
-                ${appViewMode === 'pro'
-                  ? 'bg-white text-pink-600 border-pink-200 hover:bg-pink-50 shadow-pink-500/10 py-2 sm:py-2.5' 
-                  : 'bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white border-fuchsia-400 shadow-fuchsia-500/30 py-1.5'
-                }
-                hover:scale-105 active:scale-95
-              `}
+              aria-label={
+                appViewMode === 'pro'
+                  ? 'Switch to Customer View'
+                  : 'Switch to Studio Dashboard'
+              }
+              className="
+                group
+                relative
+                flex
+                items-center
+                rounded-full
+                border border-pink-200
+                bg-white/80
+                p-1
+                shadow-sm
+                backdrop-blur-xl
+                transition-all
+                duration-300
+                hover:border-fuchsia-300
+                hover:shadow-lg
+                hover:shadow-fuchsia-500/10
+                active:scale-95
+              "
             >
-              <div className="flex items-center justify-center gap-1.5 w-full">
-                {appViewMode === 'pro' ? (
-                  <>
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span className="text-[10px] sm:text-xs whitespace-nowrap">Customer View</span>
-                  </>
-                ) : (
-                  <>
-                    <Briefcase className="w-3.5 h-3.5 shrink-0" />
-                    <span className="text-[10px] sm:text-xs whitespace-nowrap">Studio Dashboard</span>
-                  </>
-                )}
-              </div>
-              
-              {/* MOVING TEXT - Fixed height and spacing to prevent overlap */}
-              {appViewMode === 'self' && (
-                <div className="w-full mt-0.5 h-[12px] flex items-center">
-                   <marquee scrollamount="3" className="text-[8px] font-extrabold tracking-widest text-white whitespace-nowrap leading-none">
-                     EXPLORE YOUR PROFESSIONAL DASHBOARD ✨
-                   </marquee>
-                </div>
-              )}
+              {/* ---------------------------------------------
+                  SELF
+              ---------------------------------------------- */}
+              <span
+                className={`
+                  flex
+                  items-center
+                  gap-1.5
+                  rounded-full
+                  px-2.5
+                  py-1.5
+                  text-[9px]
+                  font-black
+                  uppercase
+                  tracking-wide
+                  transition-all
+                  duration-300
+                  sm:px-3
+                  sm:text-[10px]
+                  ${
+                    appViewMode === 'self'
+                      ? `
+                        bg-gradient-to-r
+                        from-pink-500
+                        to-fuchsia-500
+                        text-white
+                        shadow-md
+                        shadow-pink-500/25
+                      `
+                      : `
+                        text-slate-500
+                        hover:text-pink-600
+                      `
+                  }
+                `}
+              >
+                <User className="h-3.5 w-3.5 shrink-0" />
+
+                <span className="hidden xs:inline sm:inline">
+                  SELF
+                </span>
+              </span>
+
+              {/* ---------------------------------------------
+                  PRO
+              ---------------------------------------------- */}
+              <span
+                className={`
+                  flex
+                  items-center
+                  gap-1.5
+                  rounded-full
+                  px-2.5
+                  py-1.5
+                  text-[9px]
+                  font-black
+                  uppercase
+                  tracking-wide
+                  transition-all
+                  duration-300
+                  sm:px-3
+                  sm:text-[10px]
+                  ${
+                    appViewMode === 'pro'
+                      ? `
+                        bg-gradient-to-r
+                        from-purple-500
+                        via-fuchsia-500
+                        to-pink-500
+                        text-white
+                        shadow-md
+                        shadow-purple-500/25
+                      `
+                      : `
+                        text-slate-500
+                        hover:text-purple-600
+                      `
+                  }
+                `}
+              >
+                <Briefcase className="h-3.5 w-3.5 shrink-0" />
+
+                <span className="hidden xs:inline sm:inline">
+                  PRO
+                </span>
+              </span>
+
+              {/* Tiny glow indicator */}
+              <span
+                className={`
+                  pointer-events-none
+                  absolute
+                  -right-0.5
+                  -top-0.5
+                  h-2
+                  w-2
+                  rounded-full
+                  transition-all
+                  duration-300
+                  ${
+                    appViewMode === 'pro'
+                      ? 'bg-fuchsia-400 shadow-[0_0_8px_rgba(217,70,239,0.9)]'
+                      : 'bg-pink-400 shadow-[0_0_8px_rgba(236,72,153,0.9)]'
+                  }
+                `}
+              />
             </button>
           )}
 
-          {/* Notifications - Fixed Size */}
+          {/* =================================================
+              NOTIFICATIONS
+          ==================================================== */}
           <button
+            type="button"
             onClick={() => setShowNotifications(true)}
-            className="relative w-9 h-9 min-w-[36px] min-h-[36px] shrink-0 rounded-full bg-white flex items-center justify-center border border-pink-200 shadow-sm hover:bg-pink-50 transition-all"
+            aria-label="Open notifications"
+            className="
+              relative
+              flex
+              h-9
+              w-9
+              min-h-[36px]
+              min-w-[36px]
+              shrink-0
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-pink-200
+              bg-white
+              shadow-sm
+              transition-all
+              duration-200
+              hover:border-pink-300
+              hover:bg-pink-50
+              hover:shadow-md
+              active:scale-95
+            "
           >
-            <Bell className="w-4 h-4 text-slate-700" />
+            <Bell className="h-4 w-4 text-slate-700" />
+
             {hasUnreadNotifications && (
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
+              <>
+                <span
+                  className="
+                    absolute
+                    right-0
+                    top-0
+                    h-2.5
+                    w-2.5
+                    animate-pulse
+                    rounded-full
+                    bg-rose-500
+                  "
+                />
+
+                <span
+                  className="
+                    absolute
+                    right-[-1px]
+                    top-[-1px]
+                    h-2.5
+                    w-2.5
+                    rounded-full
+                    border-2
+                    border-white
+                  "
+                />
+              </>
             )}
           </button>
 
-          {/* Glow Coins - Hidden on very small screens, visible on Desktop */}
-          <div className="hidden sm:flex shrink-0 items-center px-3 py-1.5 bg-white border border-pink-200 shadow-sm rounded-full">
-            <Gem className="w-4 h-4 text-amber-500 mr-1.5" />
-            <span className="text-xs font-black text-slate-800">{glowCoins}</span>
+          {/* =================================================
+              GLOW COINS
+          ==================================================== */}
+          <div
+            className="
+              hidden
+              shrink-0
+              items-center
+              gap-1.5
+              rounded-full
+              border
+              border-amber-200
+              bg-white
+              px-3
+              py-1.5
+              shadow-sm
+              sm:flex
+            "
+          >
+            <Gem className="h-4 w-4 text-amber-500" />
+
+            <span className="text-xs font-black text-slate-800">
+              {glowCoins.toLocaleString()}
+            </span>
           </div>
 
-          {/* Profile Dropdown - Fixed Size (Won't become giant) */}
+          {/* =================================================
+              PROFILE
+          ==================================================== */}
           <div className="relative shrink-0">
+
+            {/* Profile button */}
             <button
-              onClick={() => setShowDropdown((p) => !p)}
-              className="w-10 h-10 min-w-[40px] min-h-[40px] max-w-[40px] max-h-[40px] shrink-0 rounded-full bg-gradient-to-br from-pink-500 to-fuchsia-500 flex items-center justify-center shadow-md border-2 border-white hover:scale-105 transition-transform overflow-hidden"
+              type="button"
+              onClick={() =>
+                setShowDropdown((previous) => !previous)
+              }
+              aria-label="Open profile menu"
+              aria-expanded={showDropdown}
+              className="
+                relative
+                flex
+                h-10
+                w-10
+                min-h-[40px]
+                min-w-[40px]
+                items-center
+                justify-center
+                overflow-hidden
+                rounded-full
+                border-2
+                border-white
+                bg-gradient-to-br
+                from-pink-500
+                via-fuchsia-500
+                to-purple-600
+                shadow-md
+                transition-all
+                duration-200
+                hover:scale-105
+                hover:shadow-lg
+                hover:shadow-pink-500/20
+                active:scale-95
+              "
             >
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                <img
+                  src={profile.avatar_url}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                <User className="w-4 h-4 text-white" />
+                <User className="h-4 w-4 text-white" />
               )}
+
+              {/* Online indicator */}
+              <span
+                className="
+                  absolute
+                  bottom-0
+                  right-0
+                  h-2.5
+                  w-2.5
+                  rounded-full
+                  border-2
+                  border-white
+                  bg-emerald-500
+                "
+              />
             </button>
 
+            {/* =================================================
+                PROFILE DROPDOWN
+            ================================================== */}
             {showDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-pink-100 py-1 z-50">
-                <p className="px-4 py-3 text-xs font-black uppercase tracking-wider text-slate-800 border-b border-pink-50 mb-1 truncate">
-                  {profile?.full_name || profile?.display_name || profile?.username || "Glow User"}
-                </p>
+              <>
+                {/* Mobile backdrop */}
+                <button
+                  type="button"
+                  aria-label="Close profile menu"
+                  onClick={() => setShowDropdown(false)}
+                  className="
+                    fixed
+                    inset-0
+                    z-40
+                    cursor-default
+                    bg-transparent
+                  "
+                />
 
-                <div className="sm:hidden flex items-center px-4 py-2 text-xs font-bold text-slate-700 border-b border-pink-50 mb-1">
-                  <Gem className="w-3.5 h-3.5 text-amber-500 mr-2" />
-                  {glowCoins} Glow Coins
+                <div
+                  className="
+                    absolute
+                    right-0
+                    z-50
+                    mt-3
+                    w-56
+                    overflow-hidden
+                    rounded-2xl
+                    border
+                    border-pink-100
+                    bg-white
+                    shadow-2xl
+                    shadow-purple-900/10
+                  "
+                >
+                  {/* User info */}
+                  <div
+                    className="
+                      border-b
+                      border-pink-50
+                      bg-gradient-to-br
+                      from-pink-50
+                      via-white
+                      to-purple-50
+                      px-4
+                      py-3
+                    "
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="
+                          flex
+                          h-9
+                          w-9
+                          shrink-0
+                          items-center
+                          justify-center
+                          overflow-hidden
+                          rounded-full
+                          bg-gradient-to-br
+                          from-pink-500
+                          to-fuchsia-500
+                        "
+                      >
+                        {profile?.avatar_url ? (
+                          <img
+                            src={profile.avatar_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-4 w-4 text-white" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-black text-slate-900">
+                          {profile?.full_name ||
+                            profile?.display_name ||
+                            profile?.username ||
+                            'Glow User'}
+                        </p>
+
+                        <div className="mt-0.5 flex items-center gap-1">
+                          <Sparkles className="h-2.5 w-2.5 text-fuchsia-500" />
+
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                            MITHAS GLOW
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Glow Coins — mobile */}
+                  <div
+                    className="
+                      flex
+                      items-center
+                      justify-between
+                      border-b
+                      border-pink-50
+                      px-4
+                      py-2.5
+                      sm:hidden
+                    "
+                  >
+                    <div className="flex items-center">
+                      <Gem className="mr-2 h-3.5 w-3.5 text-amber-500" />
+
+                      <span className="text-xs font-bold text-slate-700">
+                        Glow Coins
+                      </span>
+                    </div>
+
+                    <span className="text-xs font-black text-slate-900">
+                      {glowCoins.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Settings */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleProfileAction('Settings')
+                    }
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      px-4
+                      py-3
+                      text-xs
+                      font-bold
+                      text-slate-600
+                      transition-colors
+                      hover:bg-pink-50
+                      hover:text-pink-600
+                    "
+                  >
+                    <Settings className="mr-2.5 h-4 w-4" />
+                    Settings
+                  </button>
+
+                  {/* Event Dashboard */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleProfileAction('Event Dashboard')
+                    }
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      px-4
+                      py-3
+                      text-xs
+                      font-bold
+                      text-slate-600
+                      transition-colors
+                      hover:bg-purple-50
+                      hover:text-purple-600
+                    "
+                  >
+                    <BarChart3 className="mr-2.5 h-4 w-4" />
+                    Event Dashboard
+                  </button>
+
+                  {/* Divider */}
+                  <div className="mx-3 border-t border-slate-100" />
+
+                  {/* Logout */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleProfileAction('Logout')
+                    }
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      px-4
+                      py-3
+                      text-xs
+                      font-bold
+                      text-rose-500
+                      transition-colors
+                      hover:bg-rose-50
+                      hover:text-rose-600
+                    "
+                  >
+                    <LogOut className="mr-2.5 h-4 w-4" />
+                    Logout
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => handleProfileAction('Settings')}
-                  className="flex items-center w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition-colors"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </button>
-
-                <button
-                  onClick={() => handleProfileAction('Event Dashboard')}
-                  className="flex items-center w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition-colors"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Event Dashboard
-                </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center w-full px-4 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-50 transition-colors"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </button>
-              </div>
+              </>
             )}
           </div>
         </div>
       </header>
 
+      {/* =====================================================
+          NOTIFICATION CENTER
+      ====================================================== */}
       <NotificationCenter
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
