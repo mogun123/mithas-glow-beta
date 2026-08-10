@@ -717,50 +717,71 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     }
   };
 
-    const handleServiceSave = async () => {
-    if (!serviceForm.title || !serviceForm.price) return toast.error('Title and Price are required');
-    
+      const handleServiceSave = async () => {
+    // 1. Safety Check: Artist ID இருக்கிறதா என சரிபார்க்க
+    if (!artistId) {
+      toast.error('Artist ID is missing! Please refresh the page.');
+      return;
+    }
+
+    if (!serviceForm.title || !serviceForm.price) {
+      toast.error('Service Title and Price are required');
+      return;
+    }
+
     try {
       setServicesLoading(true);
       
       const payload: any = {
-        artist_id: artistId, 
-        title: serviceForm.title, 
-        description: serviceForm.description, 
-        price: Number(serviceForm.price), 
-        price_type: serviceForm.priceType,
-        advance_amount: serviceForm.advanceAmount ? Number(serviceForm.advanceAmount) : null, 
-        duration_minutes: Number(serviceForm.duration) || 60, 
-        category: serviceForm.category,
-        whats_included: serviceForm.whatsIncluded, 
-        addons: serviceForm.addons, 
-        is_home_service: serviceForm.isHomeService, 
-        is_active: serviceForm.isActive,
+        artist_id: artistId,
+        title: serviceForm.title,
+        description: serviceForm.description,
+        price: Number(serviceForm.price),
+        price_type: serviceForm.priceType || 'fixed',
+        advance_amount: serviceForm.advanceAmount ? Number(serviceForm.advanceAmount) : null,
+        duration_minutes: Number(serviceForm.duration) || 60,
+        category: serviceForm.category || 'bridal',
+        whats_included: serviceForm.whatsIncluded || '',
+        addons: serviceForm.addons || '',
+        is_home_service: serviceForm.isHomeService ?? true,
+        is_active: serviceForm.isActive ?? true,
       };
 
       if (editingServiceId) {
-        // ஏற்கெனவே இருக்கும் சர்வீஸை Update செய்கிறோம்
+        // UPDATE Existing Service
         const { data, error } = await supabase.from('artist_services').update(payload).eq('id', editingServiceId).select().single();
         if (error) throw error;
-        setServices(prev => prev.map(s => s.id === editingServiceId ? data : s)); 
-        toast.success('Service updated!');
-      } else {
-        // 🔥 பிக்ஸ்: புதிதாக சேர்க்கும்போது நாமே ஒரு Random ID-ஐ உருவாக்கி Supabase-க்கு அனுப்புகிறோம்!
-        payload.id = crypto.randomUUID(); 
         
+        setServices(prev => prev.map(s => s.id === editingServiceId ? data : s));
+        toast.success('Service updated successfully!');
+      } else {
+        // 🔥 THE ULTIMATE FIX: 100% Working Random ID Generator (No crypto error)
+        const generateUUID = () => {
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        };
+        
+        payload.id = generateUUID(); // நாமே ID ஐ உருவாக்கி அனுப்புகிறோம்!
+
+        // INSERT New Service
         const { data, error } = await supabase.from('artist_services').insert(payload).select().single();
         if (error) throw error;
-        setServices(prev => [data, ...prev]); 
-        toast.success('New service published!');
+        
+        setServices(prev => [data, ...prev]);
+        toast.success('New service published successfully!');
       }
       
       handleCancelServiceEdit();
-    } catch (err: any) { 
-      toast.error(err?.message || 'Failed to save'); 
-    } finally { 
-      setServicesLoading(false); 
+    } catch (err: any) {
+      console.error("Save Error:", err);
+      toast.error(err?.message || 'Failed to save service');
+    } finally {
+      setServicesLoading(false);
     }
   };
+
 
 
   const handleServiceDelete = async (serviceId: string) => {
