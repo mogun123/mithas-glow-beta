@@ -725,6 +725,9 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
       return;
     }
 
+    // DEBUG: Log the artist_id being used for insert
+    console.log('DEBUG: attempting insert with artist_id =', artistId);
+
     if (!serviceForm.title || !serviceForm.price) {
       toast.error('Service Title and Price are required');
       return;

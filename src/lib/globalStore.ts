@@ -209,25 +209,22 @@ export const useGlobalStore = create<GlobalState>()(
             seller_status: profileData.seller_status ?? (profileData.user_type === 'pro' ? 'pending' : null)
           };
 
-          // Ensure a row exists in the 'users' table first (required by artist_services FK)
-          const { error: usersError } = await supabase
-            .from('users')
-            .upsert({
-              id: authUser.id,
-              email: authUser.email,
-              password_hash: 'auth_managed', // Placeholder since auth is handled by Supabase Auth
-              is_active: true
-            });
-
-          if (usersError) throw usersError;
-
+          // NOTE: artist_services.artist_id FK references profiles(id), NOT users(id)
+          // So we must ensure profiles row exists before any artist_services insert
           const { data: savedProfile, error: profileError } = await supabase
             .from('profiles')
             .upsert(profileUpdate)
             .select()
             .single();
 
-          if (profileError) throw profileError;
+          if (profileError) {
+            console.error('Profile upsert failed:', profileError);
+            throw new Error(`Failed to create profile: ${profileError.message}`);
+          }
+
+          if (!savedProfile) {
+            throw new Error('Profile upsert returned no data');
+          }
 
           let savedShop = null;
           if (shopData && profileData.user_type === 'pro') {
@@ -242,7 +239,8 @@ export const useGlobalStore = create<GlobalState>()(
               .single();
 
             if (shopError) {
-              console.warn('Shop creation warning:', shopError);
+              console.error('Shop creation failed:', shopError);
+              throw new Error(`Failed to create shop: ${shopError.message}`);
             } else {
               savedShop = shopResult;
             }
@@ -267,7 +265,8 @@ export const useGlobalStore = create<GlobalState>()(
                   .insert(servicesToInsert);
 
                 if (servicesError) {
-                  console.warn('Services creation warning:', servicesError);
+                  console.error('Services creation failed:', servicesError);
+                  throw new Error(`Failed to save services: ${servicesError.message}`);
                 } else {
                   console.log('Services (Rate Card) successfully saved!');
                 }
