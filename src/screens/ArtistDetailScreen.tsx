@@ -137,60 +137,6 @@ export function ArtistDetailScreen({
     }
   };
 
-  useEffect(() => {
-    const id = "artist-detail-screen-css";
-    if (!document.getElementById(id)) {
-      const styleEl = document.createElement("style");
-      styleEl.id = id;
-      styleEl.textContent = ARTIST_DETAIL_CSS;
-      document.head.appendChild(styleEl);
-      setStyleId(id);
-    }
-    return () => {
-      const s = styleId && document.getElementById(styleId);
-      if (s) s.remove();
-    };
-  }, [styleId]);
-
-  // Reset selections when date changes
-  useEffect(() => {
-    setSelectedTime(null);
-  }, [selectedDate]);
-
-  const handleCreateBooking = async () => {
-    if (!userId || !selectedService || !selectedDate || !selectedTime) {
-      toast.error("Please select a service, date, and time slot");
-      return;
-    }
-
-    const service = services.find((s) => s.id === selectedService);
-    if (!service) {
-      toast.error("Invalid service selected");
-      return;
-    }
-
-    try {
-      setIsCreatingBooking(true);
-      await createBooking(
-        userId,
-        artistId,
-        service.id,
-        service.title,
-        service.price,
-        selectedDate,
-        selectedTime,
-        ""
-      );
-      setBookingSuccess(true);
-      toast.success("Booking created successfully! ✨");
-    } catch (error: any) {
-      console.error("Booking creation error:", error);
-      toast.error(error.message || "Failed to create booking");
-    } finally {
-      setIsCreatingBooking(false);
-    }
-  };
-
   if (artistLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-yellow-50">
@@ -497,7 +443,7 @@ export function ArtistDetailScreen({
                         </span>
                         {/* Category Pill */}
                         <span className="inline-flex items-center px-2.5 py-1 bg-purple-50 rounded-full text-xs font-semibold text-purple-700 capitalize">
-                          {service.category.replace("_", " ")}
+                          {service.category?.replace("_", " ") || "Service"}
                         </span>
                       </div>
                     </div>
