@@ -4,6 +4,7 @@ import { logger } from '../../lib/logger';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import ServicesTab from './ServicesTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   User, MapPin, Save, Camera, RefreshCw, Clock, DollarSign,
@@ -1310,178 +1311,23 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="services">
-              <div className="space-y-8 rounded-3xl border border-pink-100 bg-white p-6 shadow-sm">
-                
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-fuchsia-500" /> Signature Services & Rate Card
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-500">Manage what your clients see. Add inclusions, advance amounts, and home service details.</p>
-                  </div>
-                  <button type="button" onClick={() => toast.info("Opening Customer Preview...")} className="flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-purple-600 hover:bg-purple-100 transition">
-                    <Globe className="w-3.5 h-3.5" /> Preview as Customer
-                  </button>
-                </div>
-
-                <div className={`rounded-3xl border p-5 transition-all shadow-sm ${editingServiceId ? 'border-fuchsia-300 bg-fuchsia-50/40' : 'border-pink-200 bg-[#fdf4f8]/50'}`}>
-                  <div className="mb-4 pb-3 border-b border-pink-100/50 flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-fuchsia-600">
-                      {editingServiceId ? '✏️ Editing Service Details' : '✨ Add New Service'}
-                    </span>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Status</span>
-                      <input type="checkbox" checked={serviceForm.isActive} onChange={(e) => setServiceForm(prev => ({ ...prev, isActive: e.target.checked }))} className="w-8 h-4 rounded-full appearance-none bg-slate-200 checked:bg-emerald-500 transition-colors relative cursor-pointer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-transform checked:after:translate-x-4" />
-                    </label>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-12">
-                    <div className="md:col-span-8">
-                      <input value={serviceForm.title} onChange={(e) => setServiceForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Service Name (e.g. Bridal HD Makeup)" className="w-full rounded-2xl border border-pink-200 bg-white px-4 py-3 text-sm font-bold shadow-sm outline-none focus:border-fuchsia-400" />
-                    </div>
-                    
-                    <div className="md:col-span-4 flex gap-2">
-                      <select value={serviceForm.priceType} onChange={(e) => setServiceForm(prev => ({ ...prev, priceType: e.target.value }))} className="w-1/3 rounded-2xl border border-pink-200 bg-white px-2 py-3 text-[11px] font-black uppercase tracking-wider text-slate-600 shadow-sm outline-none">
-                        <option value="fixed">Fixed</option>
-                        <option value="starting">Starts At</option>
-                        <option value="custom">Custom</option>
-                      </select>
-                      <div className="relative w-2/3">
-                        <span className="absolute left-3 top-3 text-slate-400 font-bold">₹</span>
-                        <input value={serviceForm.price} onChange={(e) => setServiceForm(prev => ({ ...prev, price: e.target.value }))} type="number" placeholder="Price" className="w-full rounded-2xl border border-pink-200 bg-white py-3 pl-7 pr-3 text-sm font-bold shadow-sm outline-none focus:border-fuchsia-400" />
-                      </div>
-                    </div>
-
-                    <div className="md:col-span-12">
-                      <button type="button" onClick={() => setShowAdvancedServiceOptions(!showAdvancedServiceOptions)} className="text-[10px] font-black uppercase tracking-widest text-fuchsia-500 hover:text-fuchsia-700 flex items-center gap-1">
-                        {showAdvancedServiceOptions ? 'Hide Advanced Options ▴' : 'Show Advanced Options (Inclusions, Add-ons, Advance) ▾'}
-                      </button>
-                    </div>
-
-                    {showAdvancedServiceOptions && (
-                      <div className="md:col-span-12 grid gap-4 md:grid-cols-12 p-4 bg-white/60 rounded-2xl border border-pink-100">
-                        <div className="md:col-span-6">
-                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">What's Included (Comma separated)</label>
-                          <input value={serviceForm.whatsIncluded} onChange={(e) => setServiceForm(prev => ({ ...prev, whatsIncluded: e.target.value }))} placeholder="HD Makeup, Hairstyling, Draping..." className="w-full rounded-xl border border-pink-200 bg-white px-3 py-2.5 text-xs font-bold shadow-sm outline-none focus:border-fuchsia-400" />
-                        </div>
-                        <div className="md:col-span-6">
-                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Add-ons (Optional Up-sells)</label>
-                          <input value={serviceForm.addons} onChange={(e) => setServiceForm(prev => ({ ...prev, addons: e.target.value }))} placeholder="Premium Lashes +₹500, Extra Draping +₹300" className="w-full rounded-xl border border-pink-200 bg-white px-3 py-2.5 text-xs font-bold shadow-sm outline-none focus:border-fuchsia-400" />
-                        </div>
-                        <div className="md:col-span-4 relative">
-                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Advance Amount (₹)</label>
-                          <span className="absolute left-3 top-[26px] text-slate-400 font-bold text-xs">₹</span>
-                          <input value={serviceForm.advanceAmount} onChange={(e) => setServiceForm(prev => ({ ...prev, advanceAmount: e.target.value }))} type="number" placeholder="5000" className="w-full rounded-xl border border-pink-200 bg-white py-2.5 pl-7 pr-3 text-xs font-bold shadow-sm outline-none" />
-                        </div>
-                        <div className="md:col-span-4">
-                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Category</label>
-                          <select value={serviceForm.category} onChange={(e) => setServiceForm(prev => ({ ...prev, category: e.target.value }))} className="w-full rounded-xl border border-pink-200 bg-white px-3 py-2.5 text-xs font-bold shadow-sm outline-none">
-                            <option value="bridal">Bridal Package</option>
-                            <option value="party">Party / Guest Look</option>
-                            <option value="pre_wedding">Pre-Wedding / Engagement</option>
-                            <option value="trial">Makeup Trial</option>
-                          </select>
-                        </div>
-                        <div className="md:col-span-4">
-                          <label className="ml-1 mb-1 block text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Duration (Mins)</label>
-                          <input value={serviceForm.duration} onChange={(e) => setServiceForm(prev => ({ ...prev, duration: e.target.value }))} type="number" placeholder="120" className="w-full rounded-xl border border-pink-200 bg-white px-3 py-2.5 text-xs font-bold shadow-sm outline-none" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3 mt-5 md:w-1/2 ml-auto">
-                    {editingServiceId && (
-                      <button type="button" onClick={handleCancelServiceEdit} className="w-1/3 flex items-center justify-center rounded-xl bg-white border border-slate-200 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all shadow-sm">
-                        Cancel
-                      </button>
-                    )}
-                    <button type="button" onClick={() => void handleServiceSave()} disabled={servicesLoading} className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-lg transition-all disabled:opacity-50 ${editingServiceId ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 shadow-fuchsia-500/30' : 'bg-gradient-to-r from-pink-500 to-fuchsia-500 shadow-pink-500/30 hover:scale-[1.02]'}`}>
-                      {servicesLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : (editingServiceId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />)} 
-                      {editingServiceId ? 'Update Service' : 'Add to Rate Card'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-10">
-                  <div className="flex items-center justify-between mb-5">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                      Your Published Services <span className="bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full text-[10px]">{services.length}</span>
-                    </h4>
-                  </div>
-                  
-                  {services.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 bg-pink-50/40 rounded-3xl border-2 border-dashed border-pink-200">
-                      <Crown className="w-10 h-10 text-pink-300 mb-3" />
-                      <p className="text-sm font-bold text-slate-600">Your rate card is empty!</p>
-                      <p className="text-xs text-slate-400 mt-1 max-w-sm text-center">Start adding your makeup packages and services above to allow clients to book you.</p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {services.map(service => (
-                        <div key={service.id} className={`flex flex-col rounded-3xl border bg-white shadow-sm transition-all overflow-hidden ${!service.is_active ? 'opacity-70 grayscale-[20%]' : 'hover:shadow-md hover:border-pink-300'} ${editingServiceId === service.id ? 'ring-2 ring-fuchsia-400 ring-offset-2' : 'border-pink-100'}`}>
-                          
-                          <div className="p-5 flex-1">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div>
-                                <span className="inline-block px-2 py-1 bg-purple-50 text-purple-600 text-[8px] font-black uppercase tracking-widest rounded-md mb-2">
-                                  {service.category?.replace('_', ' ')} · {service.duration_minutes || 60} mins
-                                </span>
-                                <h4 className="text-base font-black text-slate-900 leading-tight">{service.title}</h4>
-                              </div>
-                              
-                              <button onClick={() => toggleServiceStatus(service.id, service.is_active)} className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-colors ${service.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${service.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                                {service.is_active ? 'Live' : 'Hidden'}
-                              </button>
-                            </div>
-
-                            <div className="flex items-end gap-2 mt-3 mb-4">
-                              <h3 className="text-xl font-black text-pink-600">₹{service.price}</h3>
-                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 pb-0.5">
-                                {service.price_type === 'starting' ? 'Starting From' : service.price_type === 'custom' ? 'Custom Quote' : 'Fixed Price'}
-                              </span>
-                            </div>
-
-                            {service.whats_included && (
-                              <div className="mb-3">
-                                <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Includes:</p>
-                                <p className="text-xs font-semibold text-slate-700 leading-relaxed flex flex-wrap gap-1">
-                                  {service.whats_included.split(',').map((item: string, i: number) => (
-                                    <span key={i} className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">• {item.trim()}</span>
-                                  ))}
-                                </p>
-                              </div>
-                            )}
-
-                            {service.advance_amount && (
-                              <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-100 px-2 py-1 rounded-md text-[9px] font-extrabold text-amber-700 uppercase tracking-widest">
-                                <DollarSign className="w-3 h-3" /> ₹{service.advance_amount} Advance required
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center border-t border-slate-50 bg-slate-50/50 p-2">
-                            <button type="button" onClick={() => handleServiceEdit(service)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-purple-600 hover:bg-white rounded-xl transition-all">
-                              <PencilLine className="w-3.5 h-3.5" /> Edit
-                            </button>
-                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                            <button type="button" onClick={() => handleServiceDuplicate(service)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-blue-600 hover:bg-white rounded-xl transition-all">
-                              Duplicate
-                            </button>
-                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                            <button type="button" onClick={() => handleServiceDelete(service.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-700 hover:bg-white rounded-xl transition-all">
-                              <Trash2 className="w-3.5 h-3.5" /> Delete
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
+           <TabsContent value="services">
+  <ServicesTab
+    services={services}
+    servicesLoading={servicesLoading}
+    editingServiceId={editingServiceId}
+    showAdvancedServiceOptions={showAdvancedServiceOptions}
+    setShowAdvancedServiceOptions={setShowAdvancedServiceOptions}
+    serviceForm={serviceForm}
+    setServiceForm={setServiceForm}
+    onSave={handleServiceSave}
+    onEdit={handleServiceEdit}
+    onDuplicate={handleServiceDuplicate}
+    onDelete={handleServiceDelete}
+    onCancelEdit={handleCancelServiceEdit}
+    onToggleStatus={toggleServiceStatus}
+  />
+</TabsContent>
 
             <TabsContent value="availability">
               <div className="space-y-6 rounded-3xl border border-pink-100 bg-white p-6 shadow-sm">
