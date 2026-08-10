@@ -113,6 +113,8 @@ export const useVerifiedArtists = (options?: {
               return (b.total_reviews || 0) - (a.total_reviews || 0);
             case 'nearby':
             default:
+              // Distance calculation would require lat/lng and PostGIS
+              // For now, return as-is or implement Haversine formula in JS
               return 0;
           }
         });
