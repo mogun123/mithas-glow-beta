@@ -107,7 +107,7 @@ return b.booking_time || b.appointment_time || b.time || 'Time TBD';
 const fetchBookings = useCallback(async (targetArtistId: string): Promise<BookingWithCustomer[]> => {
 const { data: bookingsData, error: bookingsError } = await supabase
 .from('bookings')
-.select(*, customer:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url))
+.select('*, customer:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url)')
 .eq('artist_id', targetArtistId)
 .order('created_at', { ascending: false });
 
