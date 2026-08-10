@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useGlobalStore } from '../lib/globalStore';
 import {
 Calendar, Clock, DollarSign, Star, Users, AlertCircle,
-CheckCircle, XCircle, MapPin, Zap, Crown
+CheckCircle, XCircle, MapPin, Zap, Crown, Cpu, Radio, Shield
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProfessionalBottomNav from './ProfessionalBottomNav';
@@ -54,13 +54,13 @@ const ProfessionalAIAssistant = lazy(() => import('./professional/ProfessionalAI
 const ProfessionalAnalytics = lazy(() => import('./professional/ProfessionalAnalytics'));
 const ProfessionalProfile = lazy(() => import('./professional/ProfessionalProfile'));
 
-// Helper for status badge styling
+// Helper for status badge styling - Cyberpunk HUD colors
 const getStatusColor = (status: BookingStatus): string => {
 switch (status) {
-case "pending": return "bg-amber-50 text-amber-700 border-amber-200";
-case "confirmed": return "bg-blue-50 text-blue-700 border-blue-200";
-case "completed": return "bg-emerald-50 text-emerald-700 border-emerald-200";
-default: return "bg-slate-100 text-slate-600 border-slate-200";
+case "pending": return "bg-cyan-950/40 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(34,211,238,0.3)]";
+case "confirmed": return "bg-emerald-950/40 text-emerald-400 border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.3)]";
+case "completed": return "bg-violet-950/40 text-violet-400 border-violet-500/50 shadow-[0_0_10px_rgba(167,139,250,0.3)]";
+default: return "bg-slate-950/40 text-slate-400 border-slate-500/50";
 }
 };
 
@@ -261,9 +261,11 @@ return () => {
 
 if (initialLoading) {
 return (
-<div className="min-h-screen bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA] relative overflow-hidden pb-32">
+<div className="min-h-screen bg-[#030712] relative overflow-hidden pb-32">
+<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a]"></div>
+<div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMEw0MCA0MFoiIGZpbGw9InJnYmEoMTM5LDkyLDI0NiwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20 pointer-events-none"></div>
 <OfflineBanner isOnline={isOnline} onRetry={handleRetry} />
-<div className="max-w-4xl mx-auto px-4 pt-4">
+<div className="relative max-w-4xl mx-auto px-4 pt-4">
 <DashboardSkeleton />
 </div>
 </div>
@@ -272,14 +274,15 @@ return (
 
 if (!isProfessionalUser || !profile) {
 return (
-<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA] relative overflow-hidden">
-<div className="text-center max-w-sm w-full mx-4 p-6 bg-white/70 backdrop-blur-xl border border-white rounded-3xl shadow-xl">
-<AlertCircle className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-<h2 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Access Restricted</h2>
-<p className="text-sm text-slate-700 font-medium mb-6 leading-relaxed">You don't have access to the professional dashboard.</p>
+<div className="min-h-screen flex items-center justify-center bg-[#030712] relative overflow-hidden">
+<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a]"></div>
+<div className="relative text-center max-w-sm w-full mx-4 p-6 bg-slate-950/80 backdrop-blur-xl border border-cyan-500/30 rounded-2xl shadow-[0_0_40px_rgba(34,211,238,0.15)]">
+<AlertCircle className="w-16 h-16 text-cyan-400 mx-auto mb-4 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
+<h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 mb-2 tracking-tight">Access Restricted</h2>
+<p className="text-sm text-slate-400 font-medium mb-6 leading-relaxed">You don't have access to the professional dashboard.</p>
 <button  
 onClick={onNavigateHome}  
-className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white font-bold rounded-full shadow-lg shadow-purple-500/30 hover:scale-105 transition-all"  
+className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-fuchsia-600 text-white font-bold rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] hover:scale-105 transition-all duration-300 border border-cyan-500/30"  
 >
 Return to Home
 </button>
@@ -289,21 +292,26 @@ Return to Home
 }
 
 return (
-<div className="min-h-screen bg-gradient-to-br from-[#F4F0FA] via-[#FDF2F8] to-[#F4F0FA] relative overflow-hidden pb-32">
-<div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-purple-300/15 rounded-full blur-[80px] -z-10 pointer-events-none"></div>
-<div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-fuchsia-300/15 rounded-full blur-[80px] -z-10 pointer-events-none"></div>
+<div className="min-h-screen bg-[#030712] relative overflow-hidden pb-32">
+<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a]"></div>
+<div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMEw0MCA0MFoiIGZpbGw9InJnYmEoMTM5LDkyLDI0NiwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20 pointer-events-none"></div>
+<div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-cyan-500/10 rounded-full blur-[100px] -z-10 pointer-events-none animate-pulse"></div>
+<div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-fuchsia-500/10 rounded-full blur-[100px] -z-10 pointer-events-none animate-pulse" style={{animationDelay: '1s'}}></div>
 
-<header className="sticky top-0 z-30 bg-white/60 backdrop-blur-2xl border-b border-purple-100 shadow-sm">  
+<header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-2xl border-b border-cyan-500/30 shadow-[0_4px_30px_rgba(34,211,238,0.1)]">  
     <div className="max-w-4xl mx-auto px-4 py-3">  
       <div className="flex items-center justify-between">  
         <div>  
           <div className="flex items-center gap-1.5">  
-            <Crown className="w-5 h-5 text-purple-600" />  
-            <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-fuchsia-500 to-purple-600 italic tracking-tighter">  
+            <Crown className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />  
+            <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 italic tracking-tighter drop-shadow-[0_0_10px_rgba(34,211,238,0.3)]">  
               MITHAS GLOW  
             </h1>  
           </div>  
-          <p className="text-[10px] text-slate-600 font-bold tracking-widest mt-0.5">PROFESSIONAL DASHBOARD</p>  
+          <p className="text-[10px] text-cyan-400/80 font-bold tracking-[0.2em] mt-0.5 flex items-center gap-1">
+            <Shield className="w-3 h-3 inline" />
+            PROFESSIONAL DASHBOARD
+          </p>  
         </div>  
           
         <div className="flex items-center gap-2">  
@@ -314,10 +322,10 @@ return (
               const newMode = useGlobalStore.getState().appViewMode;  
               toast.success(newMode === 'self' ? 'Switched to Self Mode' : 'Switched to Pro Mode');  
             }}  
-            className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold transition-all duration-300 ${  
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold transition-all duration-300 border ${  
               globalStore.appViewMode === 'pro'   
-                ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white shadow-lg shadow-purple-500/30'   
-                : 'bg-white/80 text-slate-700 border border-purple-200'  
+                ? 'bg-gradient-to-r from-cyan-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)] border-cyan-500/50'   
+                : 'bg-slate-900/80 text-cyan-400 border-cyan-500/30'  
             }`}  
           >  
             <Zap className="w-3 h-3 inline mr-1" />  
@@ -326,12 +334,12 @@ return (
             
           <button  
             onClick={onNavigateToProfile}  
-            className="w-8 h-8 rounded-full bg-white border border-purple-200 shadow-sm flex items-center justify-center overflow-hidden"  
+            className="w-8 h-8 rounded-lg bg-slate-900/80 border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.2)] flex items-center justify-center overflow-hidden hover:border-cyan-400/50 transition-colors"  
           >  
             {profile?.avatar_url ? (  
               <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />  
             ) : (  
-              <Users className="w-4 h-4 text-purple-400" />  
+              <Users className="w-4 h-4 text-cyan-400" />  
             )}  
           </button>  
         </div>  
@@ -344,30 +352,30 @@ return (
       <ErrorBoundaryWrapper moduleName="DashboardOverview" errorMessage={loadError} onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>  
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">  
         {loadError && (  
-          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-700 font-semibold">  
+          <div className="mb-4 rounded-xl border border-red-500/50 bg-red-950/40 p-3 text-sm text-red-400 font-semibold shadow-[0_0_15px_rgba(248,113,113,0.2)]">  
             {loadError}  
           </div>  
         )}  
 
         <div className="mb-4">  
-          <div className="relative overflow-hidden bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white shadow-sm">  
+          <div className="relative overflow-hidden bg-slate-950/60 backdrop-blur-xl rounded-xl p-4 border border-cyan-500/30 shadow-[0_0_30px_rgba(34,211,238,0.1)]">  
             <div className="flex items-center gap-3">  
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-100 to-fuchsia-50 border border-white flex items-center justify-center text-xl overflow-hidden flex-shrink-0 shadow-sm">  
+              <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-cyan-950/50 to-fuchsia-950/50 border border-cyan-500/30 flex items-center justify-center text-xl overflow-hidden flex-shrink-0 shadow-[0_0_20px_rgba(34,211,238,0.15)]">  
                 {profile?.avatar_url ? (  
                   <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />  
                 ) : (  
-                  <span>👤</span>  
+                  <span className="text-2xl">👤</span>  
                 )}  
               </div>  
               <div className="flex-1">  
-                <h2 className="text-lg font-extrabold text-slate-900 tracking-tight leading-tight">  
-                  Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-fuchsia-600">{profile?.shop_name || profile?.display_name || "Professional"}</span>  
+                <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 tracking-tight leading-tight">  
+                  Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400">{profile?.shop_name || profile?.display_name || "Professional"}</span>  
                 </h2>  
-                <p className="text-xs text-slate-700 font-bold mt-1">{formatIndustry(profile?.industry)}</p>  
-                <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-700 font-bold">  
+                <p className="text-xs text-cyan-400/70 font-bold mt-1 tracking-wide">{formatIndustry(profile?.industry)}</p>  
+                <div className="flex items-center gap-2 mt-2 text-[11px] text-cyan-400/80 font-bold">  
                   {profile?.city && (  
-                    <span className="flex items-center gap-1 bg-white/60 px-2 py-1 rounded-full border border-purple-100">  
-                      <MapPin className="w-3 h-3 text-purple-500" /> {profile.city}  
+                    <span className="flex items-center gap-1 bg-cyan-950/40 px-2 py-1 rounded-lg border border-cyan-500/30 shadow-[0_0_10px_rgba(34,211,238,0.15)]">  
+                      <MapPin className="w-3 h-3 text-cyan-400" /> {profile.city}  
                     </span>  
                   )}  
                 </div>  
@@ -377,40 +385,40 @@ return (
         </div>  
 
         <div className="grid grid-cols-2 gap-3 mb-4">  
-          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white shadow-sm">  
+          <div className="bg-slate-950/60 backdrop-blur-xl rounded-xl p-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">  
             <div className="flex items-center gap-2 mb-2">  
-              <div className="p-1.5 rounded-lg bg-purple-100/80"><Calendar className="w-4 h-4 text-purple-600" /></div>  
-              <span className="text-lg font-extrabold text-slate-900">{stats.todayBookings}</span>  
+              <div className="p-1.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30"><Calendar className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" /></div>  
+              <span className="text-lg font-black text-cyan-400">{stats.todayBookings}</span>  
             </div>  
-            <p className="text-[11px] text-slate-700 font-bold">Today's Bookings</p>  
+            <p className="text-[11px] text-cyan-400/80 font-bold">Today's Bookings</p>  
           </div>  
 
-          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white shadow-sm">  
+          <div className="bg-slate-950/60 backdrop-blur-xl rounded-xl p-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">  
             <div className="flex items-center gap-2 mb-2">  
-              <div className="p-1.5 rounded-lg bg-fuchsia-100/80"><AlertCircle className="w-4 h-4 text-fuchsia-600" /></div>  
-              <span className="text-lg font-extrabold text-slate-900">{stats.pendingRequests}</span>  
+              <div className="p-1.5 rounded-lg bg-fuchsia-950/40 border border-fuchsia-500/30"><AlertCircle className="w-4 h-4 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]" /></div>  
+              <span className="text-lg font-black text-fuchsia-400">{stats.pendingRequests}</span>  
             </div>  
-            <p className="text-[11px] text-slate-700 font-bold">Pending Requests</p>  
+            <p className="text-[11px] tracking-wide text-slate-400 font-bold">Pending Requests</p>  
           </div>  
 
-          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white shadow-sm">  
+          <div className="bg-slate-950/60 backdrop-blur-xl rounded-xl p-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">  
             <div className="flex items-center gap-2 mb-2">  
-              <div className="p-1.5 rounded-lg bg-emerald-100/80"><DollarSign className="w-4 h-4 text-emerald-600" /></div>  
-              <span className="text-base font-extrabold text-slate-900">₹{stats.todaysEarnings.toLocaleString()}</span>  
+              <div className="p-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30"><DollarSign className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" /></div>  
+              <span className="text-base font-black text-emerald-400">₹{stats.todaysEarnings.toLocaleString()}</span>  
             </div>  
-            <p className="text-[11px] text-slate-700 font-bold">Today's Earnings</p>  
+            <p className="text-[11px] text-cyan-400/80 font-bold">Today's Earnings</p>  
           </div>  
 
-          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 border border-white shadow-sm">  
+          <div className="bg-slate-950/60 backdrop-blur-xl rounded-xl p-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">  
             <div className="flex items-center gap-2 mb-2">  
-              <div className="p-1.5 rounded-lg bg-amber-100/80"><Star className="w-4 h-4 text-amber-600" /></div>  
-              <span className="text-lg font-extrabold text-slate-900">{stats.averageRating.toFixed(1)}</span>  
+              <div className="p-1.5 rounded-lg bg-amber-950/40 border border-amber-500/30"><Star className="w-4 h-4 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" /></div>  
+              <span className="text-lg font-black text-cyan-400">{stats.averageRating.toFixed(1)}</span>  
             </div>  
-            <p className="text-[11px] text-slate-700 font-bold">Average Rating ({stats.reviewCount})</p>  
+            <p className="text-[11px] text-cyan-400/80 font-bold">Average Rating ({stats.reviewCount})</p>  
           </div>  
         </div>  
 
-        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white shadow-sm overflow-hidden mb-6">  
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white shadow-[0_0_20px_rgba(34,211,238,0.15)] overflow-hidden mb-6">  
           <div className="p-4 border-b border-purple-100/50 bg-white/40">  
             <div className="flex items-center justify-between mb-4">  
               <h3 className="text-lg font-extrabold text-slate-900">Bookings</h3>  
@@ -422,7 +430,7 @@ return (
                 <button  
                   key={filter}  
                   onClick={() => setBookingFilter(filter)}  
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-sm ${  
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-[0_0_20px_rgba(34,211,238,0.15)] ${  
                     bookingFilter === filter ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white' : 'bg-white text-slate-700 border border-purple-100'  
                   }`}  
                 >  
@@ -441,22 +449,22 @@ return (
             ) : (  
               <div className="space-y-3">  
                 {displayedBookings.map((booking) => (  
-                  <div key={booking.id} className="bg-white/90 rounded-xl p-4 border border-white shadow-sm">  
+                  <div key={booking.id} className="bg-white/90 rounded-xl p-4 border border-white shadow-[0_0_20px_rgba(34,211,238,0.15)]">  
                     <div className="flex items-start gap-3">  
-                      <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-lg shadow-sm">  
+                      <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-lg shadow-[0_0_20px_rgba(34,211,238,0.15)]">  
                         {booking.customer?.avatar_url ? <img src={booking.customer.avatar_url} className="w-full h-full object-cover rounded-xl" /> : '👤'}  
                       </div>  
                       <div className="flex-1 min-w-0">  
                         <div className="flex items-center justify-between gap-1 mb-1">  
                           <h4 className="font-extrabold text-slate-900 truncate text-base">{booking.customer?.full_name || "Customer"}</h4>  
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border shadow-sm ${getStatusColor(booking.status)}`}>  
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border shadow-[0_0_20px_rgba(34,211,238,0.15)] ${getStatusColor(booking.status)}`}>  
                             {booking.status}  
                           </span>  
                         </div>  
                         <p className="text-xs text-slate-700 font-bold mb-2">{booking.service_name || "Service"}</p>  
                         <div className="flex flex-wrap gap-2 text-[10px] text-slate-700 font-bold">  
-                          <span className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-purple-100"><Calendar className="w-3 h-3 text-purple-500" /> {getSafeDate(booking)}</span>  
-                          <span className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-purple-100"><Clock className="w-3 h-3 text-purple-500" /> {getSafeTime(booking)}</span>  
+                          <span className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-purple-100"><Calendar className="w-3 h-3 text-cyan-400" /> {getSafeDate(booking)}</span>  
+                          <span className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-purple-100"><Clock className="w-3 h-3 text-cyan-400" /> {getSafeTime(booking)}</span>  
                           {booking.total_price && <span className="flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded text-emerald-700"><DollarSign className="w-3 h-3" /> ₹{booking.total_price}</span>}  
                         </div>  
                       </div>  
