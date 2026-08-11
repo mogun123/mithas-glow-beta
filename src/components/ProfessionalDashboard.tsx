@@ -52,10 +52,10 @@ const ProfessionalProfile = lazy(() => import('./professional/ProfessionalProfil
 // Helper for status badge styling
 const getStatusColor = (status: BookingStatus): string => {
   switch (status) {
-    case "pending": return "bg-cyan-950/40 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(34,211,238,0.3)]";
+    case "pending": return "bg-pink-950/40 text-pink-400 border-pink-500/50 shadow-[0_0_10px_rgba(236,72,153,0.3)]";
     case "confirmed": return "bg-emerald-950/40 text-emerald-400 border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.3)]";
-    case "completed": return "bg-violet-950/40 text-violet-400 border-violet-500/50 shadow-[0_0_10px_rgba(167,139,250,0.3)]";
-    default: return "bg-slate-950/40 text-slate-400 border-slate-500/50";
+    case "completed": return "bg-purple-950/40 text-purple-400 border-purple-500/50 shadow-[0_0_10px_rgba(192,132,252,0.3)]";
+    default: return "bg-[#2d1b4e]/40 text-slate-400 border-slate-500/50";
   }
 };
 
@@ -265,9 +265,9 @@ export default function ProfessionalDashboard({
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-[#030712] relative overflow-hidden pb-32">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a] pointer-events-none"></div>
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMEw0MCA0MFoiIGZpbGw9InJnYmEoMTM5LDkyLDI0NiwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20 pointer-events-none"></div>
+      <div className="min-h-screen bg-gradient-to-br from-[#1a0b2e] via-[#2d1b4e] to-[#1e0f3a] relative overflow-hidden pb-32">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-[#1a0b2e] to-[#0f0518] pointer-events-none"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMEw0MCA0MFoiIGZpbGw9InJnYmEoMTkxLDExMywyNDAsMC4wNSkiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20 pointer-events-none"></div>
         <OfflineBanner isOnline={isOnline} onRetry={handleRetry} />
         <div className="relative max-w-4xl mx-auto px-4 pt-4 z-10">
           <DashboardSkeleton />
@@ -278,15 +278,15 @@ export default function ProfessionalDashboard({
 
   if (!isProfessionalUser || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#030712] relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a] pointer-events-none"></div>
-        <div className="relative text-center max-w-sm w-full mx-4 p-6 bg-slate-950/80 backdrop-blur-xl border border-cyan-500/30 rounded-2xl shadow-[0_0_40px_rgba(34,211,238,0.15)] z-10">
-          <AlertCircle className="w-16 h-16 text-cyan-400 mx-auto mb-4 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
-          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 mb-2 tracking-tight">Access Restricted</h2>
-          <p className="text-sm text-slate-400 font-medium mb-6 leading-relaxed">You don't have access to the professional dashboard.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0b2e] via-[#2d1b4e] to-[#1e0f3a] relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-[#1a0b2e] to-[#0f0518] pointer-events-none"></div>
+        <div className="relative text-center max-w-sm w-full mx-4 p-6 bg-[#2d1b4e]/80 backdrop-blur-xl border border-pink-500/30 rounded-2xl shadow-[0_0_40px_rgba(236,72,153,0.15)] z-10">
+          <AlertCircle className="w-16 h-16 text-pink-400 mx-auto mb-4 drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]" />
+          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-lavender-400 to-purple-400 mb-2 tracking-tight">Access Restricted</h2>
+          <p className="text-sm text-pink-200/70 font-medium mb-6 leading-relaxed">You don't have access to the professional dashboard.</p>
           <button
             onClick={onNavigateHome}
-            className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-fuchsia-600 text-white font-bold rounded-lg shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] hover:scale-105 transition-all duration-300 border border-cyan-500/30"
+            className="w-full px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold rounded-lg shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] hover:scale-105 transition-all duration-300 border border-pink-500/30"
           >
             Return to Home
           </button>
@@ -296,23 +296,23 @@ export default function ProfessionalDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-[#030712] relative overflow-hidden pb-32">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a] pointer-events-none"></div>
-      <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMEw0MCA0MFoiIGZpbGw9InJnYmEoMTM5LDkyLDI0NiwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20 pointer-events-none"></div>
-      <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-cyan-500/10 rounded-full blur-[100px] -z-10 pointer-events-none animate-pulse"></div>
-      <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-fuchsia-500/10 rounded-full blur-[100px] -z-10 pointer-events-none animate-pulse" style={{ animationDelay: '1s' }}></div>
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0b2e] via-[#2d1b4e] to-[#1e0f3a] relative overflow-hidden pb-32">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-[#1a0b2e] to-[#0f0518] pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMEw0MCA0MFoiIGZpbGw9InJnYmEoMTkxLDExMywyNDAsMC4wNSkiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20 pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-pink-500/15 rounded-full blur-[100px] -z-10 pointer-events-none animate-pulse"></div>
+      <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-lavender-500/15 rounded-full blur-[100px] -z-10 pointer-events-none animate-pulse" style={{ animationDelay: '1s' }}></div>
 
-      <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-2xl border-b border-cyan-500/30 shadow-[0_4px_30px_rgba(34,211,238,0.1)]">
+      <header className="sticky top-0 z-30 bg-[#1a0b2e]/80 backdrop-blur-2xl border-b border-pink-500/30 shadow-[0_4px_30px_rgba(236,72,153,0.15)]">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-1.5">
-                <Crown className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
-                <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 italic tracking-tighter drop-shadow-[0_0_10px_rgba(34,211,238,0.3)]">
+                <Crown className="w-5 h-5 text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
+                <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-lavender-400 to-purple-400 italic tracking-tighter drop-shadow-[0_0_10px_rgba(236,72,153,0.3)]">
                   MITHAS GLOW
                 </h1>
               </div>
-              <p className="text-[10px] text-cyan-400/80 font-bold tracking-[0.2em] mt-0.5 flex items-center gap-1">
+              <p className="text-[10px] text-pink-400/80 font-bold tracking-[0.2em] mt-0.5 flex items-center gap-1">
                 <Shield className="w-3 h-3 inline" />
                 PROFESSIONAL DASHBOARD
               </p>
@@ -326,8 +326,8 @@ export default function ProfessionalDashboard({
                   toast.success(newMode === 'self' ? 'Switched to Self Mode' : 'Switched to Pro Mode');
                 }}
                 className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold transition-all duration-300 border ${globalStore.appViewMode === 'pro'
-                    ? 'bg-gradient-to-r from-cyan-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.4)] border-cyan-500/50'
-                    : 'bg-slate-900/80 text-cyan-400 border-cyan-500/30'
+                    ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-[0_0_20px_rgba(236,72,153,0.4)] border-pink-500/50'
+                    : 'bg-[#2d1b4e]/80 text-pink-400 border-pink-500/30'
                   }`}
               >
                 <Zap className="w-3 h-3 inline mr-1" />
@@ -336,12 +336,12 @@ export default function ProfessionalDashboard({
 
               <button
                 onClick={onNavigateToProfile}
-                className="w-8 h-8 rounded-lg bg-slate-900/80 border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.2)] flex items-center justify-center overflow-hidden hover:border-cyan-400/50 transition-colors"
+                className="w-8 h-8 rounded-lg bg-[#2d1b4e]/80 border border-pink-500/30 shadow-[0_0_15px_rgba(236,72,153,0.2)] flex items-center justify-center overflow-hidden hover:border-pink-400/50 transition-colors"
               >
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <Users className="w-4 h-4 text-cyan-400" />
+                  <Users className="w-4 h-4 text-pink-400" />
                 )}
               </button>
             </div>
@@ -360,9 +360,9 @@ export default function ProfessionalDashboard({
               )}
 
               <div className="mb-4">
-                <div className="relative overflow-hidden bg-slate-950/60 backdrop-blur-xl rounded-xl p-4 border border-cyan-500/30 shadow-[0_0_30px_rgba(34,211,238,0.1)]">
+                <div className="relative overflow-hidden bg-[#2d1b4e]/60 backdrop-blur-xl rounded-xl p-4 border border-pink-500/30 shadow-[0_0_30px_rgba(236,72,153,0.15)]">
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-cyan-950/50 to-fuchsia-950/50 border border-cyan-500/30 flex items-center justify-center text-xl overflow-hidden flex-shrink-0 shadow-[0_0_20px_rgba(34,211,238,0.15)]">
+                    <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-pink-950/50 to-purple-950/50 border border-pink-500/30 flex items-center justify-center text-xl overflow-hidden flex-shrink-0 shadow-[0_0_20px_rgba(236,72,153,0.15)]">
                       {profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -371,16 +371,16 @@ export default function ProfessionalDashboard({
                     </div>
                     <div className="flex-1">
                       {/* DYNAMIC SHOP NAME INJECTED HERE */}
-                      <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 tracking-tight leading-tight">
-                        Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400">{liveShopName || profile?.shop_name || profile?.display_name || "Professional"}</span>
+                      <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-lavender-400 to-purple-400 tracking-tight leading-tight">
+                        Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-lavender-400">{liveShopName || profile?.shop_name || profile?.display_name || "Professional"}</span>
                       </h2>
-                      <p className="text-xs text-cyan-400/70 font-bold mt-1 tracking-wide">{formatIndustry(profile?.industry)}</p>
+                      <p className="text-xs text-pink-400/70 font-bold mt-1 tracking-wide">{formatIndustry(profile?.industry)}</p>
                       
                       {/* DYNAMIC CITY INJECTED HERE */}
-                      <div className="flex items-center gap-2 mt-2 text-[11px] text-cyan-400/80 font-bold">
+                      <div className="flex items-center gap-2 mt-2 text-[11px] text-pink-400/80 font-bold">
                         {(liveCity || profile?.city) && (
-                          <span className="flex items-center gap-1 bg-cyan-950/40 px-2 py-1 rounded-lg border border-cyan-500/30 shadow-[0_0_10px_rgba(34,211,238,0.15)]">
-                            <MapPin className="w-3 h-3 text-cyan-400" /> {liveCity || profile?.city}
+                          <span className="flex items-center gap-1 bg-pink-950/40 px-2 py-1 rounded-lg border border-pink-500/30 shadow-[0_0_10px_rgba(236,72,153,0.15)]">
+                            <MapPin className="w-3 h-3 text-pink-400" /> {liveCity || profile?.city}
                           </span>
                         )}
                       </div>
@@ -390,52 +390,52 @@ export default function ProfessionalDashboard({
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-slate-950/60 backdrop-blur-xl rounded-xl p-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                <div className="bg-[#2d1b4e]/60 backdrop-blur-xl rounded-xl p-3 border border-pink-500/30 shadow-[0_0_20px_rgba(236,72,153,0.1)]">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30"><Calendar className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" /></div>
-                    <span className="text-lg font-black text-cyan-400">{stats.todayBookings}</span>
+                    <div className="p-1.5 rounded-lg bg-pink-950/40 border border-pink-500/30"><Calendar className="w-4 h-4 text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.5)]" /></div>
+                    <span className="text-lg font-black text-pink-400">{stats.todayBookings}</span>
                   </div>
-                  <p className="text-[11px] text-cyan-400/80 font-bold">Today's Bookings</p>
+                  <p className="text-[11px] text-pink-400/80 font-bold">Today's Bookings</p>
                 </div>
 
-                <div className="bg-slate-950/60 backdrop-blur-xl rounded-xl p-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                <div className="bg-[#2d1b4e]/60 backdrop-blur-xl rounded-xl p-3 border border-pink-500/30 shadow-[0_0_20px_rgba(236,72,153,0.1)]">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-lg bg-fuchsia-950/40 border border-fuchsia-500/30"><AlertCircle className="w-4 h-4 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]" /></div>
-                    <span className="text-lg font-black text-fuchsia-400">{stats.pendingRequests}</span>
+                    <div className="p-1.5 rounded-lg bg-purple-950/40 border border-purple-500/30"><AlertCircle className="w-4 h-4 text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.5)]" /></div>
+                    <span className="text-lg font-black text-purple-400">{stats.pendingRequests}</span>
                   </div>
-                  <p className="text-[11px] tracking-wide text-slate-400 font-bold">Pending Requests</p>
+                  <p className="text-[11px] tracking-wide text-purple-300/70 font-bold">Pending Requests</p>
                 </div>
 
-                <div className="bg-slate-950/60 backdrop-blur-xl rounded-xl p-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                <div className="bg-[#2d1b4e]/60 backdrop-blur-xl rounded-xl p-3 border border-pink-500/30 shadow-[0_0_20px_rgba(236,72,153,0.1)]">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30"><DollarSign className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" /></div>
-                    <span className="text-base font-black text-emerald-400">₹{stats.todaysEarnings.toLocaleString()}</span>
+                    <div className="p-1.5 rounded-lg bg-lavender-950/40 border border-lavender-500/30"><DollarSign className="w-4 h-4 text-lavender-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.5)]" /></div>
+                    <span className="text-base font-black text-lavender-400">₹{stats.todaysEarnings.toLocaleString()}</span>
                   </div>
-                  <p className="text-[11px] text-cyan-400/80 font-bold">Today's Earnings</p>
+                  <p className="text-[11px] text-pink-400/80 font-bold">Today's Earnings</p>
                 </div>
 
-                <div className="bg-slate-950/60 backdrop-blur-xl rounded-xl p-3 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                <div className="bg-[#2d1b4e]/60 backdrop-blur-xl rounded-xl p-3 border border-pink-500/30 shadow-[0_0_20px_rgba(236,72,153,0.1)]">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="p-1.5 rounded-lg bg-amber-950/40 border border-amber-500/30"><Star className="w-4 h-4 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" /></div>
-                    <span className="text-lg font-black text-cyan-400">{stats.averageRating.toFixed(1)}</span>
+                    <span className="text-lg font-black text-pink-400">{stats.averageRating.toFixed(1)}</span>
                   </div>
-                  <p className="text-[11px] text-cyan-400/80 font-bold">Average Rating ({stats.reviewCount})</p>
+                  <p className="text-[11px] text-pink-400/80 font-bold">Average Rating ({stats.reviewCount})</p>
                 </div>
               </div>
 
-              <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white shadow-[0_0_20px_rgba(34,211,238,0.15)] overflow-hidden mb-6">
-                <div className="p-4 border-b border-purple-100/50 bg-white/40">
+              <div className="bg-[#2d1b4e]/70 backdrop-blur-xl rounded-2xl border border-pink-500/30 shadow-[0_0_20px_rgba(236,72,153,0.15)] overflow-hidden mb-6">
+                <div className="p-4 border-b border-purple-500/30 bg-[#1a0b2e]/40">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-extrabold text-slate-900">Bookings</h3>
-                    <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full">{displayedBookings.length} Total</span>
+                    <h3 className="text-lg font-extrabold text-pink-200">Bookings</h3>
+                    <span className="text-[11px] font-bold text-purple-300 bg-purple-950/40 px-3 py-1 rounded-full border border-purple-500/30">{displayedBookings.length} Total</span>
                   </div>
 
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
                     {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map((filter: BookingFilter) => (
                       <button
                         key={filter}
                         onClick={() => setBookingFilter(filter)}
-                        className={`px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-[0_0_20px_rgba(34,211,238,0.15)] active:scale-95 transition-transform ${bookingFilter === filter ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white' : 'bg-white text-slate-700 border border-purple-100'
+                        className={`px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-[0_0_20px_rgba(236,72,153,0.15)] active:scale-95 transition-transform ${bookingFilter === filter ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white' : 'bg-[#2d1b4e]/60 text-pink-300 border border-pink-500/30'
                           }`}
                       >
                         {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -446,43 +446,43 @@ export default function ProfessionalDashboard({
 
                 <div className="p-3">
                   {displayedBookings.length === 0 ? (
-                    <div className="text-center py-10 text-slate-500">
+                    <div className="text-center py-10 text-purple-300/50">
                       <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30 text-purple-400" />
                       <p className="font-bold text-sm">No bookings found</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {displayedBookings.map((booking) => (
-                        <div key={booking.id} className="bg-white/90 rounded-xl p-4 border border-white shadow-[0_0_20px_rgba(34,211,238,0.15)]">
+                        <div key={booking.id} className="bg-[#2d1b4e]/90 rounded-xl p-4 border border-pink-500/30 shadow-[0_0_20px_rgba(236,72,153,0.15)]">
                           <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-lg shadow-[0_0_20px_rgba(34,211,238,0.15)]">
+                            <div className="w-12 h-12 rounded-xl bg-purple-950/40 flex items-center justify-center text-lg shadow-[0_0_20px_rgba(236,72,153,0.15)]">
                               {booking.customer?.avatar_url ? <img src={booking.customer.avatar_url} className="w-full h-full object-cover rounded-xl" /> : '👤'}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-1 mb-1">
-                                <h4 className="font-extrabold text-slate-900 truncate text-base">{booking.customer?.full_name || "Customer"}</h4>
-                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border shadow-[0_0_20px_rgba(34,211,238,0.15)] ${getStatusColor(booking.status)}`}>
+                                <h4 className="font-extrabold text-pink-100 truncate text-base">{booking.customer?.full_name || "Customer"}</h4>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border shadow-[0_0_20px_rgba(236,72,153,0.15)] ${getStatusColor(booking.status)}`}>
                                   {booking.status}
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-700 font-bold mb-2">{booking.service_name || "Service"}</p>
-                              <div className="flex flex-wrap gap-2 text-[10px] text-slate-700 font-bold">
-                                <span className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-purple-100"><Calendar className="w-3 h-3 text-cyan-400" /> {getSafeDate(booking)}</span>
-                                <span className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-purple-100"><Clock className="w-3 h-3 text-cyan-400" /> {getSafeTime(booking)}</span>
-                                {booking.total_price && <span className="flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded text-emerald-700"><DollarSign className="w-3 h-3" /> ₹{booking.total_price}</span>}
+                              <p className="text-xs text-pink-200/80 font-bold mb-2">{booking.service_name || "Service"}</p>
+                              <div className="flex flex-wrap gap-2 text-[10px] text-pink-200/80 font-bold">
+                                <span className="flex items-center gap-1 bg-[#1a0b2e]/60 px-2 py-1 rounded border border-purple-500/30"><Calendar className="w-3 h-3 text-pink-400" /> {getSafeDate(booking)}</span>
+                                <span className="flex items-center gap-1 bg-[#1a0b2e]/60 px-2 py-1 rounded border border-purple-500/30"><Clock className="w-3 h-3 text-pink-400" /> {getSafeTime(booking)}</span>
+                                {booking.total_price && <span className="flex items-center gap-1 bg-lavender-950/40 px-2 py-1 rounded text-lavender-300 border border-lavender-500/30"><DollarSign className="w-3 h-3" /> ₹{booking.total_price}</span>}
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex gap-2 mt-4 pt-3 border-t border-purple-100/50">
+                          <div className="flex gap-2 mt-4 pt-3 border-t border-purple-500/30">
                             {booking.status === "pending" && (
                               <>
-                                <button onClick={() => updateBookingStatus(booking.id, 'confirmed', 'Accepted!')} className="flex-1 py-2 bg-emerald-500 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Accept</button>
-                                <button onClick={() => updateBookingStatus(booking.id, 'cancelled', 'Declined')} className="flex-1 py-2 bg-white text-rose-500 border border-rose-200 font-bold rounded-lg text-xs flex items-center justify-center gap-1"><XCircle className="w-3.5 h-3.5" /> Decline</button>
+                                <button onClick={() => updateBookingStatus(booking.id, 'confirmed', 'Accepted!')} className="flex-1 py-2 bg-emerald-600 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1 hover:bg-emerald-500 transition-colors"><CheckCircle className="w-3.5 h-3.5" /> Accept</button>
+                                <button onClick={() => updateBookingStatus(booking.id, 'cancelled', 'Declined')} className="flex-1 py-2 bg-[#2d1b4e]/60 text-rose-400 border border-rose-500/30 font-bold rounded-lg text-xs flex items-center justify-center gap-1 hover:bg-rose-950/40 transition-colors"><XCircle className="w-3.5 h-3.5" /> Decline</button>
                               </>
                             )}
                             {booking.status === "confirmed" && (
-                              <button onClick={() => updateBookingStatus(booking.id, 'completed', 'Completed!')} className="w-full py-2 bg-purple-500 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Mark Complete</button>
+                              <button onClick={() => updateBookingStatus(booking.id, 'completed', 'Completed!')} className="w-full py-2 bg-purple-600 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1 hover:bg-purple-500 transition-colors"><CheckCircle className="w-3.5 h-3.5" /> Mark Complete</button>
                             )}
                           </div>
                         </div>
