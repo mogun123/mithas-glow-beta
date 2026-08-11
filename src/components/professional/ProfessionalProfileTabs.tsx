@@ -901,22 +901,22 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 pb-24 duration-500">
+    <div className="animate-in fade-in slide-in-from-bottom-4 pb-24 duration-500 relative z-10">
       {/* Unified header + tabs — single card, no duplicate layout */}
-      <div className="mb-6 rounded-3xl border border-pink-100 bg-white p-4 shadow-sm">
+      <div className="mb-6 rounded-3xl border border-pink-100 bg-white p-4 shadow-sm relative z-10">
         <div className="mb-4">
           <h2 className="text-sm font-black uppercase tracking-widest text-slate-800">Professional Settings</h2>
           <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Live profile, portfolio, services, availability and payouts</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 rounded-2xl bg-pink-50/80 p-1.5 !h-auto">
-            <TabsTrigger value="overview" className="rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Overview</TabsTrigger>
-            <TabsTrigger value="portfolio" className="rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Portfolio</TabsTrigger>
-            <TabsTrigger value="services" className="rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Services</TabsTrigger>
-            <TabsTrigger value="availability" className="rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Availability</TabsTrigger>
-            <TabsTrigger value="presence" className="rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Presence</TabsTrigger>
-            <TabsTrigger value="verification" className="rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Verification</TabsTrigger>
+          <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 rounded-2xl bg-pink-50/80 p-1.5 !h-auto relative z-20">
+            <TabsTrigger value="overview" onClick={() => setActiveTab('overview')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Overview</TabsTrigger>
+            <TabsTrigger value="portfolio" onClick={() => setActiveTab('portfolio')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Portfolio</TabsTrigger>
+            <TabsTrigger value="services" onClick={() => setActiveTab('services')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Services</TabsTrigger>
+            <TabsTrigger value="availability" onClick={() => setActiveTab('availability')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Availability</TabsTrigger>
+            <TabsTrigger value="presence" onClick={() => setActiveTab('presence')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Presence</TabsTrigger>
+            <TabsTrigger value="verification" onClick={() => setActiveTab('verification')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Verification</TabsTrigger>
           </TabsList>
 
           <div className="mt-4">
