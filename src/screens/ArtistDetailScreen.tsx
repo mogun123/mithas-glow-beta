@@ -49,6 +49,9 @@ export function ArtistDetailScreen({
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [locationType, setLocationType] = useState<"studio" | "home">("studio");
+  const [specialNotes, setSpecialNotes] = useState("");
+  const [showPolicy, setShowPolicy] = useState(false);
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [styleId, setStyleId] = useState("");
@@ -111,7 +114,7 @@ export function ArtistDetailScreen({
         service.price,
         selectedDate,
         selectedTime,
-        ""
+        specialNotes.trim()
       );
       setBookingSuccess(true);
       toast.success("Booking created successfully! ✨");
@@ -237,6 +240,13 @@ export function ArtistDetailScreen({
   const instagramLink = socialLinks.find(link => link.platform === 'instagram');
   const youtubeLink = socialLinks.find(link => link.platform === 'youtube');
   const featuredPortfolio = portfolioItems.filter(item => item.is_cover || item.is_featured).slice(0, 5);
+
+  // Calculate pricing breakdown
+  const basePrice = selectedServiceData?.price || 0;
+  const travelCharge = locationType === 'home' ? 150 : 0;
+  const totalAmount = basePrice + travelCharge;
+  const advancePercentage = 0.2;
+  const advancePayable = Math.ceil(totalAmount * advancePercentage);
 
   return (
     <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-[#faf5ff]" style={{ position: "relative", zIndex: 1 }}>
@@ -614,12 +624,14 @@ export function ArtistDetailScreen({
         {/* Booking Summary - Only shown when all selections made */}
         {selectedService && selectedDate && selectedTime && (
           <div className="mt-6 px-5 fade-in-artist-detail-d4">
-            <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-5 border border-pink-100 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+            <div className="bg-white rounded-2xl p-5 border border-pink-100 shadow-[0_8px_30px_rgba(236,72,153,0.08)]">
+              <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-pink-500" />
-                Booking Summary
+                Booking Details
               </h3>
-              <div className="space-y-2.5 mb-4">
+              
+              {/* Service & Date/Time Summary */}
+              <div className="space-y-2.5 mb-4 pb-4 border-b border-pink-100">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-slate-500 font-medium">Service</span>
                   <span className="text-sm font-bold text-slate-900">{selectedServiceData?.title}</span>
@@ -634,12 +646,131 @@ export function ArtistDetailScreen({
                   <span className="text-xs text-slate-500 font-medium">Time</span>
                   <span className="text-sm font-bold text-slate-900">{selectedTime}</span>
                 </div>
-                <div className="pt-3 mt-3 border-t border-pink-200 flex justify-between items-center">
-                  <span className="text-sm font-bold text-slate-700">Total</span>
-                  <span className="text-2xl font-black bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    ₹{selectedServiceData?.price}
-                  </span>
+              </div>
+
+              {/* Location Selection */}
+              <div className="mb-4">
+                <label className="text-xs font-semibold text-slate-700 mb-2.5 block">Service Location</label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    onClick={() => setLocationType("studio")}
+                    className={`nav-tap-btn py-3 px-3 rounded-xl font-semibold text-xs transition-all duration-200 active:scale-95 ${
+                      locationType === 'studio' ? 'shadow-md' : 'hover:shadow-sm'
+                    }`}
+                    style={{
+                      background: locationType === 'studio'
+                        ? "linear-gradient(135deg,#ec4899,#a855f7)"
+                        : "#FFFFFF",
+                      color: locationType === 'studio' ? "#FFFFFF" : "#475569",
+                      border: locationType === 'studio' ? "none" : "1px solid #f3f4f6",
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>Studio Visit</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setLocationType("home")}
+                    className={`nav-tap-btn py-3 px-3 rounded-xl font-semibold text-xs transition-all duration-200 active:scale-95 ${
+                      locationType === 'home' ? 'shadow-md' : 'hover:shadow-sm'
+                    }`}
+                    style={{
+                      background: locationType === 'home'
+                        ? "linear-gradient(135deg,#ec4899,#a855f7)"
+                        : "#FFFFFF",
+                      color: locationType === 'home' ? "#FFFFFF" : "#475569",
+                      border: locationType === 'home' ? "none" : "1px solid #f3f4f6",
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>Home Service</span>
+                    </div>
+                  </button>
                 </div>
+              </div>
+
+              {/* Special Requests Input */}
+              <div className="mb-4">
+                <label htmlFor="special-notes" className="text-xs font-semibold text-slate-700 mb-2 block">
+                  Special Requests or Notes
+                </label>
+                <textarea
+                  id="special-notes"
+                  value={specialNotes}
+                  onChange={(e) => setSpecialNotes(e.target.value)}
+                  placeholder="Any specific requirements, allergies, or preferences for the artist..."
+                  rows={3}
+                  className="w-full px-3 py-2.5 bg-[#faf5ff] border border-pink-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-transparent resize-none transition-all"
+                />
+              </div>
+
+              {/* Price Breakdown */}
+              <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-4 mb-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-600 font-medium">Base Service Price</span>
+                    <span className="text-slate-900 font-bold">₹{basePrice}</span>
+                  </div>
+                  {locationType === 'home' && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-600 font-medium flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        Travel Charges
+                      </span>
+                      <span className="text-slate-900 font-bold">₹{travelCharge}</span>
+                    </div>
+                  )}
+                  <div className="pt-2 mt-2 border-t border-pink-200 flex justify-between items-center">
+                    <span className="text-sm font-bold text-slate-700">Total Amount</span>
+                    <span className="text-lg font-black bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                      ₹{totalAmount}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Advance Payment Highlight */}
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-4">
+                <div className="flex items-start gap-2.5 mb-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-emerald-800 mb-0.5">Advance Payment Required</p>
+                    <p className="text-[10px] text-emerald-600 font-medium">Secure your booking with 20% advance</p>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-emerald-100">
+                  <span className="text-xs text-emerald-700 font-medium">Pay Now</span>
+                  <span className="text-xl font-black text-emerald-700">₹{advancePayable}</span>
+                </div>
+              </div>
+
+              {/* Cancellation Policy Accordion */}
+              <div className="border border-pink-100 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setShowPolicy(!showPolicy)}
+                  className="w-full px-4 py-3 bg-pink-50/50 flex items-center justify-between hover:bg-pink-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-pink-500" />
+                    <span className="text-xs font-bold text-slate-700">Cancellation & Rescheduling Policy</span>
+                  </div>
+                  <ChevronLeft
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                      showPolicy ? 'rotate-90' : '-rotate-90'
+                    }`}
+                  />
+                </button>
+                {showPolicy && (
+                  <div className="px-4 py-3 bg-white text-xs text-slate-600 leading-relaxed space-y-2">
+                    <p>• Free cancellation up to 24 hours before your appointment.</p>
+                    <p>• 50% charge for cancellations within 24 hours.</p>
+                    <p>• No refund for no-shows or same-day cancellations.</p>
+                    <p>• Rescheduling is allowed once without charge (subject to availability).</p>
+                    <p>• Advance payment is non-refundable but adjustable on reschedule.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -654,11 +785,11 @@ export function ArtistDetailScreen({
         <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto" style={{ zIndex: 40 }}>
           <div className="mx-4 mb-4 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-pink-100 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4">
-              {/* Total Price */}
+              {/* Advance Payment Info */}
               <div className="flex flex-col">
-                <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">Total</span>
-                <span className="text-2xl font-black bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                  ₹{selectedServiceData?.price}
+                <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Advance Payable</span>
+                <span className="text-xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  ₹{advancePayable}
                 </span>
               </div>
               
@@ -666,21 +797,21 @@ export function ArtistDetailScreen({
               <button
                 onClick={handleCreateBooking}
                 disabled={isCreatingBooking}
-                className="nav-tap-btn px-8 py-3.5 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                className="nav-tap-btn px-6 py-3.5 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-bold text-xs shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                 style={{
                   background: isCreatingBooking
                     ? "linear-gradient(135deg,#9CA3AF,#6B7280)"
                     : "linear-gradient(135deg,#ec4899,#a855f7)",
-                  minWidth: "140px"
+                  minWidth: "120px"
                 }}
               >
                 {isCreatingBooking ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span className="flex items-center gap-1.5">
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Booking...
                   </span>
                 ) : (
-                  "Confirm Booking"
+                  "Confirm"
                 )}
               </button>
             </div>
