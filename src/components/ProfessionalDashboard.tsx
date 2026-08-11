@@ -262,10 +262,10 @@ return () => {
 if (initialLoading) {
 return (
 <div className="min-h-screen bg-[#030712] relative overflow-hidden pb-32">
-<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a]"></div>
+<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a] pointer-events-none"></div>
 <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMEw0MCA0MFoiIGZpbGw9InJnYmEoMTM5LDkyLDI0NiwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20 pointer-events-none"></div>
 <OfflineBanner isOnline={isOnline} onRetry={handleRetry} />
-<div className="relative max-w-4xl mx-auto px-4 pt-4">
+<div className="relative max-w-4xl mx-auto px-4 pt-4 z-10">
 <DashboardSkeleton />
 </div>
 </div>
@@ -275,8 +275,8 @@ return (
 if (!isProfessionalUser || !profile) {
 return (
 <div className="min-h-screen flex items-center justify-center bg-[#030712] relative overflow-hidden">
-<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a]"></div>
-<div className="relative text-center max-w-sm w-full mx-4 p-6 bg-slate-950/80 backdrop-blur-xl border border-cyan-500/30 rounded-2xl shadow-[0_0_40px_rgba(34,211,238,0.15)]">
+<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a] pointer-events-none"></div>
+<div className="relative text-center max-w-sm w-full mx-4 p-6 bg-slate-950/80 backdrop-blur-xl border border-cyan-500/30 rounded-2xl shadow-[0_0_40px_rgba(34,211,238,0.15)] z-10">
 <AlertCircle className="w-16 h-16 text-cyan-400 mx-auto mb-4 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
 <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-violet-400 mb-2 tracking-tight">Access Restricted</h2>
 <p className="text-sm text-slate-400 font-medium mb-6 leading-relaxed">You don't have access to the professional dashboard.</p>
@@ -293,7 +293,7 @@ Return to Home
 
 return (
 <div className="min-h-screen bg-[#030712] relative overflow-hidden pb-32">
-<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a]"></div>
+<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#030712] to-[#0a0a0a] pointer-events-none"></div>
 <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMEw0MCA0MFoiIGZpbGw9InJnYmEoMTM5LDkyLDI0NiwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20 pointer-events-none"></div>
 <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-cyan-500/10 rounded-full blur-[100px] -z-10 pointer-events-none animate-pulse"></div>
 <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-fuchsia-500/10 rounded-full blur-[100px] -z-10 pointer-events-none animate-pulse" style={{animationDelay: '1s'}}></div>
@@ -315,7 +315,6 @@ return (
         </div>  
           
         <div className="flex items-center gap-2">  
-          {/* Home and Refresh icons have been removed from here! */}  
           <button  
             onClick={() => {  
               globalStore.toggleAppViewMode();  
@@ -347,7 +346,7 @@ return (
     </div>  
   </header>  
 
-  <main className="max-w-4xl mx-auto px-4 pt-4">  
+  <main className="relative z-10 max-w-4xl mx-auto px-4 pt-4">  
     {activeTab === 'dashboard' && (  
       <ErrorBoundaryWrapper moduleName="DashboardOverview" errorMessage={loadError} onRetry={handleRetry} onBack={() => setActiveTab('dashboard')}>  
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">  
@@ -430,7 +429,7 @@ return (
                 <button  
                   key={filter}  
                   onClick={() => setBookingFilter(filter)}  
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-[0_0_20px_rgba(34,211,238,0.15)] ${  
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-[0_0_20px_rgba(34,211,238,0.15)] active:scale-95 transition-transform ${  
                     bookingFilter === filter ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white' : 'bg-white text-slate-700 border border-purple-100'  
                   }`}  
                 >  
