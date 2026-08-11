@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
 import { BottomNav } from "../components/BottomNav";
-import { Star, ChevronLeft, CheckCircle, AlertCircle, BadgeCheck, Clock, Calendar, MapPin, Instagram, Youtube, Share2, Image as ImageIcon, Heart, MessageCircle } from "lucide-react";
+import { Star, ChevronLeft, CheckCircle, AlertCircle, BadgeCheck, Clock, Calendar, MapPin, Instagram, Youtube, Share2, Image as ImageIcon, Heart, MessageCircle, User } from "lucide-react";
 import { useArtistProfile, useAvailableSlots, useCreateBooking } from "../../hooks/use-booking";
 import { useAuthStore } from "../lib/store";
 import { toast } from "sonner";
 import { useArtistPortfolio } from "../hooks/useArtistPortfolio";
+import { useArtistReviews } from "../hooks/useArtistReviews";
 
 type ArtistDetailScreenProps = {
   artistId: string;
@@ -64,6 +65,7 @@ export function ArtistDetailScreen({
   const { slots, loading: slotsLoading } = useAvailableSlots(artistId, selectedDate);
   const { createBooking } = useCreateBooking();
   const { portfolioItems, socialLinks } = useArtistPortfolio();
+  const { reviews: artistReviews, summary: reviewSummary, loading: reviewsLoading } = useArtistReviews(artistId, 5);
 
   // Generate next 7 days for date selection
   const availableDates = Array.from({ length: 7 }, (_, i) => {
@@ -426,6 +428,131 @@ export function ArtistDetailScreen({
             </div>
           </div>
         )}
+
+        {/* Reviews Section */}
+        <div className="mt-6 px-5">
+          <div className="bg-white rounded-2xl p-5 border border-pink-100 shadow-[0_8px_30px_rgba(236,72,153,0.08)]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <Star className="w-5 h-5 text-amber-500" fill="#fbbf24" />
+                Customer Reviews
+              </h2>
+              {reviewSummary && reviewSummary.total_reviews > 0 && (
+                <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full">
+                  {reviewSummary.total_reviews} reviews
+                </span>
+              )}
+            </div>
+
+            {reviewsLoading ? (
+              <div className="py-8 text-center">
+                <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-sm text-slate-500 font-medium">Loading reviews...</p>
+              </div>
+            ) : artistReviews.length > 0 ? (
+              <>
+                {/* Rating Summary */}
+                {reviewSummary && (
+                  <div className="mb-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-100">
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="text-center">
+                        <div className="text-3xl font-black text-slate-900">{reviewSummary.average_rating.toFixed(1)}</div>
+                        <div className="flex gap-0.5 justify-center my-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3.5 h-3.5 ${
+                                star <= reviewSummary.average_rating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-600 font-medium">{reviewSummary.total_reviews} reviews</p>
+                      </div>
+                      <div className="flex-1 space-y-1.5">
+                        {[5, 4, 3, 2, 1].map((rating) => {
+                          const count = reviewSummary.rating_distribution[rating as keyof typeof reviewSummary.rating_distribution];
+                          const percentage = reviewSummary.total_reviews > 0 ? (count / reviewSummary.total_reviews) * 100 : 0;
+                          return (
+                            <div key={rating} className="flex items-center gap-2">
+                              <span className="text-xs text-slate-600 w-6 font-medium">{rating}★</span>
+                              <div className="flex-1 bg-amber-100 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="bg-amber-400 h-1.5 rounded-full transition-all"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-slate-500 w-6 text-right">{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reviews List */}
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  {artistReviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="p-4 bg-pink-50/30 rounded-xl border border-pink-100/50 hover:bg-pink-50/50 transition-colors"
+                    >
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center flex-shrink-0 overflow-hidden border border-pink-100">
+                          {review.customer_avatar_url ? (
+                            <img src={review.customer_avatar_url} alt={review.customer_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-5 h-5 text-pink-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-bold text-slate-900 truncate">{review.customer_name}</span>
+                            {review.is_verified && (
+                              <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+                                <CheckCircle className="w-2.5 h-2.5" />
+                                Verified
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-3.5 h-3.5 ${
+                                    star <= review.rating
+                                      ? 'fill-amber-400 text-amber-400'
+                                      : 'text-gray-300'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="py-10 px-6 text-center bg-pink-50/30 rounded-xl border border-pink-100">
+                <Star className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-600 font-semibold mb-1">No reviews yet</p>
+                <p className="text-xs text-slate-500">Be the first to review this artist</p>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Services Section */}
         <div className="mt-6 px-5">
