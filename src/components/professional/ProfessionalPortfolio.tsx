@@ -280,7 +280,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#2d1b4e]/80 backdrop-blur-lg border-b border-pink-500/20">
+      <div className="sticky top-0 z-30 bg-pink-50/80 backdrop-blur-lg border-b border-pink-100">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -350,7 +350,7 @@ export default function ProfessionalPortfolio({ artistId, onBack }: Professional
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleSetCover(item.id)}
-                        className="p-2 bg-[#2d1b4e] rounded-full hover:bg-gray-100"
+                        className="p-2 bg-pink-50 rounded-full hover:bg-gray-100"
                         title="Set as cover"
                       >
                         <Star className="w-4 h-4" />

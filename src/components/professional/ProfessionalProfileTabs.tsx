@@ -105,7 +105,7 @@ class ProfileErrorBoundary extends React.Component<{ children: React.ReactNode }
       return (
         <div className="m-4 flex min-h-[50vh] flex-col items-center justify-center rounded-3xl border border-rose-200 bg-rose-50 p-6 text-center">
           <AlertCircle className="mb-4 h-12 w-12 text-rose-500" />
-          <h2 className="text-lg font-black text-pink-100">Module Crashed</h2>
+          <h2 className="text-lg font-black text-slate-900">Module Crashed</h2>
           <button onClick={this.resetBoundary} className="mt-6 rounded-full bg-rose-500 px-6 py-2 text-xs font-black uppercase tracking-widest text-white transition hover:scale-105">Retry Component</button>
         </div>
       );
@@ -903,9 +903,9 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 pb-24 duration-500 relative z-10">
       {/* Unified header + tabs — single card, no duplicate layout */}
-      <div className="mb-6 rounded-3xl border border-pink-500/20 bg-[#2d1b4e] p-4 shadow-sm relative z-10">
+      <div className="mb-6 rounded-3xl border border-pink-100 bg-pink-50 p-4 shadow-sm relative z-10">
         <div className="mb-4">
-          <h2 className="text-sm font-black uppercase tracking-widest text-pink-100">Professional Settings</h2>
+          <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">Professional Settings</h2>
           <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Live profile, portfolio, services, availability and payouts</p>
         </div>
 
@@ -922,13 +922,13 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
           <div className="mt-4">
             <TabsContent value="overview">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="rounded-3xl border border-pink-500/20 bg-[#2d1b4e] p-6 shadow-sm">
+                <div className="rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
                   <div className="mb-6 flex items-center justify-between">
                     <div>
-                      <h3 className="text-[11px] font-black uppercase tracking-widest text-pink-100">Profile Overview</h3>
+                      <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Profile Overview</h3>
                       <p className="mt-1 text-xs text-slate-500">Core business details and service positioning.</p>
                     </div>
-                    <button type="submit" disabled={isSubmitting || (!isDirty && !saveSuccess)} className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-500/30 hover:scale-105'}`}>
+                    <button type="submit" disabled={isSubmitting || (!isDirty && !saveSuccess)} className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-200 hover:scale-105'}`}>
                       {isSubmitting ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : saveSuccess ? <CheckCircle className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                       {isSubmitting ? 'Saving...' : saveSuccess ? 'Saved ✓' : 'Save Overview'}
                     </button>
@@ -936,14 +936,14 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
                   {saveError && <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{saveError}</div>}
 
-                  <div className="flex flex-col items-center gap-4 rounded-3xl border border-pink-500/20 bg-gradient-to-br from-pink-50 to-white p-6 text-center">
+                  <div className="flex flex-col items-center gap-4 rounded-3xl border border-pink-100 bg-gradient-to-br from-pink-50 to-white p-6 text-center">
                     <div className="relative h-28 w-28">
                       <div className="h-full w-full rounded-full bg-gradient-to-tr from-pink-400 to-rose-400 p-1">
-                        <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-[#2d1b4e]">
+                        <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-pink-50">
                           {avatarUrl && !imgError ? <img src={avatarUrl} alt="Avatar" onError={() => setImgError(true)} className="h-full w-full object-cover" /> : <User className="h-12 w-12 text-pink-200" />}
                         </div>
                       </div>
-                      <label className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-pink-200 bg-[#2d1b4e] shadow-lg hover:scale-110">
+                      <label className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-pink-200 bg-pink-50 shadow-lg hover:scale-110">
                         <Camera className="h-4 w-4 text-pink-500" />
                         <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} disabled={uploadingAvatar} className="hidden" />
                       </label>
@@ -957,30 +957,30 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                   <div className="mt-6 grid gap-4 md:grid-cols-2">
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Full Name</label>
-                      <Controller name="fullName" control={control} render={({ field }) => <input {...field} className={`w-full rounded-2xl border bg-[#2d1b4e] px-4 py-3 text-sm font-bold ${errors.fullName ? 'border-rose-400' : 'border-pink-200'}`} />} />
+                      <Controller name="fullName" control={control} render={({ field }) => <input {...field} className={`w-full rounded-2xl border bg-pink-50 px-4 py-3 text-sm font-bold ${errors.fullName ? 'border-rose-400' : 'border-pink-200'}`} />} />
                       {errors.fullName && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.fullName.message}</p>}
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Shop / Studio Name</label>
-                      <Controller name="shopName" control={control} render={({ field }) => <input {...field} className={`w-full rounded-2xl border bg-[#2d1b4e] px-4 py-3 text-sm font-bold ${errors.shopName ? 'border-rose-400' : 'border-pink-200'}`} />} />
+                      <Controller name="shopName" control={control} render={({ field }) => <input {...field} className={`w-full rounded-2xl border bg-pink-50 px-4 py-3 text-sm font-bold ${errors.shopName ? 'border-rose-400' : 'border-pink-200'}`} />} />
                       {errors.shopName && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.shopName.message}</p>}
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">City</label>
-                      <Controller name="city" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="city" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Primary Phone</label>
-                      <Controller name="phone" control={control} render={({ field }) => <input {...field} type="tel" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="phone" control={control} render={({ field }) => <input {...field} type="tel" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                       {errors.phone && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.phone.message}</p>}
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Emergency Contact</label>
-                      <Controller name="emergencyContact" control={control} render={({ field }) => <input {...field} type="tel" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="emergencyContact" control={control} render={({ field }) => <input {...field} type="tel" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Experience (Years)</label>
-                      <Controller name="experience" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="experience" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                   </div>
 
@@ -989,32 +989,32 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                       <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Professional Bio</label>
                       <span className={`text-[9px] font-bold ${bioContent.length > 500 ? 'text-rose-500' : 'text-slate-400'}`}>{bioContent.length}/500</span>
                     </div>
-                    <Controller name="bio" control={control} render={({ field }) => <textarea {...field} rows={4} maxLength={500} className="w-full resize-none rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="bio" control={control} render={({ field }) => <textarea {...field} rows={4} maxLength={500} className="w-full resize-none rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                   </div>
 
                   <div className="mt-6 grid gap-4 md:grid-cols-2">
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Languages Known</label>
-                      <Controller name="languages" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="languages" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Specialities</label>
-                      <Controller name="specialities" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="specialities" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                   </div>
 
                   <div className="mt-6 grid gap-4 md:grid-cols-3">
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Starting Price (₹)</label>
-                      <Controller name="startingPrice" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="startingPrice" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Travel Radius (KM)</label>
-                      <Controller name="travelRadius" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="travelRadius" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Charge / KM (₹)</label>
-                      <Controller name="travelCharges" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="travelCharges" control={control} render={({ field: { onChange, ...rest } }) => <input type="number" onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} {...rest} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                   </div>
 
@@ -1030,31 +1030,31 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-pink-500/20 bg-[#2d1b4e] p-6 shadow-sm">
+                <div className="rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
                   <div className="mb-4">
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-pink-100">Booking Policies</h3>
+                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Booking Policies</h3>
                     <p className="mt-1 text-xs text-slate-500">Lunch break, vacation mode, travel and cancellation terms shown to clients.</p>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Lunch Break Start</label>
-                      <Controller name="lunchBreakStart" control={control} render={({ field }) => <input {...field} type="time" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="lunchBreakStart" control={control} render={({ field }) => <input {...field} type="time" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                     <div>
                       <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Lunch Break End</label>
-                      <Controller name="lunchBreakEnd" control={control} render={({ field }) => <input {...field} type="time" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                      <Controller name="lunchBreakEnd" control={control} render={({ field }) => <input {...field} type="time" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     </div>
                   </div>
 
                   <div className="mt-4">
                     <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Travel Policy</label>
-                    <Controller name="travelPolicy" control={control} render={({ field }) => <textarea {...field} rows={2} maxLength={500} placeholder="e.g. Travel charges apply beyond 10km, advance booking required" className="w-full resize-none rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="travelPolicy" control={control} render={({ field }) => <textarea {...field} rows={2} maxLength={500} placeholder="e.g. Travel charges apply beyond 10km, advance booking required" className="w-full resize-none rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                   </div>
 
                   <div className="mt-4">
                     <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Cancellation Policy</label>
-                    <Controller name="cancellationPolicy" control={control} render={({ field }) => <textarea {...field} rows={2} maxLength={500} placeholder="e.g. Free cancellation up to 24 hours before appointment" className="w-full resize-none rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="cancellationPolicy" control={control} render={({ field }) => <textarea {...field} rows={2} maxLength={500} placeholder="e.g. Free cancellation up to 24 hours before appointment" className="w-full resize-none rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                   </div>
 
                   <div className="mt-4">
@@ -1075,11 +1075,11 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
             </TabsContent>
 
             <TabsContent value="portfolio">
-              <div className="space-y-6 rounded-3xl border border-pink-500/20 bg-[#2d1b4e] p-6 shadow-sm">
+              <div className="space-y-6 rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
 
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-pink-100">Portfolio & Asset Gallery</h3>
+                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Portfolio & Asset Gallery</h3>
                     <p className="mt-1 text-xs text-slate-500">Showcase your best makeup transformations to attract clients.</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1115,13 +1115,13 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                       value={portfolioForm.title}
                       onChange={(e) => setPortfolioForm(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="Image Title (e.g. Royal HD Bridal Look)"
-                      className="rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold outline-none focus:border-pink-400"
+                      className="rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold outline-none focus:border-pink-400"
                     />
                     <input
                       value={portfolioForm.description}
                       onChange={(e) => setPortfolioForm(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Caption / Client Story"
-                      className="rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold outline-none focus:border-pink-400"
+                      className="rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold outline-none focus:border-pink-400"
                     />
                   </div>
 
@@ -1129,7 +1129,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                     <select
                       value={portfolioForm.category}
                       onChange={(e) => setPortfolioForm(prev => ({ ...prev, category: e.target.value }))}
-                      className="rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold outline-none"
+                      className="rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold outline-none"
                     >
                       <option value="bridal">Bridal Makeup</option>
                       <option value="party">Party Look</option>
@@ -1142,7 +1142,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                     <select
                       value={portfolioForm.service_id || ''}
                       onChange={(e) => setPortfolioForm(prev => ({ ...prev, service_id: e.target.value }))}
-                      className="rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold outline-none"
+                      className="rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold outline-none"
                     >
                       <option value="">Link to Service Package (Optional)</option>
                       {services.map(s => (
@@ -1150,7 +1150,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                       ))}
                     </select>
 
-                    <label className="flex items-center justify-center gap-2 rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold text-slate-700 cursor-pointer">
+                    <label className="flex items-center justify-center gap-2 rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold text-slate-700 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={portfolioForm.isFeatured}
@@ -1163,22 +1163,22 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
                   {portfolioForm.category === 'before_after' ? (
                     <div className="grid gap-3 md:grid-cols-2 mt-4">
-                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-300 rounded-2xl bg-[#2d1b4e] cursor-pointer hover:bg-pink-50 transition">
+                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-300 rounded-2xl bg-pink-50 cursor-pointer hover:bg-pink-50 transition">
                         <span className="text-[10px] font-black uppercase text-pink-500 mb-1">1. Before Image</span>
-                        {beforeFile ? <span className="text-xs font-bold text-pink-100">{beforeFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
+                        {beforeFile ? <span className="text-xs font-bold text-slate-900">{beforeFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
                         <input type="file" accept="image/*" onChange={(e) => setBeforeFile(e.target.files?.[0] || null)} className="hidden" />
                       </label>
-                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-300 rounded-2xl bg-[#2d1b4e] cursor-pointer hover:bg-pink-50 transition">
+                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-300 rounded-2xl bg-pink-50 cursor-pointer hover:bg-pink-50 transition">
                         <span className="text-[10px] font-black uppercase text-pink-500 mb-1">2. After Image</span>
-                        {afterFile ? <span className="text-xs font-bold text-pink-100">{afterFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
+                        {afterFile ? <span className="text-xs font-bold text-slate-900">{afterFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
                         <input type="file" accept="image/*" onChange={(e) => setAfterFile(e.target.files?.[0] || null)} className="hidden" />
                       </label>
                     </div>
                   ) : (
                     <div className="mt-4">
-                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-300 rounded-2xl bg-[#2d1b4e] cursor-pointer hover:bg-pink-50 transition">
+                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-pink-300 rounded-2xl bg-pink-50 cursor-pointer hover:bg-pink-50 transition">
                         <span className="text-[10px] font-black uppercase text-pink-500 mb-1">Work Image</span>
-                        {portfolioFile ? <span className="text-xs font-bold text-pink-100">{portfolioFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
+                        {portfolioFile ? <span className="text-xs font-bold text-slate-900">{portfolioFile.name}</span> : <span className="text-[10px] text-slate-400">Click to browse</span>}
                         <input type="file" accept="image/*" onChange={(e) => setPortfolioFile(e.target.files?.[0] || null)} className="hidden" />
                       </label>
                     </div>
@@ -1188,7 +1188,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                     type="button"
                     onClick={handlePortfolioSubmit}
                     disabled={portfolioUploading}
-                    className="w-full flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-400 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-pink-500/20 hover:scale-[1.01] transition-all disabled:opacity-50"
+                    className="w-full flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-400 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-pink-100 hover:scale-[1.01] transition-all disabled:opacity-50"
                   >
                     <ImageIcon className="h-4 w-4" />
                     <span>{portfolioUploading ? 'Uploading Image...' : 'Save to Portfolio'}</span>
@@ -1209,14 +1209,14 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
                 {portfolioItems.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-10 rounded-3xl border-2 border-dashed border-pink-200 bg-pink-50/60 text-center">
-                    <Sparkles className="h-10 w-10 text-pink-300 mb-2" />
+                    <Sparkles className="h-10 w-10 text-pink-600 mb-2" />
                     <p className="text-xs font-bold text-slate-600">No portfolio images uploaded yet.</p>
                     <p className="text-[10px] text-slate-400 mt-1">Upload your work samples above to show clients your talent!</p>
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {portfolioItems.filter(item => portfolioFilter === 'all' || item.category === portfolioFilter).map(item => (
-                      <div key={item.id} className="group relative overflow-hidden rounded-3xl border border-pink-200 bg-[#2d1b4e] shadow-sm hover:shadow-md transition-all" onClick={() => setSelectedImage(item)}>
+                      <div key={item.id} className="group relative overflow-hidden rounded-3xl border border-pink-200 bg-pink-50 shadow-sm hover:shadow-md transition-all" onClick={() => setSelectedImage(item)}>
 
                         <div className="relative h-48 w-full overflow-hidden bg-slate-100 flex cursor-pointer">
                           {item.category === 'before_after' && item.before_image_url && item.after_image_url ? (
@@ -1246,7 +1246,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                         </div>
 
                         <div className="p-4 space-y-2">
-                          <h4 className="text-sm font-black text-pink-100 line-clamp-1">{item.title}</h4>
+                          <h4 className="text-sm font-black text-slate-900 line-clamp-1">{item.title}</h4>
                           <p className="text-xs text-slate-500 line-clamp-2">{item.description || 'No caption provided'}</p>
 
                           <div className="flex items-center justify-between pt-2 border-t border-slate-100">
@@ -1272,10 +1272,10 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                   </div>
                 )}
 
-                <div className="mt-8 pt-6 border-t border-pink-500/20 space-y-4">
+                <div className="mt-8 pt-6 border-t border-pink-100 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-xs font-black uppercase tracking-widest text-pink-100">Client Reviews & Testimonials</h4>
+                      <h4 className="text-xs font-black uppercase tracking-widest text-slate-900">Client Reviews & Testimonials</h4>
                       <p className="text-[10px] text-slate-400">Ratings submitted by verified clients after booking.</p>
                     </div>
                     <div className="flex items-center gap-1 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
@@ -1296,7 +1296,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                       {reviews.map((review) => (
                         <div key={review.id} className="p-4 rounded-2xl bg-pink-50 border border-pink-200 space-y-2 hover:bg-pink-100/60 transition-colors">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-black text-pink-100">{review.client_name}</span>
+                            <span className="text-xs font-black text-slate-900">{review.client_name}</span>
                             <span className="text-[10px] font-bold text-amber-500">
                               {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
                             </span>
@@ -1333,17 +1333,17 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 </TabsContent>
 
             <TabsContent value="availability">
-              <div className="space-y-6 rounded-3xl border border-pink-500/20 bg-[#2d1b4e] p-6 shadow-sm">
+              <div className="space-y-6 rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-widest text-pink-100">Weekly Availability</h3>
+                  <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Weekly Availability</h3>
                   <p className="mt-1 text-xs text-slate-500">Set your working hours and booking capacity for each day.</p>
                 </div>
                 <div className="space-y-3">
                   {availabilityRows.map((row, index) => (
-                    <div key={row.day_of_week ?? index} className="rounded-3xl border border-pink-200 bg-[#2d1b4e] p-4">
+                    <div key={row.day_of_week ?? index} className="rounded-3xl border border-pink-200 bg-pink-50 p-4">
                       <div className="mb-3 flex items-center justify-between">
                         <div>
-                          <h4 className="text-sm font-black text-pink-100">{DAY_LABELS[index]?.label || row.day_label || `Day ${row.day_of_week}`}</h4>
+                          <h4 className="text-sm font-black text-slate-900">{DAY_LABELS[index]?.label || row.day_label || `Day ${row.day_of_week}`}</h4>
                           <p className="text-xs text-slate-500">Working hours and booking capacity</p>
                         </div>
                         <label className="flex items-center gap-2 rounded-full bg-pink-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-pink-600">
@@ -1354,19 +1354,19 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                       <div className="grid gap-3 md:grid-cols-4">
                         <div>
                           <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Start</label>
-                          <input type="time" value={row.start_time || '09:00'} onChange={(e) => updateAvailabilityRow(index, 'start_time', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-3 py-2 text-sm font-bold" />
+                          <input type="time" value={row.start_time || '09:00'} onChange={(e) => updateAvailabilityRow(index, 'start_time', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold" />
                         </div>
                         <div>
                           <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">End</label>
-                          <input type="time" value={row.end_time || '18:00'} onChange={(e) => updateAvailabilityRow(index, 'end_time', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-3 py-2 text-sm font-bold" />
+                          <input type="time" value={row.end_time || '18:00'} onChange={(e) => updateAvailabilityRow(index, 'end_time', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold" />
                         </div>
                         <div>
                           <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Slot duration (min)</label>
-                          <input type="number" value={row.slot_duration_minutes || 60} onChange={(e) => updateAvailabilityRow(index, 'slot_duration_minutes', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-3 py-2 text-sm font-bold" />
+                          <input type="number" value={row.slot_duration_minutes || 60} onChange={(e) => updateAvailabilityRow(index, 'slot_duration_minutes', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold" />
                         </div>
                         <div>
                           <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Max bookings</label>
-                          <input type="number" value={row.max_bookings_per_day || 1} onChange={(e) => updateAvailabilityRow(index, 'max_bookings_per_day', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-3 py-2 text-sm font-bold" />
+                          <input type="number" value={row.max_bookings_per_day || 1} onChange={(e) => updateAvailabilityRow(index, 'max_bookings_per_day', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold" />
                         </div>
                       </div>
                     </div>
@@ -1379,13 +1379,13 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
             </TabsContent>
 
             <TabsContent value="presence">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 rounded-3xl border border-pink-500/20 bg-[#2d1b4e] p-6 shadow-sm">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-pink-100">Online Presence</h3>
+                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Online Presence</h3>
                     <p className="mt-1 text-xs text-slate-500">Share your links and map location so clients can reach you faster.</p>
                   </div>
-                  <button type="submit" disabled={isSubmitting || (!isDirty && !saveSuccess)} className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-500/30 hover:scale-105'}`}>
+                  <button type="submit" disabled={isSubmitting || (!isDirty && !saveSuccess)} className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-200 hover:scale-105'}`}>
                     {isSubmitting ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : saveSuccess ? <CheckCircle className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                     {isSubmitting ? 'Saving...' : saveSuccess ? 'Saved ✓' : 'Save Presence'}
                   </button>
@@ -1398,26 +1398,26 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                     <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
                       <Instagram className="h-3.5 w-3.5 text-pink-500" /> Instagram
                     </label>
-                    <Controller name="instagram" control={control} render={({ field }) => <input {...field} placeholder="Username or profile URL" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="instagram" control={control} render={({ field }) => <input {...field} placeholder="Username or profile URL" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                   </div>
                   <div>
                     <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
                       <Youtube className="h-3.5 w-3.5 text-pink-500" /> YouTube
                     </label>
-                    <Controller name="youtube" control={control} render={({ field }) => <input {...field} placeholder="Channel or video link" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="youtube" control={control} render={({ field }) => <input {...field} placeholder="Channel or video link" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                   </div>
                   <div>
                     <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
                       <Globe className="h-3.5 w-3.5 text-pink-500" /> Website
                     </label>
-                    <Controller name="website" control={control} render={({ field }) => <input {...field} type="url" placeholder="https://yourstudio.com" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="website" control={control} render={({ field }) => <input {...field} type="url" placeholder="https://yourstudio.com" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     {errors.website && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.website.message}</p>}
                   </div>
                   <div>
                     <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
                       <MapPin className="h-3.5 w-3.5 text-pink-500" /> Google Maps Link
                     </label>
-                    <Controller name="googleMapsUrl" control={control} render={({ field }) => <input {...field} type="url" placeholder="Google Maps location link" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="googleMapsUrl" control={control} render={({ field }) => <input {...field} type="url" placeholder="Google Maps location link" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     {errors.googleMapsUrl && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.googleMapsUrl.message}</p>}
                   </div>
                 </div>
@@ -1426,25 +1426,25 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                     <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
                       <MessageCircle className="h-3.5 w-3.5 text-pink-500" /> WhatsApp Number
                     </label>
-                    <Controller name="whatsapp" control={control} render={({ field }) => <input {...field} type="tel" placeholder="10-digit mobile number" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="whatsapp" control={control} render={({ field }) => <input {...field} type="tel" placeholder="10-digit mobile number" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     {errors.whatsapp && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.whatsapp.message}</p>}
                   </div>
                   <div>
                     <label className="ml-1 mb-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Service Areas</label>
-                    <Controller name="serviceAreas" control={control} render={({ field }) => <input {...field} placeholder="Anna Nagar, T Nagar" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="serviceAreas" control={control} render={({ field }) => <input {...field} placeholder="Anna Nagar, T Nagar" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                   </div>
                 </div>
               </form>
             </TabsContent>
 
             <TabsContent value="verification">
-              <form onSubmit={handleSubmit(onSubmitVerificationTab)} className="space-y-6 rounded-3xl border border-pink-500/20 bg-[#2d1b4e] p-6 shadow-sm">
+              <form onSubmit={handleSubmit(onSubmitVerificationTab)} className="space-y-6 rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-pink-100">Verification & Payouts</h3>
+                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Verification & Payouts</h3>
                     <p className="mt-1 text-xs text-slate-500">Keep KYC and payout details current so bookings can flow smoothly.</p>
                   </div>
-                  <button type="submit" disabled={isSubmitting || verificationLoading} className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-500/30 hover:scale-105'}`}>
+                  <button type="submit" disabled={isSubmitting || verificationLoading} className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-200 hover:scale-105'}`}>
                     {isSubmitting || verificationLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : saveSuccess ? <CheckCircle className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                     {isSubmitting || verificationLoading ? 'Saving...' : saveSuccess ? 'Saved ✓' : 'Save Verification & Payouts'}
                   </button>
@@ -1455,38 +1455,38 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">GST Number</label>
-                    <Controller name="gstNumber" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold uppercase" />} />
+                    <Controller name="gstNumber" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold uppercase" />} />
                     {errors.gstNumber && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.gstNumber.message}</p>}
                   </div>
                   <div>
                     <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">PAN Number</label>
-                    <Controller name="panNumber" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold uppercase" />} />
+                    <Controller name="panNumber" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold uppercase" />} />
                     {errors.panNumber && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.panNumber.message}</p>}
                   </div>
                   <div>
                     <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Aadhaar / ID</label>
-                    <Controller name="aadhaarVerification" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="aadhaarVerification" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                   </div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Bank A/C</label>
-                    <Controller name="bankAccount" control={control} render={({ field }) => <input {...field} type="password" className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="bankAccount" control={control} render={({ field }) => <input {...field} type="password" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                   </div>
                   <div>
                     <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">IFSC Code</label>
-                    <Controller name="ifscCode" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold uppercase" />} />
+                    <Controller name="ifscCode" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold uppercase" />} />
                     {errors.ifscCode && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.ifscCode.message}</p>}
                   </div>
                   <div>
                     <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">UPI ID</label>
-                    <Controller name="upiId" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-4 py-3 text-sm font-bold" />} />
+                    <Controller name="upiId" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
                     {errors.upiId && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.upiId.message}</p>}
                   </div>
                 </div>
                 <div className="rounded-3xl border border-pink-200 bg-pink-50 p-4">
                   <label className="mb-2 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Verification status</label>
-                  <select value={verificationStatus} onChange={(e) => setVerificationStatus(e.target.value as 'pending' | 'verified' | 'rejected')} className="w-full rounded-2xl border border-pink-200 bg-[#2d1b4e] px-3 py-2 text-sm font-bold">
+                  <select value={verificationStatus} onChange={(e) => setVerificationStatus(e.target.value as 'pending' | 'verified' | 'rejected')} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold">
                     <option value="pending">Pending</option>
                     <option value="verified">Verified</option>
                     <option value="rejected">Rejected</option>
@@ -1501,7 +1501,7 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
 
       {selectedImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm" onClick={() => setSelectedImage(null)}>
-          <button className="absolute top-4 right-4 z-[101] rounded-full bg-[#2d1b4e]/20 p-2 text-white hover:bg-[#2d1b4e]/30 transition" onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}>
+          <button className="absolute top-4 right-4 z-[101] rounded-full bg-pink-50/20 p-2 text-white hover:bg-pink-50/30 transition" onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}>
             <X className="h-8 w-8" />
           </button>
 

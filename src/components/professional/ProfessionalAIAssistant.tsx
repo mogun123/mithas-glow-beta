@@ -109,7 +109,7 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
   return (
     <div className="min-h-screen bg-gray-50 pb-24 flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#2d1b4e]/80 backdrop-blur-lg border-b border-pink-500/20">
+      <div className="sticky top-0 z-30 bg-pink-50/80 backdrop-blur-lg border-b border-pink-100">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-[#D4AF37] to-orange-500 rounded-xl">
@@ -124,7 +124,7 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
       </div>
 
       {/* Quick Actions */}
-      <div className="px-4 py-4 border-b bg-[#2d1b4e] border-pink-500/20">
+      <div className="px-4 py-4 border-b bg-pink-50 border-pink-100">
         <p className="text-xs font-medium text-gray-500 mb-3">QUICK ACTIONS</p>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           {QUICK_ACTIONS.map((action, index) => {
@@ -154,7 +154,7 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
               className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                 message.role === 'user'
                   ? 'bg-[#D4AF37] text-white'
-                  : 'bg-[#2d1b4e] border border-pink-500/20 shadow-sm'
+                  : 'bg-pink-50 border border-pink-100 shadow-sm'
               }`}
             >
               {message.role === 'assistant' && (
@@ -185,7 +185,7 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
 
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-[#2d1b4e] border border-pink-500/20 rounded-2xl px-4 py-3 shadow-sm">
+            <div className="bg-pink-50 border border-pink-100 rounded-2xl px-4 py-3 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
                   <div className="w-2 h-2 bg-[#D4AF37] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -201,7 +201,7 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
 
       {/* Suggested Questions */}
       {messages.length < 3 && (
-        <div className="px-4 py-3 bg-[#2d1b4e] border-t border-pink-500/20">
+        <div className="px-4 py-3 bg-pink-50 border-t border-pink-100">
           <p className="text-xs font-medium text-gray-500 mb-2">SUGGESTED QUESTIONS</p>
           <div className="flex flex-wrap gap-2">
             {SUGGESTED_QUESTIONS.slice(0, 3).map((question, index) => (
@@ -218,7 +218,7 @@ export default function ProfessionalAIAssistant({ artistId, onBack }: Profession
       )}
 
       {/* Input Area */}
-      <div className="sticky bottom-0 p-4 bg-[#2d1b4e] border-t border-pink-500/20 safe-area-bottom">
+      <div className="sticky bottom-0 p-4 bg-pink-50 border-t border-pink-100 safe-area-bottom">
         <form
           onSubmit={(e) => {
             e.preventDefault();
