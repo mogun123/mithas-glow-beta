@@ -164,7 +164,7 @@ export default function ServicesTab({
         {/* HERO HEADER */}
         {/* ========================================================= */}
 
-        <div className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/65 p-5 shadow-[0_20px_60px_rgba(190,24,93,0.08)] backdrop-blur-2xl sm:p-6">
+        <div className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[#2d1b4e]/65 p-5 shadow-[0_20px_60px_rgba(190,24,93,0.08)] backdrop-blur-2xl sm:p-6">
 
           <div className="absolute right-0 top-0 h-40 w-40 rounded-bl-full bg-gradient-to-br from-fuchsia-300/20 to-violet-300/10" />
 
@@ -182,7 +182,7 @@ export default function ServicesTab({
                 </span>
               </div>
 
-              <h3 className="flex items-center gap-2 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+              <h3 className="flex items-center gap-2 text-xl font-black tracking-tight text-pink-100 sm:text-2xl">
                 <span className="bg-gradient-to-r from-fuchsia-600 via-pink-500 to-violet-600 bg-clip-text text-transparent">
                   Service Studio
                 </span>
@@ -203,7 +203,7 @@ export default function ServicesTab({
                   'Customer preview will open here.'
                 )
               }
-              className="group inline-flex items-center justify-center gap-2 rounded-2xl border border-violet-200/80 bg-white/80 px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-violet-600 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-lg hover:shadow-violet-500/10 active:scale-95"
+              className="group inline-flex items-center justify-center gap-2 rounded-2xl border border-violet-200/80 bg-[#2d1b4e]/80 px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-violet-600 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-lg hover:shadow-violet-500/10 active:scale-95"
             >
               <Globe className="h-4 w-4 transition-transform group-hover:rotate-12" />
               Preview Storefront
@@ -218,7 +218,7 @@ export default function ServicesTab({
         <div className="grid grid-cols-3 gap-2 sm:gap-4">
 
           {/* Total */}
-          <div className="group relative overflow-hidden rounded-[1.5rem] border border-pink-200/50 bg-white/75 p-4 shadow-[0_12px_35px_rgba(236,72,153,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-pink-500/10">
+          <div className="group relative overflow-hidden rounded-[1.5rem] border border-pink-200/50 bg-[#2d1b4e]/75 p-4 shadow-[0_12px_35px_rgba(236,72,153,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-pink-500/10">
 
             <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-pink-400/10 blur-xl transition-transform group-hover:scale-150" />
 
@@ -231,7 +231,7 @@ export default function ServicesTab({
                 <Sparkles className="h-3.5 w-3.5 text-pink-400" />
               </div>
 
-              <p className="text-2xl font-black text-slate-900">
+              <p className="text-2xl font-black text-pink-100">
                 {services.length}
               </p>
 
@@ -242,7 +242,7 @@ export default function ServicesTab({
           </div>
 
           {/* Live */}
-          <div className="group relative overflow-hidden rounded-[1.5rem] border border-emerald-200/50 bg-white/75 p-4 shadow-[0_12px_35px_rgba(16,185,129,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+          <div className="group relative overflow-hidden rounded-[1.5rem] border border-emerald-200/50 bg-[#2d1b4e]/75 p-4 shadow-[0_12px_35px_rgba(16,185,129,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
 
             <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-emerald-400/10 blur-xl transition-transform group-hover:scale-150" />
 
@@ -258,7 +258,7 @@ export default function ServicesTab({
                 </span>
               </div>
 
-              <p className="text-2xl font-black text-slate-900">
+              <p className="text-2xl font-black text-pink-100">
                 {liveCount}
               </p>
 
@@ -269,7 +269,7 @@ export default function ServicesTab({
           </div>
 
           {/* Average */}
-          <div className="group relative overflow-hidden rounded-[1.5rem] border border-violet-200/50 bg-white/75 p-4 shadow-[0_12px_35px_rgba(139,92,246,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/10">
+          <div className="group relative overflow-hidden rounded-[1.5rem] border border-violet-200/50 bg-[#2d1b4e]/75 p-4 shadow-[0_12px_35px_rgba(139,92,246,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/10">
 
             <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-violet-400/10 blur-xl transition-transform group-hover:scale-150" />
 
@@ -282,7 +282,7 @@ export default function ServicesTab({
                 <DollarSign className="h-3.5 w-3.5 text-violet-400" />
               </div>
 
-              <p className="text-2xl font-black text-slate-900">
+              <p className="text-2xl font-black text-pink-100">
                 ₹{avgPrice}
               </p>
 
@@ -301,12 +301,12 @@ export default function ServicesTab({
           className={`relative overflow-visible rounded-[2rem] border p-4 shadow-[0_18px_50px_rgba(190,24,93,0.07)] backdrop-blur-xl transition-all sm:p-6 ${
             editingServiceId
               ? 'border-violet-300/70 bg-violet-50/50'
-              : 'border-pink-200/60 bg-white/70'
+              : 'border-pink-200/60 bg-[#2d1b4e]/70'
           }`}
         >
 
           {/* Header */}
-          <div className="mb-5 flex items-center justify-between border-b border-pink-100/70 pb-4">
+          <div className="mb-5 flex items-center justify-between border-b border-pink-500/20/70 pb-4">
 
             <div>
               <div className="flex items-center gap-2">
@@ -320,7 +320,7 @@ export default function ServicesTab({
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-[0.12em] text-slate-800">
+                  <h4 className="text-xs font-black uppercase tracking-[0.12em] text-pink-100">
                     {editingServiceId
                       ? 'Edit experience'
                       : 'Create experience'}
@@ -357,7 +357,7 @@ export default function ServicesTab({
 
                 <div className="h-7 w-12 rounded-full border border-slate-200 bg-slate-200 transition-all peer-checked:border-emerald-400 peer-checked:bg-emerald-500 peer-focus:ring-4 peer-focus:ring-emerald-500/10" />
 
-                <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-md transition-transform peer-checked:translate-x-5" />
+                <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-[#2d1b4e] shadow-md transition-transform peer-checked:translate-x-5" />
               </div>
             </label>
           </div>
@@ -377,7 +377,7 @@ export default function ServicesTab({
 
               <div className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-400/20 via-fuchsia-400/20 to-violet-400/20 opacity-0 blur transition-opacity group-focus-within:opacity-100" />
 
-              <div className="relative flex items-center rounded-2xl border border-pink-200/70 bg-white/90 shadow-sm transition-all group-focus-within:border-fuchsia-300 group-focus-within:shadow-lg group-focus-within:shadow-fuchsia-500/10">
+              <div className="relative flex items-center rounded-2xl border border-pink-200/70 bg-[#2d1b4e]/90 shadow-sm transition-all group-focus-within:border-fuchsia-300 group-focus-within:shadow-lg group-focus-within:shadow-fuchsia-500/10">
 
                 <Search className="ml-4 h-4 w-4 flex-shrink-0 text-fuchsia-400" />
 
@@ -394,7 +394,7 @@ export default function ServicesTab({
                   }}
                   onFocus={() => setShowCatalog(true)}
                   placeholder="Search a service or type your own..."
-                  className="w-full bg-transparent px-3 py-3.5 text-sm font-bold text-slate-800 outline-none placeholder:text-slate-400"
+                  className="w-full bg-transparent px-3 py-3.5 text-sm font-bold text-pink-100 outline-none placeholder:text-slate-400"
                 />
 
                 {serviceForm.title && (
@@ -419,7 +419,7 @@ export default function ServicesTab({
             {/* Catalog */}
             {showCatalog &&
               catalogResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-pink-100 bg-white/95 shadow-[0_20px_60px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-pink-500/20 bg-[#2d1b4e]/95 shadow-[0_20px_60px_rgba(0,0,0,0.12)] backdrop-blur-xl">
 
                   <div className="border-b border-slate-100 px-4 py-2">
                     <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
@@ -481,7 +481,7 @@ export default function ServicesTab({
                     className={`group flex flex-shrink-0 items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-[10px] font-black transition-all duration-300 ${
                       selected
                         ? 'border-fuchsia-400 bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white shadow-lg shadow-fuchsia-500/20'
-                        : 'border-pink-100 bg-white/80 text-slate-500 hover:-translate-y-0.5 hover:border-fuchsia-200 hover:bg-fuchsia-50 hover:text-fuchsia-600'
+                        : 'border-pink-500/20 bg-[#2d1b4e]/80 text-slate-500 hover:-translate-y-0.5 hover:border-fuchsia-200 hover:bg-fuchsia-50 hover:text-fuchsia-600'
                     }`}
                   >
                     <span>{cat.emoji}</span>
@@ -516,7 +516,7 @@ export default function ServicesTab({
                       priceType: e.target.value,
                     }))
                   }
-                  className="w-full appearance-none rounded-2xl border border-pink-200/70 bg-white px-4 py-3.5 text-xs font-bold text-slate-700 outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-500/10"
+                  className="w-full appearance-none rounded-2xl border border-pink-200/70 bg-[#2d1b4e] px-4 py-3.5 text-xs font-bold text-slate-700 outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-500/10"
                 >
                   <option value="fixed">
                     Fixed price
@@ -538,7 +538,7 @@ export default function ServicesTab({
                 Price
               </label>
 
-              <div className="flex items-center rounded-2xl border border-pink-200/70 bg-white transition focus-within:border-fuchsia-400 focus-within:ring-4 focus-within:ring-fuchsia-500/10">
+              <div className="flex items-center rounded-2xl border border-pink-200/70 bg-[#2d1b4e] transition focus-within:border-fuchsia-400 focus-within:ring-4 focus-within:ring-fuchsia-500/10">
 
                 <span className="pl-4 text-sm font-black text-fuchsia-400">
                   ₹
@@ -555,7 +555,7 @@ export default function ServicesTab({
                   type="number"
                   inputMode="numeric"
                   placeholder="5000"
-                  className="min-w-0 flex-1 bg-transparent px-2 py-3.5 pr-4 text-sm font-black text-slate-800 outline-none placeholder:text-slate-300"
+                  className="min-w-0 flex-1 bg-transparent px-2 py-3.5 pr-4 text-sm font-black text-pink-100 outline-none placeholder:text-slate-300"
                 />
               </div>
             </div>
@@ -592,7 +592,7 @@ export default function ServicesTab({
                     className={`rounded-full border px-4 py-2 text-[10px] font-black transition-all duration-300 ${
                       selected
                         ? 'border-fuchsia-400 bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white shadow-lg shadow-fuchsia-500/20'
-                        : 'border-pink-100 bg-white text-slate-500 hover:border-fuchsia-200 hover:bg-fuchsia-50 hover:text-fuchsia-600'
+                        : 'border-pink-500/20 bg-[#2d1b4e] text-slate-500 hover:border-fuchsia-200 hover:bg-fuchsia-50 hover:text-fuchsia-600'
                     }`}
                   >
                     {selected && (
@@ -615,7 +615,7 @@ export default function ServicesTab({
                 type="number"
                 inputMode="numeric"
                 placeholder="Custom"
-                className="w-28 rounded-full border border-pink-100 bg-white px-4 py-2 text-[10px] font-bold outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-500/10"
+                className="w-28 rounded-full border border-pink-500/20 bg-[#2d1b4e] px-4 py-2 text-[10px] font-bold outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-500/10"
               />
             </div>
           </div>
@@ -649,7 +649,7 @@ export default function ServicesTab({
           </button>
 
           {showAdvancedServiceOptions && (
-            <div className="mt-3 grid gap-3 rounded-2xl border border-pink-100 bg-white/70 p-4 backdrop-blur-xl sm:grid-cols-2">
+            <div className="mt-3 grid gap-3 rounded-2xl border border-pink-500/20 bg-[#2d1b4e]/70 p-4 backdrop-blur-xl sm:grid-cols-2">
 
               <div>
                 <label className="mb-2 ml-1 block text-[9px] font-black uppercase tracking-wider text-slate-500">
@@ -666,7 +666,7 @@ export default function ServicesTab({
                     }))
                   }
                   placeholder="HD Makeup, Hairstyling, Draping"
-                  className="w-full rounded-xl border border-pink-100 bg-white px-3 py-3 text-xs font-bold outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-500/10"
+                  className="w-full rounded-xl border border-pink-500/20 bg-[#2d1b4e] px-3 py-3 text-xs font-bold outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-500/10"
                 />
               </div>
 
@@ -684,7 +684,7 @@ export default function ServicesTab({
                     }))
                   }
                   placeholder="Premium lashes +₹500"
-                  className="w-full rounded-xl border border-pink-100 bg-white px-3 py-3 text-xs font-bold outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-500/10"
+                  className="w-full rounded-xl border border-pink-500/20 bg-[#2d1b4e] px-3 py-3 text-xs font-bold outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-500/10"
                 />
               </div>
 
@@ -693,7 +693,7 @@ export default function ServicesTab({
                   Advance
                 </label>
 
-                <div className="flex items-center rounded-xl border border-pink-100 bg-white">
+                <div className="flex items-center rounded-xl border border-pink-500/20 bg-[#2d1b4e]">
 
                   <span className="pl-3 text-xs font-black text-fuchsia-400">
                     ₹
@@ -716,7 +716,7 @@ export default function ServicesTab({
                 </div>
               </div>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-pink-100 bg-white px-3 py-3">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-pink-500/20 bg-[#2d1b4e] px-3 py-3">
 
                 <input
                   type="checkbox"
@@ -758,7 +758,7 @@ export default function ServicesTab({
               <button
                 type="button"
                 onClick={onCancelEdit}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-[9px] font-black uppercase tracking-widest text-slate-500 transition hover:bg-slate-50 active:scale-95"
+                className="rounded-2xl border border-slate-200 bg-[#2d1b4e] px-5 py-3.5 text-[9px] font-black uppercase tracking-widest text-slate-500 transition hover:bg-[#1a0b2e] active:scale-95"
               >
                 Cancel
               </button>
@@ -800,7 +800,7 @@ export default function ServicesTab({
           <div className="mb-4 flex items-center justify-between">
 
             <div>
-              <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.13em] text-slate-800">
+              <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.13em] text-pink-100">
                 <Crown className="h-4 w-4 text-fuchsia-500" />
                 Your experiences
 
@@ -827,7 +827,7 @@ export default function ServicesTab({
                 className={`flex-shrink-0 rounded-full px-4 py-2 text-[9px] font-black uppercase tracking-wider transition ${
                   activeCategoryFilter === 'all'
                     ? 'bg-slate-900 text-white shadow-lg'
-                    : 'border border-slate-100 bg-white text-slate-500 hover:border-fuchsia-200 hover:text-fuchsia-600'
+                    : 'border border-slate-100 bg-[#2d1b4e] text-slate-500 hover:border-fuchsia-200 hover:text-fuchsia-600'
                 }`}
               >
                 All
@@ -849,7 +849,7 @@ export default function ServicesTab({
                   className={`flex-shrink-0 rounded-full px-4 py-2 text-[9px] font-black uppercase tracking-wider transition ${
                     activeCategoryFilter === cat
                       ? 'bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white shadow-lg shadow-fuchsia-500/20'
-                      : 'border border-slate-100 bg-white text-slate-500 hover:border-fuchsia-200 hover:text-fuchsia-600'
+                      : 'border border-slate-100 bg-[#2d1b4e] text-slate-500 hover:border-fuchsia-200 hover:text-fuchsia-600'
                   }`}
                 >
                   {String(cat).replace(
@@ -863,7 +863,7 @@ export default function ServicesTab({
 
           {/* Empty */}
           {services.length === 0 ? (
-            <div className="relative overflow-hidden rounded-[2rem] border border-dashed border-fuchsia-200 bg-white/60 py-14 text-center backdrop-blur-xl">
+            <div className="relative overflow-hidden rounded-[2rem] border border-dashed border-fuchsia-200 bg-[#2d1b4e]/60 py-14 text-center backdrop-blur-xl">
 
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-pink-100 to-violet-100">
                 <Crown className="h-7 w-7 text-fuchsia-400" />
@@ -885,10 +885,10 @@ export default function ServicesTab({
                 (service) => (
                   <div
                     key={service.id}
-                    className={`group relative overflow-hidden rounded-[1.75rem] border bg-white/75 backdrop-blur-xl transition-all duration-300 ${
+                    className={`group relative overflow-hidden rounded-[1.75rem] border bg-[#2d1b4e]/75 backdrop-blur-xl transition-all duration-300 ${
                       !service.is_active
                         ? 'border-slate-200 opacity-60'
-                        : 'border-pink-100/80 hover:-translate-y-1 hover:border-fuchsia-200 hover:shadow-[0_20px_50px_rgba(217,70,239,0.10)]'
+                        : 'border-pink-500/20/80 hover:-translate-y-1 hover:border-fuchsia-200 hover:shadow-[0_20px_50px_rgba(217,70,239,0.10)]'
                     } ${
                       editingServiceId ===
                       service.id
@@ -919,7 +919,7 @@ export default function ServicesTab({
                               )}
                             </span>
 
-                            <span className="rounded-full border border-slate-100 bg-slate-50 px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-slate-500">
+                            <span className="rounded-full border border-slate-100 bg-[#1a0b2e] px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-slate-500">
                               <Clock3 className="mr-1 inline h-2.5 w-2.5" />
                               {formatDuration(
                                 Number(
@@ -930,7 +930,7 @@ export default function ServicesTab({
                             </span>
                           </div>
 
-                          <h4 className="text-base font-black leading-tight text-slate-900">
+                          <h4 className="text-base font-black leading-tight text-pink-100">
                             {service.title}
                           </h4>
                         </div>
@@ -1003,7 +1003,7 @@ export default function ServicesTab({
                                 ) => (
                                   <span
                                     key={i}
-                                    className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1 text-[9px] font-bold text-slate-600"
+                                    className="rounded-lg border border-slate-100 bg-[#1a0b2e] px-2 py-1 text-[9px] font-bold text-slate-600"
                                   >
                                     <Check className="mr-1 inline h-2.5 w-2.5 text-emerald-500" />
                                     {item.trim()}
@@ -1025,14 +1025,14 @@ export default function ServicesTab({
                     </div>
 
                     {/* Actions */}
-                    <div className="grid grid-cols-3 border-t border-slate-100/80 bg-slate-50/60 p-1.5">
+                    <div className="grid grid-cols-3 border-t border-slate-100/80 bg-[#1a0b2e]/60 p-1.5">
 
                       <button
                         type="button"
                         onClick={() =>
                           onEdit(service)
                         }
-                        className="group/action flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[8px] font-black uppercase tracking-wider text-slate-500 transition hover:bg-white hover:text-violet-600"
+                        className="group/action flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[8px] font-black uppercase tracking-wider text-slate-500 transition hover:bg-[#2d1b4e] hover:text-violet-600"
                       >
                         <PencilLine className="h-3 w-3 transition-transform group-hover/action:-rotate-12" />
                         Edit
@@ -1043,7 +1043,7 @@ export default function ServicesTab({
                         onClick={() =>
                           onDuplicate(service)
                         }
-                        className="group/action flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[8px] font-black uppercase tracking-wider text-slate-500 transition hover:bg-white hover:text-blue-600"
+                        className="group/action flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[8px] font-black uppercase tracking-wider text-slate-500 transition hover:bg-[#2d1b4e] hover:text-blue-600"
                       >
                         <Sparkles className="h-3 w-3 transition-transform group-hover/action:scale-125" />
                         Duplicate
@@ -1054,7 +1054,7 @@ export default function ServicesTab({
                         onClick={() =>
                           onDelete(service.id)
                         }
-                        className="group/action flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[8px] font-black uppercase tracking-wider text-rose-400 transition hover:bg-white hover:text-rose-600"
+                        className="group/action flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[8px] font-black uppercase tracking-wider text-rose-400 transition hover:bg-[#2d1b4e] hover:text-rose-600"
                       >
                         <Trash2 className="h-3 w-3 transition-transform group-hover/action:scale-110" />
                         Delete

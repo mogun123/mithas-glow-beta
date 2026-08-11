@@ -126,17 +126,17 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
   }, [bookingFilter, loadBookings]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-[#1a0b2e] pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-pink-100">
+      <div className="sticky top-0 z-30 bg-[#2d1b4e]/80 backdrop-blur-lg border-b border-pink-500/20">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-black text-gray-900">Bookings</h1>
-              <p className="text-xs text-gray-500">{bookings.length} bookings found</p>
+              <h1 className="text-base font-black text-pink-100">Bookings</h1>
+              <p className="text-[10px] text-pink-300/70">{bookings.length} bookings found</p>
             </div>
             {onBack && (
-              <Button onClick={onBack} variant="outline" size="sm">
+              <Button onClick={onBack} variant="outline" size="sm" className="border-pink-500/30 text-pink-200 hover:bg-pink-500/20">
                 Back
               </Button>
             )}
@@ -151,10 +151,10 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
             <button
               key={filter}
               onClick={() => setBookingFilter(filter)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
                 bookingFilter === filter
-                  ? 'bg-[#D4AF37] text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
+                  : 'bg-[#2d1b4e]/50 text-pink-300/70 hover:bg-[#2d1b4e]/80 border border-pink-500/20'
               }`}
             >
               {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -164,25 +164,25 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
 
         {/* Bookings List */}
         {errorMessage ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
-            <p className="text-sm font-semibold text-rose-700">{errorMessage}</p>
-            <Button variant="outline" className="mt-4" onClick={() => void loadBookings(bookingFilter)}>
+          <div className="rounded-2xl border border-pink-500/30 bg-[#2d1b4e]/70 p-6 text-center">
+            <p className="text-sm font-semibold text-pink-300">{errorMessage}</p>
+            <Button variant="outline" className="mt-4 border-pink-500/30 text-pink-200 hover:bg-pink-500/20" onClick={() => void loadBookings(bookingFilter)}>
               Retry
             </Button>
           </div>
         ) : loading ? (
           <div className="text-center py-12">
             <div className="relative w-12 h-12 mx-auto mb-4">
-              <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-t-[#D4AF37] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+              <div className="absolute inset-0 border-4 border-[#2d1b4e] rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-t-pink-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
             </div>
-            <p className="text-gray-500">Loading bookings...</p>
+            <p className="text-pink-300/70">Loading bookings...</p>
           </div>
         ) : bookings.length === 0 ? (
           <div className="text-center py-12">
-            <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-500 mb-4">No bookings found</p>
-            <Button variant="outline" onClick={onBack}>
+            <Calendar className="w-16 h-16 mx-auto mb-4 text-pink-500/30" />
+            <p className="text-pink-300/70 mb-4">No bookings found</p>
+            <Button variant="outline" onClick={onBack} className="border-pink-500/30 text-pink-200 hover:bg-pink-500/20">
               Return to Dashboard
             </Button>
           </div>
@@ -191,38 +191,38 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
             {bookings.map((booking) => (
               <Card
                 key={booking.id}
-                className="group relative overflow-hidden hover:shadow-md transition-shadow"
+                className="group relative overflow-hidden bg-[#2d1b4e]/90 border-pink-500/20 hover:border-pink-500/40 transition-all"
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-gray-200 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
                       {booking.customer?.avatar_url ? (
                         <img src={booking.customer.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-xl">👤</span>
+                        <span className="text-pink-300">👤</span>
                       )}
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-black text-gray-900 truncate">
+                        <h4 className="font-black text-pink-100 truncate">
                           {booking.customer?.full_name || "Customer"}
                         </h4>
                         <Badge
-                          className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border ${
-                            booking.status === "pending" ? "bg-orange-500/20 text-orange-600 border-orange-500/30" :
-                            booking.status === "confirmed" ? "bg-blue-500/20 text-blue-600 border-blue-500/30" :
-                            booking.status === "completed" ? "bg-green-500/20 text-green-600 border-green-500/30" :
-                            "bg-gray-100 text-gray-600 border-gray-200"
+                          className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${
+                            booking.status === "pending" ? "bg-pink-500/20 text-pink-300 border-pink-500/30" :
+                            booking.status === "confirmed" ? "bg-purple-500/20 text-purple-300 border-purple-500/30" :
+                            booking.status === "completed" ? "bg-lavender-500/20 text-lavender-300 border-lavender-500/30" :
+                            "bg-[#2d1b4e]/50 text-pink-300/70 border-pink-500/20"
                           }`}
                         >
                           {booking.status}
                         </Badge>
                       </div>
                       
-                      <p className="text-sm text-gray-600 font-medium mb-2">{booking.service_name || "Service"}</p>
+                      <p className="text-xs text-pink-200/80 font-medium mb-2">{booking.service_name || "Service"}</p>
                       
-                      <div className="flex items-center gap-4 text-xs text-gray-500 font-bold flex-wrap">
+                      <div className="flex items-center gap-4 text-[10px] text-pink-300/70 font-bold flex-wrap">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {new Date(booking.booking_date).toLocaleDateString()}
@@ -247,13 +247,13 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
                       <>
                         <button
                           onClick={() => handleAcceptBooking(booking.id)}
-                          className="flex-1 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black rounded-xl text-xs hover:shadow-lg hover:shadow-green-500/30 transition-all flex items-center justify-center gap-1"
+                          className="flex-1 py-2 bg-gradient-to-r from-purple-500 to-lavender-600 text-white font-black rounded-xl text-[10px] hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-1"
                         >
                           <CheckCircle className="w-4 h-4" /> Accept
                         </button>
                         <button
                           onClick={() => handleDeclineBooking(booking.id)}
-                          className="flex-1 py-2 bg-white/10 border border-red-500/30 text-red-600 font-black rounded-xl text-xs hover:bg-red-500/20 transition-all flex items-center justify-center gap-1"
+                          className="flex-1 py-2 bg-[#1a0b2e]/50 border border-pink-500/30 text-pink-300 font-black rounded-xl text-[10px] hover:bg-pink-500/20 transition-all flex items-center justify-center gap-1"
                         >
                           <XCircle className="w-4 h-4" /> Decline
                         </button>
@@ -262,18 +262,18 @@ export default function ProfessionalBookings({ artistId, onBack }: ProfessionalB
                     {booking.status === "confirmed" && (
                       <button
                         onClick={() => handleCompleteBooking(booking.id)}
-                        className="flex-1 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black rounded-xl text-xs hover:shadow-lg hover:shadow-pink-500/30 transition-all flex items-center justify-center gap-1"
+                        className="flex-1 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black rounded-xl text-[10px] hover:shadow-lg hover:shadow-pink-500/30 transition-all flex items-center justify-center gap-1"
                       >
                         <CheckCircle className="w-4 h-4" /> Complete
                       </button>
                     )}
                     {booking.status === "completed" && (
-                      <span className="flex-1 py-2 bg-green-500/20 text-green-600 font-black rounded-xl text-xs text-center border border-green-500/30">
+                      <span className="flex-1 py-2 bg-lavender-500/20 text-lavender-300 font-black rounded-xl text-[10px] text-center border border-lavender-500/30">
                         ✓ Completed
                       </span>
                     )}
                     {booking.status === "cancelled" && (
-                      <span className="flex-1 py-2 bg-gray-100 text-gray-500 font-black rounded-xl text-xs text-center border border-gray-200">
+                      <span className="flex-1 py-2 bg-[#2d1b4e]/50 text-pink-300/70 font-black rounded-xl text-[10px] text-center border border-pink-500/20">
                         ✕ Cancelled
                       </span>
                     )}
