@@ -64,8 +64,17 @@ export function ArtistDetailScreen({
   const { artist, services, loading: artistLoading } = useArtistProfile(artistId);
   const { slots, loading: slotsLoading } = useAvailableSlots(artistId, selectedDate);
   const { createBooking } = useCreateBooking();
-  const { portfolioItems, socialLinks } = useArtistPortfolio();
+  const { portfolioItems, socialLinks, loading: portfolioLoading } = useArtistPortfolio();
   const { reviews: artistReviews, summary: reviewSummary, loading: reviewsLoading } = useArtistReviews(artistId, 5);
+
+  // Derive social links from socialLinks array
+  const instagramLink = socialLinks?.find(link => link.platform === 'instagram');
+  const youtubeLink = socialLinks?.find(link => link.platform === 'youtube');
+  
+  // Get featured portfolio items (first 5 or marked as featured)
+  const featuredPortfolio = portfolioItems
+    ?.filter(item => item.is_featured || true)
+    .slice(0, 5) || [];
 
   // Generate next 7 days for date selection
   const availableDates = Array.from({ length: 7 }, (_, i) => {
