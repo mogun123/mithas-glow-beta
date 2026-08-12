@@ -117,16 +117,21 @@ export function ArtistDetailScreen({
 
     try {
       setIsCreatingBooking(true);
+      
+      // Note: service.price is passed for UI reference only
+      // The actual price is calculated server-side by the create_booking RPC
+      // from the authoritative artist_services table
       await createBooking(
         userId,
         artistId,
         service.id,
         service.title,
-        service.price,
+        service.price, // Used for UI preview only - server ignores this
         selectedDate,
         selectedTime,
         specialNotes.trim()
       );
+      
       setBookingSuccess(true);
       toast.success("Booking created successfully! ✨");
     } catch (error: any) {
