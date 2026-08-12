@@ -1,49 +1,43 @@
-```gitignore
-# Dependencies
-node_modules/
-.pnpm-store/
-.yarn/
-.yarn-cache/
+```
+# Database migrations
+supabase/migrations/*.sql
 
-# Build outputs
-dist/
-build/
-.out/
-.bundle/
-
-# TypeScript/JavaScript
-*.tsbuildinfo
-*.js.map
-*.jsx.map
-*.ts.map
-
-# Logs
+# Logs and temporary files
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+*.tmp
 
 # Environment variables
 .env
 .env.local
 .env.*
-!.env.example
 
-# IDE specific
+# Dependencies
+node_modules/
+.yarn/
+.pnpm-store/
+.npm/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS generated
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Python (if applicable)
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
 env/
 venv/
@@ -58,94 +52,47 @@ nosetests.xml
 coverage.xml
 *.cover
 *.log
-.git/modules/
-*.tmproj
-# These are for files which would otherwise be tracked by
-# git status clean
-!*.crt
-!*.pem
-!*.key
-!*.pub
-!*.zip
-!*.tar.gz
-!*.deb
-!*.rpm
-!*.jar
-!*.war
-!*.ear
-!*.sar
-!*.har
-!*.gem
-!*.nupkg
-!*.whl
-!*.egg-info/
-!*.egg
-!*.dmg
-!*.iso
-!*.img
-!*.msi
-!*.msp
-!*.mst
-!*.apk
-!*.aab
-!*.app
-!*.bin
-!*.dat
-!*.db
-!*.sql
-!*.sqlite
-!*.sqlite3
-!*.dump
-!*.dump.gz
-!*.sql.gz
-!*.bak
-!*.backup
-!*.old
-!*.orig
-!*.rej
-!*.patch
-!*.diff
-!*.log
-!*.tmp
-!*.temp
-!*.swp
-!*.swo
-!*.lock
-!*.pid
-!*.sock
-!*.DS_Store
-!*.Thumbs.db
-!*.ehthumbs.db
-!*.Trashes
-!*.Spotlight-V100
-!*.TemporaryItems
-!*.metadata_never_index
-!*.metadata_never_index_unless_rootfs
-!*.fseventsd
-!*.apdisk
-!*.apdisk.tsk
-!*.apdisk.spl
-!*.apdisk.vol
-!*.apdisk.dir
-!*.apdisk.file
-!*.apdisk.info
-!*.apdisk.meta
-!*.apdisk.cache
-!*.apdisk.lock
-!*.apdisk.log
-!*.apdisk.err
-!*.apdisk.out
-!*.apdisk.tmp
-!*.apdisk.temp
-!*.apdisk.swp
-!*.apdisk.swo
-!*.apdisk.pid
-!*.apdisk.sock
-!*.apdisk.bak
-!*.apdisk.backup
-!*.apdisk.old
-!*.apdisk.orig
-!*.apdisk.rej
-!*.apdisk.patch
-!*.apdisk.diff
+.git*
+.pytest_cache/
+.hypothesis/
+.DS_Store
+.mypy_cache/
+.pyre/
+.pytype/
+cython_debug/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.sanity/
+.next/
+.cache/
+.output/
+vercel.json
+netlify.toml
+package-lock.json
+yarn.lock
+.pnp.*
+.pnp.js
+.webpack/
+.nuxt/
+.nitro/
+.output/
+dist/
+build/
+public/dist/
+
+# TypeScript
+*.tsbuildinfo
+*.eslintrc.js
+*.js.map
+*.ts.map
+
+# Supabase
+supabase/.temp/
+supabase/config.toml
+supabase/seed.sql
 ```

@@ -259,7 +259,9 @@ export const useAvailableSlots = (artistId: string, date: string) => {
 };
 
 /**
- * Create a new booking
+ * Create a new booking using secure server-side RPC
+ * IMPORTANT: Price is calculated server-side from artist_services table
+ * Client-provided price is IGNORED for security
  */
 export const useCreateBooking = () => {
   const [loading, setLoading] = useState(false);
@@ -280,27 +282,42 @@ export const useCreateBooking = () => {
       setLoading(true);
       setError(null);
 
+      // Use secure RPC function that calculates price server-side
+      // The client-provided totalPrice is only used for UI preview
+      // The actual booking uses authoritative price from artist_services table
       const { data, error: createError } = await supabase
-        .from('bookings')
-        .insert({
-          customer_id: customerId,
-          artist_id: artistId,
-          service_id: serviceId,
-          service_name: serviceName,
-          total_price: totalPrice,
-          booking_date: bookingDate,
-          booking_time: bookingTime,
-          status: 'pending',
-          payment_status: 'pending',
-          notes: notes,
-        })
-        .select()
-        .single();
+        .rpc('create_booking', {
+          p_artist_id: artistId,
+          p_service_id: serviceId,
+          p_booking_date: bookingDate,
+          p_booking_time: bookingTime,
+          p_notes: notes || null,
+        });
 
       if (createError) throw createError;
+      
+      if (!data || data.length === 0) {
+        throw new Error('Booking creation failed. No booking returned.');
+      }
 
-      setBooking(data);
-      return data;
+      // Map RPC response to Booking interface
+      const bookingData = data[0];
+      const mappedBooking: Booking = {
+        id: bookingData.booking_id,
+        customer_id: bookingData.customer_id,
+        artist_id: bookingData.artist_id,
+        service_id: bookingData.service_id,
+        service_name: bookingData.service_name,
+        total_price: Number(bookingData.total_amount), // Server-calculated authoritative price
+        booking_date: bookingData.booking_date,
+        booking_time: bookingData.booking_time,
+        status: bookingData.status as Booking['status'],
+        payment_status: bookingData.payment_status as Booking['payment_status'],
+        created_at: bookingData.created_at,
+      };
+
+      setBooking(mappedBooking);
+      return mappedBooking;
     } catch (err: any) {
       setError(err.message || 'Failed to create booking');
       console.error('Error creating booking:', err);
