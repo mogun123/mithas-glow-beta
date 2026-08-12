@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
 import { BottomNav } from "../components/BottomNav";
-import { Star, ChevronLeft, CheckCircle, AlertCircle, BadgeCheck, Clock, Calendar, MapPin, Instagram, Youtube, Share2, Image as ImageIcon, Heart, MessageCircle, User } from "lucide-react";
+import { Star, ChevronLeft, CheckCircle, AlertCircle, BadgeCheck, Clock, Calendar, MapPin, Instagram, Youtube, Share2, Image as ImageIcon, Heart, MessageCircle, User, ChevronRight } from "lucide-react";
 import { useArtistProfile, useAvailableSlots, useCreateBooking } from "../../hooks/use-booking";
 import { useAuthStore } from "../lib/store";
 import { toast } from "sonner";
@@ -19,21 +19,21 @@ type ArtistDetailScreenProps = {
 
 const ARTIST_DETAIL_CSS = `
 @keyframes fade-in-artist-detail {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.fade-in-artist-detail { animation: fade-in-artist-detail 0.55s cubic-bezier(0.22,1,0.36,1) both; }
-.fade-in-artist-detail-d1 { animation-delay: 0.07s; }
-.fade-in-artist-detail-d2 { animation-delay: 0.14s; }
-.fade-in-artist-detail-d3 { animation-delay: 0.21s; }
-.fade-in-artist-detail-d4 { animation-delay: 0.28s; }
+.fade-in-artist-detail { animation: fade-in-artist-detail 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+.fade-in-artist-detail-d1 { animation-delay: 0.05s; }
+.fade-in-artist-detail-d2 { animation-delay: 0.1s; }
+.fade-in-artist-detail-d3 { animation-delay: 0.15s; }
+.fade-in-artist-detail-d4 { animation-delay: 0.2s; }
 
 @keyframes success-pop {
-  0% { transform: scale(0.8); opacity: 0; }
-  50% { transform: scale(1.05); }
+  0% { transform: scale(0.9); opacity: 0; }
+  50% { transform: scale(1.03); }
   100% { transform: scale(1); opacity: 1; }
 }
-.success-pop { animation: success-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+.success-pop { animation: success-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { scrollbar-width: none; msOverflowStyle: 'none'; }
@@ -238,191 +238,171 @@ export function ArtistDetailScreen({
     );
   }
 
-  const selectedServiceData = services.find((s) => s.id === selectedService);
-  const instagramLink = socialLinks.find(link => link.platform === 'instagram');
-  const youtubeLink = socialLinks.find(link => link.platform === 'youtube');
-  const featuredPortfolio = portfolioItems.filter(item => item.is_cover || item.is_featured).slice(0, 5);
-
-  // Calculate pricing breakdown
-  const basePrice = selectedServiceData?.price || 0;
-  const travelCharge = locationType === 'home' ? 150 : 0;
-  const totalAmount = basePrice + travelCharge;
-  const advancePercentage = 0.2;
-  const advancePayable = Math.ceil(totalAmount * advancePercentage);
+  // Format industry/profession for display
+  const formatProfession = (industry?: string | null) => {
+    if (!industry) return 'Professional';
+    return industry
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   return (
-    <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-[#faf5ff]" style={{ position: "relative", zIndex: 1 }}>
-      {/* Hero Cover Section */}
-      <div className="glass-header sticky top-0" style={{ zIndex: 30 }}>
+    <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-[#fffbfd]" style={{ position: "relative", zIndex: 1 }}>
+      {/* Header */}
+      <div className="sticky top-0 z-40" style={{ zIndex: 30 }}>
         <Header onNavigateToProfile={onNavigateToProfile} />
       </div>
 
-      <main className="flex-grow overflow-y-auto pb-40" style={{
+      <main className="flex-grow overflow-y-auto pb-28" style={{
         WebkitOverflowScrolling: "touch",
         display: "flex",
         flexDirection: "column"
       }}>
-        {/* Hero Section with Overlapping Avatar */}
-        <div className="relative">
-          {/* Cover Gradient Background */}
-          <div className="h-48 w-full bg-gradient-to-br from-pink-200 via-purple-200 to-pink-300 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute top-4 left-8 w-20 h-20 bg-white/20 rounded-full blur-xl"></div>
-              <div className="absolute bottom-8 right-12 w-32 h-32 bg-purple-300/30 rounded-full blur-2xl"></div>
-              <div className="absolute top-12 right-6 w-16 h-16 bg-pink-300/25 rounded-full blur-lg"></div>
-            </div>
-            
-            {/* Share Button */}
-            <button
-              onClick={handleShareProfile}
-              className="absolute top-4 right-4 p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all active:scale-95"
-              aria-label="Share profile"
-            >
-              <Share2 className="w-4 h-4 text-slate-700" />
-            </button>
-          </div>
-
-          {/* Overlapping Avatar Card */}
-          <div className="px-5" style={{ marginTop: "-64px" }}>
-            <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgba(236,72,153,0.08)] p-5 border border-pink-100/50">
-              <div className="flex items-start gap-4">
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
-                  <div className="w-28 h-28 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 p-1 shadow-lg">
-                    <div className="w-full h-full rounded-full overflow-hidden bg-white flex items-center justify-center text-5xl">
-                      {artist.avatar_url ? (
-                        <img src={artist.avatar_url} alt={artist.shop_name || artist.full_name} className="w-full h-full object-cover" />
-                      ) : (
-                        "💄"
-                      )}
-                    </div>
-                  </div>
-                  {/* Verified Badge */}
-                  {artist.seller_status === 'verified' && (
-                    <div className="absolute bottom-0 right-0 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-md border-2 border-white">
-                      <BadgeCheck className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Artist Info */}
-                <div className="flex-1 pt-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-xl font-black text-slate-900 truncate">
-                      {artist.shop_name || artist.full_name}
-                    </h1>
-                    {artist.seller_status === 'verified' && (
-                      <BadgeCheck className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                    )}
-                  </div>
-                  
-                  {/* Rating Badge */}
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 rounded-full border border-amber-100">
-                      <Star className="w-4 h-4" fill="#fbbf24" color="#fbbf24" />
-                      <span className="text-sm font-bold text-amber-800">
-                        {artist.average_rating?.toFixed(1) || "N/A"}
-                      </span>
-                    </div>
-                    <span className="text-xs text-slate-500 font-medium">
-                      ({artist.total_reviews || 0} reviews)
-                    </span>
-                  </div>
-
-                  {/* Experience & Industry */}
-                  <p className="text-xs font-semibold text-purple-600 mb-2">
-                    {artist.experience || "Professional"} · {artist.industry || "Makeup Artist"}
-                  </p>
-
-                  {/* Location (if available) */}
-                  {artist.location_city && (
-                    <div className="flex items-center gap-1.5 text-slate-500">
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span className="text-xs font-medium">{artist.location_city}</span>
-                    </div>
+        {/* Hero Section - Clean & Premium */}
+        <div className="px-4 pt-4 pb-2">
+          <div className="flex items-start gap-3">
+            {/* Avatar */}
+            <div className="relative flex-shrink-0">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 p-0.5 shadow-sm">
+                <div className="w-full h-full rounded-full overflow-hidden bg-white">
+                  {artist.avatar_url ? (
+                    <img src={artist.avatar_url} alt={artist.shop_name || artist.full_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xl">💄</div>
                   )}
                 </div>
               </div>
-
-              {/* Bio Section */}
-              {artist.bio && (
-                <div className="mt-4 pt-4 border-t border-pink-50">
-                  <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
-                    {artist.bio}
-                  </p>
-                </div>
-              )}
-
-              {/* Specialities Pills */}
-              {artist.specialities && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {artist.specialities.split(',').slice(0, 4).map((spec, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-pink-50 to-purple-50 rounded-full text-xs font-semibold text-slate-700 border border-pink-100"
-                    >
-                      {spec.trim()}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Social Links */}
-              {(instagramLink || youtubeLink) && (
-                <div className="mt-4 pt-4 border-t border-pink-50 flex items-center gap-3">
-                  {instagramLink && (
-                    <a
-                      href={instagramLink.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2.5 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl text-white shadow-md hover:shadow-lg transition-all active:scale-95"
-                    >
-                      <Instagram className="w-4 h-4" />
-                    </a>
-                  )}
-                  {youtubeLink && (
-                    <a
-                      href={youtubeLink.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2.5 bg-red-500 rounded-xl text-white shadow-md hover:shadow-lg transition-all active:scale-95"
-                    >
-                      <Youtube className="w-4 h-4" />
-                    </a>
-                  )}
+              {artist.seller_status === 'verified' && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-sm border-2 border-white">
+                  <BadgeCheck className="w-2.5 h-2.5 text-white" />
                 </div>
               )}
             </div>
+
+            {/* Artist Info */}
+            <div className="flex-1 min-w-0 pt-0.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <h1 className="text-lg font-bold text-slate-900 truncate">
+                  {artist.shop_name || artist.full_name}
+                </h1>
+                {artist.seller_status === 'verified' && (
+                  <BadgeCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                )}
+              </div>
+              
+              {/* Rating */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span className="text-sm font-semibold text-slate-900">
+                    {artist.average_rating?.toFixed(1) || "N/A"}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500">
+                  ({artist.total_reviews || 0} reviews)
+                </span>
+              </div>
+
+              {/* Profession & Location */}
+              <p className="text-xs text-slate-600 font-medium mb-0.5">
+                {formatProfession(artist.industry)}
+              </p>
+              {artist.location_city && (
+                <div className="flex items-center gap-1 text-slate-500">
+                  <MapPin className="w-3 h-3" />
+                  <span className="text-xs">{artist.location_city}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Share Button */}
+            <button
+              onClick={handleShareProfile}
+              className="flex-shrink-0 p-2 bg-white rounded-full border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors active:scale-95"
+              aria-label="Share profile"
+            >
+              <Share2 className="w-4 h-4 text-slate-600" />
+            </button>
           </div>
+
+          {/* Bio */}
+          {artist.bio && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
+                {artist.bio}
+              </p>
+            </div>
+          )}
+
+          {/* Specialities */}
+          {artist.specialities && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {artist.specialities.split(',').slice(0, 4).map((spec, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center px-2.5 py-1 bg-pink-50 rounded-full text-xs font-medium text-slate-700"
+                >
+                  {spec.trim()}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Social Links */}
+          {(instagramLink || youtubeLink) && (
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+              {instagramLink && (
+                <a
+                  href={instagramLink.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 bg-gradient-to-br from-pink-500 to-purple-500 rounded-lg text-white shadow-sm"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+              )}
+              {youtubeLink && (
+                <a
+                  href={youtubeLink.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 bg-red-500 rounded-lg text-white shadow-sm"
+                >
+                  <Youtube className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Portfolio Gallery - Instagram Style */}
         {featuredPortfolio.length > 0 && (
-          <div className="mt-5 px-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-pink-500" />
+          <div className="mt-2">
+            <div className="flex items-center justify-between px-4 mb-2">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-pink-500" />
                 Portfolio
               </h2>
               <button
                 onClick={() => setShowPortfolioModal(true)}
-                className="text-sm font-semibold text-purple-600 hover:text-purple-700 transition-colors"
+                className="text-sm font-semibold text-purple-600 hover:text-purple-700 transition-colors flex items-center gap-1"
               >
                 View All
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {featuredPortfolio.map((item, index) => (
                 <div
                   key={item.id || index}
-                  className="flex-shrink-0 w-36 h-44 rounded-2xl overflow-hidden shadow-[0_4px_16px_rgba(236,72,153,0.1)] relative group border border-pink-100/30"
+                  className="flex-shrink-0 w-28 h-36 rounded-xl overflow-hidden shadow-sm border border-slate-100"
                 >
                   <img
                     src={item.image_url}
                     alt={item.caption || `Portfolio ${index + 1}`}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               ))}
             </div>
@@ -430,128 +410,125 @@ export function ArtistDetailScreen({
         )}
 
         {/* Reviews Section */}
-        <div className="mt-6 px-5">
-          <div className="bg-white rounded-2xl p-5 border border-pink-100 shadow-[0_8px_30px_rgba(236,72,153,0.08)]">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <Star className="w-5 h-5 text-amber-500" fill="#fbbf24" />
-                Customer Reviews
-              </h2>
-              {reviewSummary && reviewSummary.total_reviews > 0 && (
-                <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full">
-                  {reviewSummary.total_reviews} reviews
-                </span>
-              )}
-            </div>
-
-            {reviewsLoading ? (
-              <div className="py-8 text-center">
-                <div className="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                <p className="text-sm text-slate-500 font-medium">Loading reviews...</p>
-              </div>
-            ) : artistReviews.length > 0 ? (
-              <>
-                {/* Rating Summary */}
-                {reviewSummary && (
-                  <div className="mb-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-100">
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="text-center">
-                        <div className="text-3xl font-black text-slate-900">{reviewSummary.average_rating.toFixed(1)}</div>
-                        <div className="flex gap-0.5 justify-center my-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`w-3.5 h-3.5 ${
-                                star <= reviewSummary.average_rating
-                                  ? 'fill-amber-400 text-amber-400'
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-xs text-slate-600 font-medium">{reviewSummary.total_reviews} reviews</p>
-                      </div>
-                      <div className="flex-1 space-y-1.5">
-                        {[5, 4, 3, 2, 1].map((rating) => {
-                          const count = reviewSummary.rating_distribution[rating as keyof typeof reviewSummary.rating_distribution];
-                          const percentage = reviewSummary.total_reviews > 0 ? (count / reviewSummary.total_reviews) * 100 : 0;
-                          return (
-                            <div key={rating} className="flex items-center gap-2">
-                              <span className="text-xs text-slate-600 w-6 font-medium">{rating}★</span>
-                              <div className="flex-1 bg-amber-100 rounded-full h-1.5 overflow-hidden">
-                                <div
-                                  className="bg-amber-400 h-1.5 rounded-full transition-all"
-                                  style={{ width: `${percentage}%` }}
-                                />
-                              </div>
-                              <span className="text-xs text-slate-500 w-6 text-right">{count}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Reviews List */}
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                  {artistReviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="p-4 bg-pink-50/30 rounded-xl border border-pink-100/50 hover:bg-pink-50/50 transition-colors"
-                    >
-                      <div className="flex items-start gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center flex-shrink-0 overflow-hidden border border-pink-100">
-                          {review.customer_avatar_url ? (
-                            <img src={review.customer_avatar_url} alt={review.customer_name} className="w-full h-full object-cover" />
-                          ) : (
-                            <User className="w-5 h-5 text-pink-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-bold text-slate-900 truncate">{review.customer_name}</span>
-                            {review.is_verified && (
-                              <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
-                                <CheckCircle className="w-2.5 h-2.5" />
-                                Verified
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-0.5">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`w-3.5 h-3.5 ${
-                                    star <= review.rating
-                                      ? 'fill-amber-400 text-amber-400'
-                                      : 'text-gray-300'
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                            <span className="text-[10px] text-slate-500 font-medium">
-                              {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      {review.comment && (
-                        <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">{review.comment}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="py-10 px-6 text-center bg-pink-50/30 rounded-xl border border-pink-100">
-                <Star className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-600 font-semibold mb-1">No reviews yet</p>
-                <p className="text-xs text-slate-500">Be the first to review this artist</p>
-              </div>
+        <div className="mt-2 px-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              Reviews
+            </h2>
+            {reviewSummary && reviewSummary.total_reviews > 0 && (
+              <span className="text-xs text-slate-500">
+                {reviewSummary.total_reviews} reviews
+              </span>
             )}
           </div>
+
+          {reviewsLoading ? (
+            <div className="py-6 text-center">
+              <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-xs text-slate-500">Loading reviews...</p>
+            </div>
+          ) : artistReviews.length > 0 ? (
+            <>
+              {/* Rating Summary */}
+              {reviewSummary && (
+                <div className="mb-3 p-3 bg-amber-50/80 rounded-xl border border-amber-100">
+                  <div className="flex items-center gap-3">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-slate-900">{reviewSummary.average_rating.toFixed(1)}</div>
+                      <div className="flex gap-0.5 justify-center my-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-3 h-3 ${
+                              star <= reviewSummary.average_rating
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-500">{reviewSummary.total_reviews} reviews</p>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      {[5, 4, 3, 2, 1].map((rating) => {
+                        const count = reviewSummary.rating_distribution[rating as keyof typeof reviewSummary.rating_distribution];
+                        const percentage = reviewSummary.total_reviews > 0 ? (count / reviewSummary.total_reviews) * 100 : 0;
+                        return (
+                          <div key={rating} className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-500 w-4">{rating}</span>
+                            <div className="flex-1 bg-amber-100 rounded-full h-1 overflow-hidden">
+                              <div
+                                className="bg-amber-400 h-1 rounded-full"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Reviews List */}
+              <div className="space-y-2 max-h-72 overflow-y-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {artistReviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className="p-3 bg-white rounded-xl border border-slate-100"
+                  >
+                    <div className="flex items-start gap-2.5 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-pink-100">
+                        {review.customer_avatar_url ? (
+                          <img src={review.customer_avatar_url} alt={review.customer_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-4 h-4 text-pink-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-slate-900 truncate">{review.customer_name}</span>
+                          {review.is_verified && (
+                            <span className="bg-emerald-50 text-emerald-600 text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 font-medium">
+                              <CheckCircle className="w-2 h-2" />
+                              Verified
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-3 h-3 ${
+                                  star <= review.rating
+                                    ? 'fill-amber-400 text-amber-400'
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">{review.comment}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="py-8 px-4 text-center bg-white rounded-xl border border-slate-100">
+              <Star className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-700 mb-0.5">No reviews yet</p>
+              <p className="text-xs text-slate-500">Be the first to review this artist</p>
+            </div>
+          )}
         </div>
 
         {/* Services Section */}
