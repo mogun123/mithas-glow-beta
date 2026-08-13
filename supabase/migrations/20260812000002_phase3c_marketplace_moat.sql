@@ -1,5 +1,5 @@
 -- ============================================================
--- PHASE 3C: MARKETPLACE MOAT & ANTI-BYPASS SYSTEM
+-- PHASE 3C: MARKETPLACE MOAT & ANTI-BYPASS SYSTEM (FIXED)
 -- ============================================================
 -- Purpose: Advanced revenue protection, trust scoring, 
 -- rebooking system, and progressive enforcement.
@@ -75,11 +75,18 @@ ALTER TABLE user_risk_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_moderation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rebooking_requests ENABLE ROW LEVEL SECURITY;
 
+-- Drop old policies to prevent "already exists" errors
+DROP POLICY IF EXISTS "Users view own risk profile" ON user_risk_profiles;
+DROP POLICY IF EXISTS "System insert risk profiles" ON user_risk_profiles;
+DROP POLICY IF EXISTS "System update risk profiles" ON user_risk_profiles;
+DROP POLICY IF EXISTS "Admins manage risk profiles" ON user_risk_profiles;
+
 -- Risk Profiles: Users can view their own; admins can view/manage all
 CREATE POLICY "Users view own risk profile" ON user_risk_profiles
   FOR SELECT USING (user_id = auth.uid());
 
-CREATE POLICY "System update risk profiles" ON user_risk_profiles
+-- [FIXED] Changed name to "System insert risk profiles" to avoid collision
+CREATE POLICY "System insert risk profiles" ON user_risk_profiles
   FOR INSERT WITH CHECK (true); -- Handled by RPC
 
 CREATE POLICY "System update risk profiles" ON user_risk_profiles
@@ -89,9 +96,14 @@ CREATE POLICY "Admins manage risk profiles" ON user_risk_profiles
   FOR ALL USING (
     EXISTS (
       SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'admin'
+      WHERE id = auth.uid() AND account_type = 'admin' -- [FIXED] Changed role to account_type
     )
   );
+
+-- Drop old policies for portfolio_moderation
+DROP POLICY IF EXISTS "Artists view own portfolio moderation" ON portfolio_moderation;
+DROP POLICY IF EXISTS "System insert portfolio moderation" ON portfolio_moderation;
+DROP POLICY IF EXISTS "Moderators update portfolio moderation" ON portfolio_moderation;
 
 -- Portfolio Moderation: Artists view own; admins manage all
 CREATE POLICY "Artists view own portfolio moderation" ON portfolio_moderation
@@ -104,9 +116,15 @@ CREATE POLICY "Moderators update portfolio moderation" ON portfolio_moderation
   FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND (role = 'admin' OR role = 'moderator')
+      WHERE id = auth.uid() AND (account_type = 'admin' OR account_type = 'moderator') -- [FIXED] Changed role to account_type
     )
   );
+
+-- Drop old policies for rebooking_requests
+DROP POLICY IF EXISTS "Customers view own rebooking requests" ON rebooking_requests;
+DROP POLICY IF EXISTS "Artists view rebooking requests for them" ON rebooking_requests;
+DROP POLICY IF EXISTS "Customers create rebooking requests" ON rebooking_requests;
+DROP POLICY IF EXISTS "Users update own rebooking requests" ON rebooking_requests;
 
 -- Rebooking Requests: Both parties can view and interact
 CREATE POLICY "Customers view own rebooking requests" ON rebooking_requests
@@ -149,6 +167,7 @@ DECLARE
   v_verified BOOLEAN;
   v_badges TEXT[] := '{}';
   v_score INTEGER := 50; -- Base score
+  v_level TEXT;
 BEGIN
   -- Get booking statistics
   SELECT 
@@ -174,10 +193,15 @@ BEGIN
   FROM reviews
   WHERE artist_id = p_artist_id AND is_verified = true;
 
-  -- Check verification status
-  SELECT verified INTO v_verified
-  FROM artist_profiles
-  WHERE id = p_artist_id;
+  -- Check verification status [FIXED to use sellers table as per MITHAS GLOW schema]
+  SELECT is_verified INTO v_verified
+  FROM sellers
+  WHERE user_id = p_artist_id;
+
+  -- Default to false if no record found
+  IF v_verified IS NULL THEN
+    v_verified := false;
+  END IF;
 
   -- Calculate score components
   IF v_completed >= 10 THEN v_score := v_score + 10; END IF;
@@ -209,15 +233,11 @@ BEGIN
   IF v_completed >= 100 THEN v_badges := array_append(v_badges, 'experienced'); END IF;
 
   -- Determine trust level
-  DECLARE
-    v_level TEXT;
-  BEGIN
-    IF v_score >= 90 THEN v_level := 'exceptional';
-    ELSIF v_score >= 75 THEN v_level := 'high';
-    ELSIF v_score >= 50 THEN v_level := 'medium';
-    ELSE v_level := 'low';
-    END IF;
-  END;
+  IF v_score >= 90 THEN v_level := 'exceptional';
+  ELSIF v_score >= 75 THEN v_level := 'high';
+  ELSIF v_score >= 50 THEN v_level := 'medium';
+  ELSE v_level := 'low';
+  END IF;
 
   RETURN QUERY SELECT 
     v_score,
@@ -330,10 +350,3 @@ BEGIN
   WHERE user_id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-COMMENT ON TABLE user_risk_profiles IS 'Cumulative risk tracking for progressive enforcement';
-COMMENT ON TABLE portfolio_moderation IS 'Moderation status for artist portfolio images';
-COMMENT ON TABLE rebooking_requests IS 'Platform-native repeat booking flow';
-COMMENT ON FUNCTION calculate_trust_score IS 'Computes artist trust score from multiple signals';
-COMMENT ON FUNCTION create_rebooking_request IS 'Creates a rebooking request from a completed booking';
-COMMENT ON FUNCTION update_user_risk_profile IS 'Updates user risk profile with new violations';
