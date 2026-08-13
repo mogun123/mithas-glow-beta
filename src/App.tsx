@@ -17,11 +17,16 @@ import { ProductsScreen } from "./screens/ProductsScreen";
 import { CoachScreen } from "./screens/CoachScreen";
 import { BookingScreen } from "./screens/BookingScreen";
 import { ArtistDetailScreen } from "./screens/ArtistDetailScreen";
+import { ChatListScreen } from "./screens/ChatListScreen";
+import { ChatThreadScreen } from "./screens/ChatThreadScreen";
+import { ContactSyncScreen } from "./screens/ContactSyncScreen";
+import { MessageRequestsScreen } from "./screens/MessageRequestsScreen";
+import { BlockedUsersScreen } from "./screens/BlockedUsersScreen";
 import ProfessionalDashboard from "./components/ProfessionalDashboard";
 
 const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
 
-type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "artist-detail" | "professional";
+type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "artist-detail" | "professional" | "chat" | "chat-thread" | "chat-contacts" | "chat-requests" | "chat-blocked";
 
 const LoadingScreen = memo(function LoadingScreen() {
   return (
@@ -76,6 +81,14 @@ export default function App() {
   const goProducts = useCallback(() => navigate("products"), [navigate]);
   const goCoach = useCallback(() => navigate("coach"), [navigate]);
   const goBooking = useCallback(() => navigate("booking"), [navigate]);
+  const goChat = useCallback(() => navigate("chat"), [navigate]);
+  const goChatThread = useCallback((conversationId: string) => {
+    sessionStorage.setItem("currentConversationId", conversationId);
+    navigate("chat-thread");
+  }, [navigate]);
+  const goChatContacts = useCallback(() => navigate("chat-contacts"), [navigate]);
+  const goChatRequests = useCallback(() => navigate("chat-requests"), [navigate]);
+  const goChatBlocked = useCallback(() => navigate("chat-blocked"), [navigate]);
   
   const handleNavigateToArtistDetail = useCallback((artistId: string) => {
     setSelectedArtistId(artistId);

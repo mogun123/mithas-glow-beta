@@ -1,4 +1,4 @@
-import { Home, ShoppingBag, Calendar, Sparkles } from 'lucide-react';
+import { Home, ShoppingBag, MessageCircle, Calendar, Sparkles } from 'lucide-react';
 import { cn } from "@/components/ui/utils";
 import { useAuthStore } from '../lib/store';
 import { useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ type BottomNavProps = {
   onNavigateToProducts?: () => void;
   onNavigateToCoach?: () => void;
   onNavigateToBooking?: () => void;
+  onNavigateToChat?: () => void;
 };
 
 export function BottomNav({ 
@@ -21,7 +22,8 @@ export function BottomNav({
   onNavigateToEvents,
   onNavigateToProducts,
   onNavigateToCoach,
-  onNavigateToBooking
+  onNavigateToBooking,
+  onNavigateToChat
 }: BottomNavProps) {
   const authStore = useAuthStore();
   const [isProfessional, setIsProfessional] = useState(false);
@@ -70,6 +72,12 @@ export function BottomNav({
       icon: ShoppingBag, 
       label: "Products",
       action: onNavigateToProducts 
+    },
+    {
+      view: "chat",
+      icon: MessageCircle,
+      label: "Messages",
+      action: onNavigateToChat
     },
     {
       view: "coach",
