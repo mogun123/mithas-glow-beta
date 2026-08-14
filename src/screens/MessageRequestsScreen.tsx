@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Inbox } from 'lucide-react';
-import { Button } from '../ui/button';
 import { MessageRequests } from '../components/chat/MessageRequests';
 
 interface MessageRequestsScreenProps {
@@ -50,14 +49,12 @@ export function MessageRequestsScreen({ onNavigateBack }: MessageRequestsScreenP
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={onNavigateBack}
-          className="flex-shrink-0"
+          className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />
-        </Button>
+        </button>
         
         <div className="flex-1">
           <h1 className="text-lg font-bold text-pink-900 flex items-center gap-2">
