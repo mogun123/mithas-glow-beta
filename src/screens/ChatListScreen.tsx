@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { MessageCircle, UserPlus, Inbox, Shield } from 'lucide-react';
-import { ModeTabs } from './chat/ModeTabs';
-import { ConversationListItem } from './chat/ConversationListItem';
+import { ConversationListItem } from '../components/chat/ConversationListItem';
 import { useConversations } from '../../hooks/useConversations';
-import { useGlowChatContext } from './chat/GlowChatProvider';
-import type { ConversationMode } from './chat/ModeTabs';
+import { useGlowChatContext } from '../components/chat/GlowChatProvider';
+
+export type ConversationMode = 'artist' | 'contact' | 'messenger';
 
 interface ChatListScreenProps {
   onNavigateToThread: (conversationId: string) => void;
@@ -66,13 +66,44 @@ export function ChatListScreen({
         </button>
       </div>
 
-      {/* Mode Tabs */}
+      {/* Mode Tabs (Inline Implementation) */}
       <div className="px-4 pt-4 bg-white">
-        <ModeTabs activeMode={activeMode} onModeChange={setActiveMode} />
+        <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+          <button 
+            onClick={() => setActiveMode('artist')}
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+              activeMode === 'artist' 
+                ? 'bg-white text-pink-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Artists
+          </button>
+          <button 
+            onClick={() => setActiveMode('contact')}
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+              activeMode === 'contact' 
+                ? 'bg-white text-purple-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Contacts
+          </button>
+          <button 
+            onClick={() => setActiveMode('messenger')}
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+              activeMode === 'messenger' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Messenger
+          </button>
+        </div>
       </div>
 
-      {/* Conversation List - Removed ScrollArea and used native div with Tailwind overflow */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      {/* Conversation List */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" />
