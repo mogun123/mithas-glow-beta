@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { MessageCircle, UserPlus, Inbox, Shield } from 'lucide-react';
-import { ScrollArea } from '../ui/scroll-area';
 import { ModeTabs } from './chat/ModeTabs';
 import { ConversationListItem } from './chat/ConversationListItem';
 import { useConversations } from '../../hooks/useConversations';
@@ -72,8 +71,8 @@ export function ChatListScreen({
         <ModeTabs activeMode={activeMode} onModeChange={setActiveMode} />
       </div>
 
-      {/* Conversation List */}
-      <ScrollArea className="flex-1 px-4 pb-4">
+      {/* Conversation List - Removed ScrollArea and used native div with Tailwind overflow */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500" />
@@ -104,7 +103,7 @@ export function ChatListScreen({
             ))}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </div>
   );
 }
