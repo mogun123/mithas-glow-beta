@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageCircle, UserPlus, Inbox, Shield } from 'lucide-react';
 import { ConversationListItem } from '../components/chat/ConversationListItem';
-import { useConversations } from '../../hooks/useConversations';
+import { useConversations } from '../hooks/useConversations';
 import { useGlowChatContext } from '../components/chat/GlowChatProvider';
 
 export type ConversationMode = 'artist' | 'contact' | 'messenger';
