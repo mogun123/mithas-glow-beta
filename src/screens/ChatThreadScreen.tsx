@@ -5,9 +5,10 @@ import { MessageInput } from '../components/chat/MessageInput';
 import { TypingIndicator } from '../components/chat/TypingIndicator';
 import { BlockUserModal } from '../components/chat/BlockUserModal';
 import { ReportModal } from '../components/chat/ReportModal';
-import { useMessages } from '../../hooks/useMessages';
+// FIX: Changed ../../ to ../ for hooks and lib
+import { useMessages } from '../hooks/useMessages';
 import { useGlowChatContext } from '../components/chat/GlowChatProvider';
-import type { Database } from '../../lib/database.types';
+import type { Database } from '../lib/database.types';
 
 type Conversation = Database['public']['Tables']['conversations']['Row'];
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -129,7 +130,7 @@ export function ChatThreadScreen({
         </div>
       </div>
 
-      {/* Messages Area - Replaced ScrollArea with standard overflow div */}
+      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div ref={scrollRef}>
           {error ? (
