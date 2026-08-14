@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { ArrowLeft, UserPlus, Upload } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
 import { ContactList } from '../components/chat/ContactList';
 import type { Database } from '../../lib/database.types';
 
@@ -42,14 +40,12 @@ export function ContactSyncScreen({ onNavigateBack }: ContactSyncScreenProps) {
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={onNavigateBack}
-          className="flex-shrink-0"
+          className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />
-        </Button>
+        </button>
         
         <div className="flex-1">
           <h1 className="text-lg font-bold text-purple-900 flex items-center gap-2">
@@ -62,25 +58,25 @@ export function ContactSyncScreen({ onNavigateBack }: ContactSyncScreenProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        <Card className="mb-4 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-          <CardContent className="p-4">
-            <h3 className="font-semibold text-purple-900 mb-2">
+        <div className="mb-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-5">
+            <h3 className="font-bold text-purple-900 mb-2 text-lg">
               Sync Your Contacts
             </h3>
-            <p className="text-sm text-purple-700 mb-4">
+            <p className="text-sm text-purple-700 mb-5 leading-relaxed">
               Find which of your contacts are already on MITHAS GLOW. 
               We only store secure hashes of phone numbers - never the actual numbers.
             </p>
-            <Button
+            <button
               onClick={handleSyncContacts}
               disabled={syncing}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
               <Upload className="w-4 h-4 mr-2" />
               {syncing ? 'Syncing...' : 'Sync Contacts'}
-            </Button>
-          </CardContent>
-        </Card>
+            </button>
+          </div>
+        </div>
 
         <ContactList
           contacts={contacts.map(c => ({
@@ -93,11 +89,11 @@ export function ContactSyncScreen({ onNavigateBack }: ContactSyncScreenProps) {
           syncing={syncing}
         />
 
-        <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-          <h4 className="font-semibold text-purple-900 text-sm mb-2">
+        <div className="mt-4 p-5 bg-purple-50 border border-purple-200 rounded-2xl">
+          <h4 className="font-bold text-purple-900 text-sm mb-3">
             How it works
           </h4>
-          <ol className="text-xs text-purple-700 space-y-1 list-decimal list-inside">
+          <ol className="text-xs text-purple-800 space-y-2 list-decimal list-inside font-medium">
             <li>We access your device contacts (with permission)</li>
             <li>Phone numbers are normalized and hashed locally</li>
             <li>Only SHA-256 hashes are sent to our servers</li>
