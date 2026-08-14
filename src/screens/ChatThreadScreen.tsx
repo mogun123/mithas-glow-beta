@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, MoreVertical, Video, Phone, Shield, Flag, Trash2 } from 'lucide-react';
-import { ScrollArea } from '../ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Button } from '../ui/button';
+import { ArrowLeft, Video, Phone, Shield, Flag, Trash2 } from 'lucide-react';
 import { MessageBubble } from '../components/chat/MessageBubble';
 import { MessageInput } from '../components/chat/MessageInput';
 import { TypingIndicator } from '../components/chat/TypingIndicator';
@@ -99,24 +96,23 @@ export function ChatThreadScreen({
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={onNavigateBack}
-          className="flex-shrink-0"
+          className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />
-        </Button>
+        </button>
         
-        <Avatar className="h-10 w-10 flex-shrink-0">
+        {/* Custom Avatar */}
+        <div className="h-10 w-10 rounded-full flex-shrink-0 bg-gradient-to-br from-pink-200 to-purple-200 border border-pink-100 flex items-center justify-center overflow-hidden">
           {avatarUrl ? (
-            <AvatarImage src={avatarUrl} alt={displayName} />
+            <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
           ) : (
-            <AvatarFallback className="bg-gradient-to-br from-pink-200 to-purple-200 text-white font-semibold">
+            <span className="text-white font-semibold">
               {displayName.charAt(0).toUpperCase()}
-            </AvatarFallback>
+            </span>
           )}
-        </Avatar>
+        </div>
         
         <div className="flex-1 min-w-0">
           <h2 className="font-semibold text-gray-900 truncate">{displayName}</h2>
@@ -124,27 +120,17 @@ export function ChatThreadScreen({
         </div>
         
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
+          <button className="hidden sm:flex p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
             <Phone className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
+          </button>
+          <button className="hidden sm:flex p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
             <Video className="w-5 h-5" />
-          </Button>
-          <div className="relative">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => {/* Toggle menu */}}
-            >
-              <MoreVertical className="w-5 h-5" />
-            </Button>
-            {/* Dropdown menu would go here */}
-          </div>
+          </button>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <ScrollArea className="flex-1 px-4 py-4">
+      {/* Messages Area - Replaced ScrollArea with standard overflow div */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         <div ref={scrollRef}>
           {error ? (
             <div className="text-center py-8 text-red-500">
@@ -171,7 +157,7 @@ export function ChatThreadScreen({
           
           <TypingIndicator isTyping={isTyping} senderName={displayName} />
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Message Input */}
       <MessageInput 
