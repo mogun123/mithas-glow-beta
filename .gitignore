@@ -7,7 +7,7 @@ dist/
 build/
 *.js.map
 
-# Environment variables
+# Environment
 .env
 .env.local
 *.env.*
