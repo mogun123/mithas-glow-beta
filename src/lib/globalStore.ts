@@ -73,7 +73,8 @@ export const useGlobalStore = create<GlobalState>()(
 
       // Basic setters
       setUser: (user) => {
-        const isProfessional = !!user && (user.role === 'seller' || user.is_seller || user.industry === 'makeup_artist');
+        // Admin and professional users should have access to professional features
+        const isProfessional = !!user && (user.role === 'admin' || user.role === 'seller' || user.is_seller || user.industry === 'makeup_artist');
         set((state) => ({
           user,
           currentUserRole: user?.role ?? null,
@@ -293,7 +294,8 @@ export const useGlobalStore = create<GlobalState>()(
       // Utility functions
       isProUser: () => {
         const user = get().user;
-        return !!user && (user.role === 'seller' || user.is_seller || user.industry === 'makeup_artist');
+        // Admin users should have access to professional features
+        return !!user && (user.role === 'admin' || user.role === 'seller' || user.is_seller || user.industry === 'makeup_artist');
       },
 
       getDisplayName: () => {

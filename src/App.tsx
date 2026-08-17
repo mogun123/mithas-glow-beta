@@ -51,7 +51,8 @@ export default function App() {
   const user = useGlobalStore((state) => state.user);
   const appViewMode = useGlobalStore((state) => state.appViewMode);
 
-  const isProUser = !!user && (user.role === 'seller' || (user as any).is_seller || user.industry === 'makeup_artist');
+  // Admin users should have access to professional features
+  const isProUser = !!user && (user.role === 'admin' || user.role === 'seller' || (user as any).is_seller || user.industry === 'makeup_artist');
 
   const setAuthSession = useAuthStore((state) => state.setSession);
   const setAuthProfileCompleted = useAuthStore((state) => state.setProfileCompleted);
