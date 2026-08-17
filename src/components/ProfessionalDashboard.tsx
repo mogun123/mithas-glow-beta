@@ -14,6 +14,7 @@ import {
   BookingFilter,
   ProfessionalDashboardProps,
   isProfessionalRole,
+  canAccessProfessionalDashboard,
   DateExtractable,
   TimeExtractable,
   BookingStatus,
@@ -91,7 +92,7 @@ export default function ProfessionalDashboard({
   const profile = globalStore.user;
   const artistId = profile?.id;
   const isProfessionalUser = useMemo(() => {
-    return isProfessionalRole(profile?.role) || profile?.industry === 'makeup_artist' || (profile as any)?.is_seller;
+    return canAccessProfessionalDashboard(profile?.role) || profile?.industry === 'makeup_artist' || (profile as any)?.is_seller;
   }, [profile?.role, profile?.industry, (profile as any)?.is_seller]);
 
   const getSafeDate = useCallback((b: DateExtractable): string => {

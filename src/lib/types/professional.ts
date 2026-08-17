@@ -99,6 +99,12 @@ export function isProfessionalRole(role: string | null | undefined): role is Pro
   return professionalRoles.includes(role);
 }
 
+// Helper function to check if a role has access to professional dashboard (includes admin)
+export function canAccessProfessionalDashboard(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return role === 'admin' || isProfessionalRole(role);
+}
+
 // Type guard for BookingStatus
 export function isValidBookingStatus(status: string): status is BookingStatus {
   const validStatuses: readonly BookingStatus[] = [
