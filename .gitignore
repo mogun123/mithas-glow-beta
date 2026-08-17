@@ -2,5 +2,15 @@
 # Build artifacts
 build/
 # TypeScript build info
-*.tsbuildinfo
+tsconfig.tsbuildinfo
+# Dependencies
+node_modules/
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+# Logs
+*.log
 ```
