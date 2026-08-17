@@ -58,10 +58,10 @@ export const AdminProductCatalog: React.FC = () => {
     status: 'active' as 'active' | 'inactive'
   });
 
-  // Check admin access
+  // Check admin/seller access
   useEffect(() => {
-    if (profile?.role !== 'admin' && profile?.role !== 'professional') {
-      setError('Unauthorized access. Admin or professional privileges required.');
+    if (profile?.role !== 'admin' && profile?.role !== 'seller') {
+      setError('Unauthorized access. Admin or seller privileges required.');
     }
   }, [profile]);
 
@@ -259,13 +259,13 @@ export const AdminProductCatalog: React.FC = () => {
       category.toLowerCase().includes(query);
   });
 
-  if (profile?.role !== 'admin' && profile?.role !== 'professional') {
+  if (profile?.role !== 'admin' && profile?.role !== 'seller') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-red-500 text-6xl mb-4">🔒</div>
           <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-          <p className="text-gray-600">Admin or professional privileges required to access this page.</p>
+          <p className="text-gray-600">Admin or seller privileges required to access this page.</p>
         </div>
       </div>
     );

@@ -1,3 +1,6 @@
 ```
+# Build artifacts
 build/
+# TypeScript build info
+*.tsbuildinfo
 ```
