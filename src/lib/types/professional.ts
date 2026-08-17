@@ -76,6 +76,7 @@ export interface ProfessionalDashboardProps {
   onNavigateHome?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToMirror?: () => void;
+  onNavigateToAdminProducts?: () => void;
 }
 
 // Helper function to check if a role is a professional role

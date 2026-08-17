@@ -23,6 +23,7 @@ import { ContactSyncScreen } from "./screens/ContactSyncScreen";
 import { MessageRequestsScreen } from "./screens/MessageRequestsScreen";
 import { BlockedUsersScreen } from "./screens/BlockedUsersScreen";
 import ProfessionalDashboard from "./components/ProfessionalDashboard";
+import { AdminProductCatalog } from "./screens/AdminProductCatalog";
 
 const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
 
@@ -245,8 +246,9 @@ export default function App() {
       "coach": <CoachScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} />,
       "booking": <BookingScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateToArtistDetail={handleNavigateToArtistDetail} />,
       "artist-detail": <ArtistDetailScreen artistId={selectedArtistId} onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateBack={goBooking} onNavigateToMyBookings={goProfile} onNavigateToChat={goChat} />,
-      "professional": (isProUser && appViewMode === 'self') ? <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} /> : <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} />,
-      "home": (isProUser && appViewMode === 'pro') ? <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} /> : <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} />,
+      "professional": (isProUser && appViewMode === 'self') ? <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} /> : <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} onNavigateToAdminProducts={() => setCurrentView('admin-products')} />,
+      "home": (isProUser && appViewMode === 'pro') ? <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} onNavigateToAdminProducts={() => setCurrentView('admin-products')} /> : <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} />,
+      "admin-products": <AdminProductCatalog />,
       "chat": <ChatListScreen onNavigateHome={goHome} onNavigateToProfile={goProfile} goChat={goChat} goChatThread={goChatThread} goChatContacts={goChatContacts} goChatRequests={goChatRequests} goChatBlocked={goChatBlocked} />,
       "chat-thread": <ChatThreadScreen onNavigateHome={goHome} onNavigateToProfile={goProfile} goChat={goChat} goChatThread={goChatThread} goChatContacts={goChatContacts} goChatRequests={goChatRequests} goChatBlocked={goChatBlocked} />,
       "chat-contacts": <ContactSyncScreen onNavigateHome={goHome} onNavigateToProfile={goProfile} goChat={goChat} goChatThread={goChatThread} goChatContacts={goChatContacts} goChatRequests={goChatRequests} goChatBlocked={goChatBlocked} />,

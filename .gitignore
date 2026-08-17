@@ -1,30 +1,72 @@
 ```
+# Dependencies
+node_modules/
+
 # Build artifacts
 build/
 dist/
-*.js
 
 # TypeScript build info
 tsconfig.tsbuildinfo
 
-# Dependencies
-node_modules/
+# IDE files
+.vscode/
+.idea/
 
-# Environment
+# Compiled files
+*.pyc
+*.class
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# Logs
+*.log
+
+# Environment variables
 .env
 .env.local
 *.env.*
 
-# Editors
-.vscode/
-.idea/
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Logs and temp files
-*.log
+# Temporary files
 *.tmp
 *.swp
+*.swo
 
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# MyPy cache
+.mypy_cache/
+
+# PyTest cache
+.pytest_cache/
+
+# Vite specific
+.vite/
+
+# Distribution / packaging
+*.tar.gz
+*.whl
+*.egg
+*.egg-info/
+
+# Local configuration
+*.local
 ```
