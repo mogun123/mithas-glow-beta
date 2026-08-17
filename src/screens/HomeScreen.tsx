@@ -1271,9 +1271,7 @@ export function HomeScreen({
                         lineHeight: 1.25,
                       }}
                     >
-                      {aiAnalysisComplete
-                        ? "Personalized picks for your skin"
-                        : "Scan skin to unlock product matches"}
+                      AI Product Recommendations
                     </div>
                     <div
                       style={{
@@ -1283,8 +1281,8 @@ export function HomeScreen({
                       }}
                     >
                       {aiAnalysisComplete
-                        ? "Hydrating moisturizer · SPF 50 · Brightening serum"
-                        : "Clinical product analysis once you scan"}
+                        ? "Personalized picks for your skin"
+                        : "Browse products matched to your profile"}
                     </div>
                   </div>
                   <div
