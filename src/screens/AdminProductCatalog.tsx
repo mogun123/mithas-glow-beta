@@ -35,7 +35,7 @@ const CATEGORIES = [
 ];
 
 export const AdminProductCatalog: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, isLoading: authLoading } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -60,10 +60,14 @@ export const AdminProductCatalog: React.FC = () => {
 
   // Check admin/seller access
   useEffect(() => {
-    if (profile?.role !== 'admin' && profile?.role !== 'seller') {
-      setError('Unauthorized access. Admin or seller privileges required.');
+    if (!authLoading && profile) {
+      if (profile.role !== 'admin' && profile.role !== 'seller') {
+        setError('Unauthorized access. Admin or seller privileges required.');
+      } else {
+        setError(null);
+      }
     }
-  }, [profile]);
+  }, [profile, authLoading]);
 
   // Fetch products
   const fetchProducts = async () => {
@@ -259,7 +263,16 @@ export const AdminProductCatalog: React.FC = () => {
       category.toLowerCase().includes(query);
   });
 
-  if (profile?.role !== 'admin' && profile?.role !== 'seller') {
+  // Show loading state while auth is being determined
+  if (authLoading || !profile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  if (profile.role !== 'admin' && profile.role !== 'seller') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
