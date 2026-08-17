@@ -60,8 +60,8 @@ export const AdminProductCatalog: React.FC = () => {
 
   // Check admin access
   useEffect(() => {
-    if (profile?.role !== 'admin') {
-      setError('Unauthorized access. Admin privileges required.');
+    if (profile?.role !== 'admin' && profile?.role !== 'professional') {
+      setError('Unauthorized access. Admin or professional privileges required.');
     }
   }, [profile]);
 
@@ -249,19 +249,23 @@ export const AdminProductCatalog: React.FC = () => {
   };
 
   // Filter products by search
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const name = p.name ?? '';
+    const brand = p.brand ?? '';
+    const category = p.category ?? '';
+    const query = searchQuery.toLowerCase();
+    return name.toLowerCase().includes(query) ||
+      brand.toLowerCase().includes(query) ||
+      category.toLowerCase().includes(query);
+  });
 
-  if (profile?.role !== 'admin') {
+  if (profile?.role !== 'admin' && profile?.role !== 'professional') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-red-500 text-6xl mb-4">🔒</div>
           <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-          <p className="text-gray-600">Admin privileges required to access this page.</p>
+          <p className="text-gray-600">Admin or professional privileges required to access this page.</p>
         </div>
       </div>
     );
