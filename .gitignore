@@ -1,11 +1,14 @@
 ```
+# Build artifacts
+build/
+dist/
+*.js
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
 # Dependencies
 node_modules/
-
-# Build outputs
-dist/
-build/
-*.js.map
 
 # Environment
 .env
@@ -16,33 +19,12 @@ build/
 .vscode/
 .idea/
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Logs
+# Logs and temp files
 *.log
+*.tmp
+*.swp
 
 # OS generated files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-*.coverage
 ```

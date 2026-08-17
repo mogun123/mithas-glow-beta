@@ -4,7 +4,7 @@ import { BottomNav } from "../components/BottomNav";
 import { useAuthStore } from "../lib/store";
 import { supabase } from "../lib/supabase";
 import { useSkinToneMatching } from "../hooks/useSkinToneMatching";
-import { Search, Filter, ExternalLink, Star, Heart } from "lucide-react";
+import { Search, ExternalLink } from "lucide-react";
 
 type ProductsScreenProps = {
   onNavigateToMirror: () => void;
@@ -28,19 +28,11 @@ interface AffiliateProduct {
   rating?: number;
   review_count?: number;
   description?: string;
-  ingredients?: string;
   skin_types?: string[];
   concerns?: string[];
   undertone?: 'warm' | 'cool' | 'neutral';
-  shade_info?: string;
   is_active: boolean;
   created_at: string;
-}
-
-interface ProductMatch {
-  productId: string;
-  matchScore: number;
-  matchReasons: string[];
 }
 
 const CATEGORIES = [
@@ -48,22 +40,20 @@ const CATEGORIES = [
   { id: 'skincare', label: 'Skincare' },
   { id: 'makeup', label: 'Makeup' },
   { id: 'hair', label: 'Hair' },
-  { id: 'lip', label: 'Lip' },
   { id: 'face', label: 'Face' },
-  { id: 'sunscreen', label: 'Sunscreen' },
+  { id: 'lip', label: 'Lip' },
   { id: 'serum', label: 'Serum' },
+  { id: 'cleanser', label: 'Cleanser' },
   { id: 'moisturizer', label: 'Moisturizer' },
+  { id: 'sunscreen', label: 'Sunscreen' },
 ];
 
 const SCREEN_CSS = `
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-.fade-in-up { animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.fade-in-up-d1 { animation-delay: 0.08s; }
-.fade-in-up-d2 { animation-delay: 0.16s; }
-.fade-in-up-d3 { animation-delay: 0.24s; }
+.fade-in { animation: fade-in 0.4s ease-out; }
 
 @keyframes shimmer {
   0% { background-position: -1000px 0; }
@@ -73,6 +63,13 @@ const SCREEN_CSS = `
   background: linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.08) 100%);
   background-size: 1000px 100%;
   animation: shimmer 1.5s infinite;
+}
+
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.product-card:active {
+  transform: scale(0.98);
 }
 `;
 
@@ -89,7 +86,6 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
   const authStore = useAuthStore();
   const userId = authStore.user?.id || null;
   
-  // Use existing skin tone matching hook
   const { skinProfile, hasProfile: hasSkinProfile } = useSkinToneMatching({ userId });
 
   useEffect(() => {
@@ -114,7 +110,6 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
         setIsLoading(true);
         setError(null);
 
-        // Query products table - looking for affiliate product data
         const { data, error: fetchError } = await supabase
           .from('products')
           .select('*')
@@ -122,12 +117,9 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
           .order('created_at', { ascending: false })
           .limit(50);
 
-        if (fetchError) {
-          throw fetchError;
-        }
+        if (fetchError) throw fetchError;
 
         if (data && data.length > 0) {
-          // Map database products to AffiliateProduct interface
           const mappedProducts: AffiliateProduct[] = data.map((item: any) => ({
             id: item.id,
             product_name: item.name || 'Unknown Product',
@@ -143,11 +135,9 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
             rating: item.attributes_json?.rating,
             review_count: item.attributes_json?.review_count,
             description: item.description,
-            ingredients: item.attributes_json?.ingredients,
             skin_types: item.attributes_json?.skin_types,
             concerns: item.attributes_json?.concerns,
             undertone: item.attributes_json?.undertone,
-            shade_info: item.attributes_json?.shade_info,
             is_active: item.status === 'active',
             created_at: item.created_at,
           }));
@@ -170,11 +160,10 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
     fetchProducts();
   }, []);
 
-  // Filter products based on category and search
+  // Filter products
   useEffect(() => {
     let result = [...products];
 
-    // Category filter
     if (selectedCategory !== 'all') {
       result = result.filter(p => 
         p.category.toLowerCase().includes(selectedCategory.toLowerCase()) ||
@@ -182,7 +171,6 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
       );
     }
 
-    // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(p =>
@@ -195,27 +183,26 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
     setFilteredProducts(result);
   }, [products, selectedCategory, searchQuery]);
 
-  // Get personalized recommendations using skin profile
+  // Get personalized recommendations
   const recommendedProducts = useMemo(() => {
-    if (!hasSkinProfile || !skinProfile || filteredProducts.length === 0) {
-      return [];
-    }
-
-    // Simple recommendation logic based on undertone match
+    if (!hasSkinProfile || !skinProfile || filteredProducts.length === 0) return [];
     return filteredProducts
       .filter(p => p.undertone === skinProfile.undertone || !p.undertone)
       .slice(0, 6);
   }, [filteredProducts, hasSkinProfile, skinProfile]);
 
   const handleOpenProduct = (product: AffiliateProduct) => {
-    // Open affiliate URL in new tab/window
     if (product.affiliate_url && product.affiliate_url !== '#') {
       window.open(product.affiliate_url, '_blank', 'noopener,noreferrer');
     }
   };
 
-  const handleClearSearch = () => {
-    setSearchQuery('');
+  const getMerchantColor = (merchant: string) => {
+    const m = merchant.toLowerCase();
+    if (m.includes('nykaa')) return '#e11d48';
+    if (m.includes('amazon')) return '#f59e0b';
+    if (m.includes('flipkart')) return '#3b82f6';
+    return '#6b7280';
   };
 
   // Loading state
@@ -227,13 +214,13 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
           <Header onNavigateToProfile={onNavigateToProfile} />
         </div>
 
-        <main className="flex-grow overflow-y-auto pb-32 px-5" style={{ WebkitOverflowScrolling: "touch", paddingTop: "80px" }}>
-          <h1 className="text-2xl font-extrabold mb-4">Products</h1>
+        <main className="flex-grow overflow-y-auto pb-24 px-4" style={{ WebkitOverflowScrolling: "touch", paddingTop: "60px" }}>
+          <h1 className="text-xl font-bold mb-4" style={{ color: '#1f2937' }}>Products</h1>
           
-          {/* Skeleton loaders */}
-          <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton" style={{ borderRadius: '16px', height: '140px' }} />
+          {/* Skeleton grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="skeleton" style={{ borderRadius: '12px', height: '180px' }} />
             ))}
           </div>
         </main>
@@ -258,19 +245,20 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
           <Header onNavigateToProfile={onNavigateToProfile} />
         </div>
 
-        <main className="flex-grow overflow-y-auto pb-32 px-5 flex items-center justify-center" style={{ WebkitOverflowScrolling: "touch", paddingTop: "80px" }}>
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: '#1f2937' }}>Unable to Load Products</h2>
-            <p className="text-sm mb-6" style={{ color: '#6b7280' }}>{error}</p>
+        <main className="flex-grow overflow-y-auto pb-24 px-4 flex items-center justify-center" style={{ WebkitOverflowScrolling: "touch", paddingTop: "60px" }}>
+          <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+            <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚠️</div>
+            <h2 className="text-base font-bold mb-2" style={{ color: '#1f2937' }}>Unable to Load Products</h2>
+            <p className="text-xs mb-4" style={{ color: '#6b7280' }}>{error}</p>
             <button
               onClick={() => window.location.reload()}
               style={{
-                padding: '12px 24px',
-                borderRadius: '12px',
+                padding: '10px 20px',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, #a855f7, #ec4899)',
                 color: 'white',
-                fontWeight: 700,
+                fontSize: '13px',
+                fontWeight: 600,
                 border: 'none',
                 cursor: 'pointer'
               }}
@@ -291,8 +279,8 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
     );
   }
 
-  // No data state
-  if (!hasData && !isLoading) {
+  // Empty state - compact and honest
+  if (!hasData) {
     return (
       <div className="min-h-screen flex flex-col max-w-lg mx-auto" style={{ position: "relative", zIndex: 1 }}>
         <div className="neural-bg" aria-hidden="true" />
@@ -300,85 +288,67 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
           <Header onNavigateToProfile={onNavigateToProfile} />
         </div>
 
-        <main className="flex-grow overflow-y-auto pb-32 px-5" style={{ WebkitOverflowScrolling: "touch", paddingTop: "80px" }}>
-          <div className="fade-in-up mb-8">
-            <h1 className="text-2xl font-extrabold mb-2" style={{ 
-              background: "linear-gradient(135deg,#a855f7,#ec4899)", 
-              WebkitBackgroundClip: "text", 
-              WebkitTextFillColor: "transparent",
-              lineHeight: 1.1
-            }}>
-              Products
-            </h1>
-            <p className="text-sm font-medium" style={{ color: "#6b7280", marginTop: "4px" }}>
-              AI Recommended Products
+        <main className="flex-grow overflow-y-auto pb-24 px-4" style={{ WebkitOverflowScrolling: "touch", paddingTop: "60px" }}>
+          <div className="fade-in">
+            <h1 className="text-lg font-bold mb-1" style={{ color: '#1f2937' }}>Products</h1>
+            <p className="text-xs" style={{ color: '#6b7280' }}>Discover beauty products from trusted marketplaces</p>
+          </div>
+
+          {/* Category chips */}
+          <div className="fade-in mt-4" style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                disabled
+                style={{
+                  flex: '0 0 auto',
+                  padding: '8px 14px',
+                  borderRadius: '99px',
+                  background: 'rgba(168,85,247,0.08)',
+                  border: '1px solid rgba(168,85,247,0.15)',
+                  color: '#9ca3af',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  cursor: 'not-allowed'
+                }}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Compact empty state */}
+          <div className="fade-in mt-8" style={{ textAlign: 'center', padding: '32px 16px' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🧴</div>
+            <h2 className="text-base font-bold mb-2" style={{ color: '#1f2937' }}>No products yet</h2>
+            <p className="text-xs" style={{ color: '#6b7280', maxWidth: '240px', margin: '0 auto' }}>
+              The catalog is being prepared. Check back soon for personalized recommendations.
             </p>
           </div>
 
-          <div style={{ 
-            background: "rgba(255,255,255,0.88)",
-            backdropFilter: "blur(24px)",
-            border: "1px solid rgba(168,85,247,0.18)",
-            borderRadius: "28px",
-            padding: "48px 24px",
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "20px",
-            boxShadow: "0 8px 32px rgba(168,85,247,0.1)"
-          }}>
-            <div style={{ 
-              width: "96px", 
-              height: "96px", 
-              borderRadius: "24px",
-              background: "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(168,85,247,0.15))",
-              border: "1px solid rgba(168,85,247,0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "48px",
-            }}>
-              🧴
-            </div>
-
-            <div>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "#1f2937" }}>
-                Coming Soon
-              </h2>
-              <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: "#6b7280" }}>
-                Affiliate product data source is not currently connected.
-              </p>
-              <p className="text-xs mt-2" style={{ color: "#9ca3af" }}>
-                We're partnering with Nykaa, Amazon, and Flipkart to bring you personalized recommendations.
-              </p>
-            </div>
-          </div>
-
           {!hasSkinProfile && (
-            <div className="fade-in-up-d1 mt-6" style={{
-              background: "rgba(16,185,129,0.08)",
-              border: "1px solid rgba(16,185,129,0.2)",
-              borderRadius: "20px",
-              padding: "20px",
+            <div className="fade-in mt-4" style={{
+              background: "rgba(16,185,129,0.06)",
+              border: "1px solid rgba(16,185,129,0.15)",
+              borderRadius: "12px",
+              padding: "16px",
               textAlign: "center"
             }}>
-              <div style={{ fontSize: "32px", marginBottom: "12px" }}>✨</div>
-              <h3 className="text-base font-bold mb-2" style={{ color: "#059669" }}>
-                Get Personalized Recommendations
-              </h3>
-              <p className="text-xs mb-4" style={{ color: "#6b7280" }}>
-                Analyze your skin to discover products matched to your profile.
+              <p className="text-xs font-semibold mb-2" style={{ color: "#059669" }}>
+                ✨ Get Personalized Picks
+              </p>
+              <p className="text-xs mb-3" style={{ color: "#6b7280" }}>
+                Analyze your skin for product matches
               </p>
               <button
                 onClick={onNavigateToMirror}
                 style={{
-                  padding: "10px 20px",
-                  borderRadius: "12px",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
                   background: "linear-gradient(135deg, #10b981, #06b6d4)",
                   color: "white",
-                  fontSize: "13px",
-                  fontWeight: 700,
+                  fontSize: "12px",
+                  fontWeight: 600,
                   border: "none",
                   cursor: "pointer"
                 }}
@@ -407,94 +377,221 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
         <Header onNavigateToProfile={onNavigateToProfile} />
       </div>
 
-      <main className="flex-grow overflow-y-auto pb-32 px-5" style={{ WebkitOverflowScrolling: "touch", paddingTop: "80px" }}>
-        <div className="fade-in-up mb-8">
-          <h1 className="text-3xl font-extrabold mb-2" style={{ 
-            background: "linear-gradient(135deg,#a855f7,#ec4899)", 
-            WebkitBackgroundClip: "text", 
-            WebkitTextFillColor: "transparent",
-            lineHeight: 1.1
-          }}>
-            Products
-          </h1>
-          <p className="text-sm font-medium" style={{ color: "#6b7280", marginTop: "4px" }}>
-            AI Recommended Products
-          </p>
+      <main className="flex-grow overflow-y-auto pb-24 px-4" style={{ WebkitOverflowScrolling: "touch", paddingTop: "60px" }}>
+        {/* Header */}
+        <div className="fade-in">
+          <h1 className="text-lg font-bold mb-1" style={{ color: '#1f2937' }}>Products</h1>
+          <p className="text-xs" style={{ color: '#6b7280' }}>Discover beauty from trusted marketplaces</p>
         </div>
 
-        <div className="fade-in-up-d1" style={{ 
-          background: "rgba(255,255,255,0.88)",
-          backdropFilter: "blur(24px)",
-          border: "1px solid rgba(168,85,247,0.18)",
-          borderRadius: "28px",
-          padding: "64px 32px",
-          textAlign: "center",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "24px",
-          boxShadow: "0 8px 32px rgba(168,85,247,0.1)"
-        }}>
-          <div style={{ 
-            width: "120px", 
-            height: "120px", 
-            borderRadius: "32px",
-            background: "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(168,85,247,0.15))",
-            border: "1px solid rgba(168,85,247,0.25)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "56px",
-          }}>
-            🧴
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-extrabold mb-3" style={{ color: "#1f2937" }}>
-              Coming Soon
-            </h2>
-            <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: "#6b7280" }}>
-              Your personal AI-curated product recommendations based on your skin profile are on the way.
-            </p>
-          </div>
-
-          <div style={{ 
-            width: "100%",
-            maxWidth: "280px",
-            padding: "10px 16px",
-            borderRadius: "999px",
-            background: "linear-gradient(135deg, rgba(168,85,247,0.1), rgba(236,72,153,0.1))",
-            border: "1px solid rgba(168,85,247,0.2)",
-            color: "#a855f7",
-            fontSize: "13px",
-            fontWeight: 700,
-            letterSpacing: "0.02em",
-            textAlign: "center"
-          }}>
-            ✦ In Development
-          </div>
+        {/* Search */}
+        <div className="fade-in mt-4" style={{ position: 'relative' }}>
+          <input
+            type="text"
+            placeholder="Search products, brands..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 14px 10px 40px',
+              borderRadius: '10px',
+              border: '1px solid rgba(148,163,184,0.2)',
+              background: 'rgba(255,255,255,0.8)',
+              fontSize: '13px',
+              outline: 'none'
+            }}
+          />
+          <Search style={{
+            position: 'absolute',
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '16px',
+            height: '16px',
+            color: '#9ca3af'
+          }} />
         </div>
 
-        <div className="fade-in-up-d2 mt-8 grid grid-cols-2 gap-3">
-          {[
-            { icon: "✨", label: "Serums", desc: "Soon" },
-            { icon: "🌿", label: "Cleansers", desc: "Soon" },
-            { icon: "☀️", label: "Sunscreens", desc: "Soon" },
-            { icon: "💧", label: "Moisturizers", desc: "Soon" },
-          ].map((category) => (
-            <div key={category.label} style={{
-              background: "rgba(255,255,255,0.7)",
-              borderRadius: "18px",
-              padding: "20px 14px",
-              textAlign: "center",
-              border: "1px solid rgba(148,163,184,0.15)",
-              opacity: 0.6
-            }}>
-              <div style={{ fontSize: "32px", marginBottom: "8px" }}>{category.icon}</div>
-              <div style={{ fontSize: "13px", fontWeight: 700, color: "#374151" }}>{category.label}</div>
-              <div style={{ fontSize: "11px", color: "#9ca3af", marginTop: "2px" }}>{category.desc}</div>
-            </div>
+        {/* Category chips */}
+        <div className="fade-in mt-4" style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              style={{
+                flex: '0 0 auto',
+                padding: '8px 14px',
+                borderRadius: '99px',
+                background: selectedCategory === cat.id 
+                  ? 'linear-gradient(135deg, #a855f7, #ec4899)' 
+                  : 'rgba(168,85,247,0.08)',
+                border: `1px solid ${selectedCategory === cat.id ? 'transparent' : 'rgba(168,85,247,0.15)'}`,
+                color: selectedCategory === cat.id ? 'white' : '#6b7280',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {cat.label}
+            </button>
           ))}
+        </div>
+
+        {/* Recommended section */}
+        {hasSkinProfile && recommendedProducts.length > 0 && (
+          <div className="fade-in mt-6">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <h2 className="text-sm font-bold" style={{ color: '#1f2937' }}>✨ Recommended for You</h2>
+              <span className="text-xs" style={{ color: '#6b7280' }}>Based on your skin profile</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {recommendedProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="product-card"
+                  onClick={() => handleOpenProduct(product)}
+                  style={{
+                    background: 'rgba(255,255,255,0.9)',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(148,163,184,0.1)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ position: 'relative', paddingTop: '100%', background: '#f9fafb' }}>
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.product_name}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className="hidden" style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: '#f3f4f6',
+                      color: '#9ca3af',
+                      fontSize: '10px'
+                    }}>
+                      Image unavailable
+                    </div>
+                  </div>
+                  <div style={{ padding: '8px' }}>
+                    <p className="text-xs font-semibold truncate" style={{ color: '#6b7280' }}>{product.brand}</p>
+                    <p className="text-xs font-medium truncate" style={{ color: '#1f2937', marginTop: '2px' }}>{product.product_name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                      <span className="text-sm font-bold" style={{ color: '#1f2937' }}>₹{product.price}</span>
+                      <span className="text-xs" style={{ color: getMerchantColor(product.merchant), fontWeight: 600 }}>
+                        {product.merchant} →
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All products section */}
+        <div className="fade-in mt-6">
+          <h2 className="text-sm font-bold mb-3" style={{ color: '#1f2937' }}>
+            {selectedCategory === 'all' ? 'All Products' : CATEGORIES.find(c => c.id === selectedCategory)?.label}
+            <span className="text-xs font-normal" style={{ color: '#9ca3af', marginLeft: '6px' }}>({filteredProducts.length})</span>
+          </h2>
+          
+          {filteredProducts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 16px', background: 'rgba(255,255,255,0.5)', borderRadius: '12px' }}>
+              <p className="text-sm" style={{ color: '#6b7280' }}>No products found</p>
+              <p className="text-xs" style={{ color: '#9ca3af', marginTop: '4px' }}>Try a different category or search</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {filteredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="product-card"
+                  onClick={() => handleOpenProduct(product)}
+                  style={{
+                    background: 'rgba(255,255,255,0.9)',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(148,163,184,0.1)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ position: 'relative', paddingTop: '100%', background: '#f9fafb' }}>
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.product_name}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className="hidden" style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: '#f3f4f6',
+                      color: '#9ca3af',
+                      fontSize: '10px'
+                    }}>
+                      Image unavailable
+                    </div>
+                  </div>
+                  <div style={{ padding: '8px' }}>
+                    <p className="text-xs font-semibold truncate" style={{ color: '#6b7280' }}>{product.brand}</p>
+                    <p className="text-xs font-medium truncate" style={{ color: '#1f2937', marginTop: '2px' }}>{product.product_name}</p>
+                    {product.rating && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+                        <span className="text-xs" style={{ color: '#f59e0b' }}>★</span>
+                        <span className="text-xs" style={{ color: '#6b7280' }}>{product.rating} {product.review_count ? `(${product.review_count})` : ''}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                      <span className="text-sm font-bold" style={{ color: '#1f2937' }}>₹{product.price}</span>
+                      <ExternalLink style={{ width: '12px', height: '12px', color: getMerchantColor(product.merchant) }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
 
