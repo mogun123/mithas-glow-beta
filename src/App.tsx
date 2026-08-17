@@ -125,23 +125,30 @@ export default function App() {
           if (!profileError && profile) {
             useGlobalStore.getState().setUser(profile as any);
             setAuthProfileCompleted(!!profile.profile_completed);
-          } else {
-            setAuthProfileCompleted(false);
-          }
+            
+            // 🎯 ADMIN USERS SKIP PROFILE COMPLETION CHECK
+            const isAdmin = profile.role === 'admin';
+            
+            const savedView = localStorage.getItem("currentView") as View;
+            const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional", "chat", "chat-thread", "chat-contacts", "chat-requests", "chat-blocked", "admin-products"];
 
-          const savedView = localStorage.getItem("currentView") as View;
-          const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional", "chat", "chat-thread", "chat-contacts", "chat-requests", "chat-blocked"];
-
-          if (savedView && validViews.includes(savedView)) {
-            setCurrentView(savedView);
-          } else if (profile?.profile_completed) {
-            if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
-              setCurrentView('professional');
+            if (savedView && validViews.includes(savedView)) {
+              setCurrentView(savedView);
+            } else if (isAdmin || profile?.profile_completed) {
+              if (isAdmin) {
+                // Admin users always go to professional view with access to admin features
+                setCurrentView('professional');
+              } else if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
+                setCurrentView('professional');
+              } else {
+                setCurrentView('home');
+              }
             } else {
-              setCurrentView('home');
+              setCurrentView('profile');
             }
           } else {
-            setCurrentView('profile');
+            localStorage.removeItem("currentView");
+            setCurrentView('register');
           }
         } else {
           localStorage.removeItem("currentView");
@@ -223,9 +230,16 @@ export default function App() {
 
     if (profile) {
       useGlobalStore.getState().setUser(profile as any);
-      if (profile.profile_completed) {
+      
+      // 🎯 ADMIN USERS SKIP PROFILE COMPLETION CHECK
+      const isAdmin = profile.role === 'admin';
+      
+      if (isAdmin || profile.profile_completed) {
         setAuthProfileCompleted(true);
-        if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
+        if (isAdmin) {
+          // Admin users always go to professional view
+          setCurrentView("professional");
+        } else if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
           setCurrentView("professional");
         } else {
           setCurrentView("home");
