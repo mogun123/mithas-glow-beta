@@ -1,6 +1,14 @@
 ```
+# Dependencies
+node_modules/
+
 # Build artifacts
 build/
+dist/
+
 # TypeScript build info
-*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# SSL certificates
+node_modules/.vite/basic-ssl/_cert.pem
 ```

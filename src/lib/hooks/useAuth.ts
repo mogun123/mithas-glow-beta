@@ -10,8 +10,8 @@ type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export function useAuth() {
   console.log('useAuth: Calling useAuthStore...');
-  const { user, session, isAuthenticated, isLoading, setUser, setSession, setLoading, logout: logoutStore } = useAuthStore();
-  console.log('useAuth: user:', user?.id || 'no-user', 'session:', session?.user?.id || 'no-session', 'isAuthenticated:', isAuthenticated);
+  const { user, session, isAuthenticated, isLoading, profile, setUser, setSession, setLoading, logout: logoutStore } = useAuthStore();
+  console.log('useAuth: user:', user?.id || 'no-user', 'session:', session?.user?.id || 'no-session', 'isAuthenticated:', isAuthenticated, 'profile:', profile?.id || 'no-profile');
   const [error, setError] = useState<string | null>(null);
 
   // Initialize auth state on mount
