@@ -322,8 +322,9 @@ export function useAuth() {
     session,
     isAuthenticated,
     isLoading,
+    profile,
     error,
-    
+
     // Actions
     signUp,
     signIn,

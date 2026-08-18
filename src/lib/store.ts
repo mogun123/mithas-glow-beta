@@ -83,13 +83,17 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: !!user,
         }),
 
-      setSession: (session) =>
+      setSession: (session) => {
+        // Get the current profile from the store to preserve it
+        const currentProfile = get().profile;
         set({
           session,
           user: session?.user ?? null,
-          profile: session?.user ?? null, // Sync profile with session
+          // Only update profile if we don't have one yet
+          profile: currentProfile ? currentProfile : (session?.user as Profile) ?? null,
           isAuthenticated: !!session?.user,
-        }),
+        });
+      },
 
       setLoading: (loading) =>
         set({ isLoading: loading }),

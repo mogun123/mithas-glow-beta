@@ -44,6 +44,13 @@ export const AdminProductCatalog: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[ADMIN_PRODUCTS] authLoading:', authLoading);
+    console.log('[ADMIN_PRODUCTS] profile:', profile);
+    console.log('[ADMIN_PRODUCTS] profile.role:', profile?.role);
+  }, [authLoading, profile]);
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -61,10 +68,12 @@ export const AdminProductCatalog: React.FC = () => {
   // Check admin/seller access
   useEffect(() => {
     if (!authLoading && profile) {
+      console.log('[ADMIN_PRODUCTS] Checking access, role:', profile.role);
       if (profile.role !== 'admin' && profile.role !== 'seller') {
         setError('Unauthorized access. Admin or seller privileges required.');
       } else {
         setError(null);
+        console.log('[ADMIN_PRODUCTS] Access granted');
       }
     }
   }, [profile, authLoading]);
@@ -264,7 +273,8 @@ export const AdminProductCatalog: React.FC = () => {
   });
 
   // Show loading state while auth is being determined
-  if (authLoading || !profile) {
+  if (authLoading) {
+    console.log('[ADMIN_PRODUCTS] Still loading auth...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-gray-500">Loading...</div>
@@ -272,7 +282,19 @@ export const AdminProductCatalog: React.FC = () => {
     );
   }
 
+  console.log('[ADMIN_PRODUCTS] Auth loaded, profile:', profile);
+
+  if (!profile) {
+    console.error('[ADMIN_PRODUCTS] No profile found after auth loaded');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-red-500">Error: No profile found. Please log in again.</div>
+      </div>
+    );
+  }
+
   if (profile.role !== 'admin' && profile.role !== 'seller') {
+    console.error('[ADMIN_PRODUCTS] Access denied for role:', profile.role);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
