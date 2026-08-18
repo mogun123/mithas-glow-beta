@@ -1,14 +1,50 @@
 ```
-# Dependencies
-node_modules/
-
 # Build artifacts
 build/
 dist/
+*.tsbuildinfo
 
-# TypeScript build info
-tsconfig.tsbuildinfo
+# Dependencies
+node_modules/
 
-# SSL certificates
-node_modules/.vite/basic-ssl/_cert.pem
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Cache directories
+.mypy_cache/
+.pytest_cache/
+.cache/
 ```
