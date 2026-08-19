@@ -1,8 +1,5 @@
---- src/components/common/NotificationCenter.tsx (原始)
-
-
-+++ src/components/common/NotificationCenter.tsx (修改后)
 /**
+ * Notification Center Types and Components
  * Notification Center Types and Components
  * Future-ready architecture for notifications
  */
@@ -45,7 +42,7 @@ export function NotificationBell({
   unreadCount = 0,
   onClick,
   className = ''
-}: NotificationBellProps): JSX.Element {
+}: NotificationBellProps): React.ReactNode {
   const hasUnread = unreadCount > 0;
 
   return (

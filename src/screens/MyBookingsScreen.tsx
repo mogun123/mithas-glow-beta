@@ -1,519 +1,341 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Header } from '../components/Header';
+import { BottomNav } from '../components/BottomNav';
+import { 
+  Calendar, Clock, Tag, Wallet, Eye, XCircle, RotateCcw, 
+  CheckCircle, AlertCircle, ArrowLeft, ArrowRight, User, Sparkles 
+} from 'lucide-react';
 import { useMyBookings, useCancelBooking } from '../../hooks/use-booking';
 import type { Booking } from '../../hooks/use-booking';
+import { toast } from 'sonner';
 
 interface MyBookingsScreenProps {
   userId: string;
   onNavigateToArtistProfile?: (artistId: string) => void;
   onBack?: () => void;
+  onNavigateHome?: () => void;
+  onNavigateToMirror?: () => void;
+  onNavigateToProfile?: () => void;
+  onNavigateToProducts?: () => void;
+  onNavigateToCoach?: () => void;
+  onNavigateToBooking?: () => void;
+  onNavigateToChat?: () => void;
 }
 
 type TabType = 'upcoming' | 'completed' | 'cancelled';
 
-export const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({ 
+export const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
   userId,
   onNavigateToArtistProfile,
-  onBack
+  onBack,
+  onNavigateHome,
+  onNavigateToMirror,
+  onNavigateToProfile,
+  onNavigateToProducts,
+  onNavigateToCoach,
+  onNavigateToBooking,
+  onNavigateToChat,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
-  
   const { bookings, loading, error } = useMyBookings(userId);
   const { cancelBooking, loading: cancelling } = useCancelBooking();
 
-  // Filter bookings by status
-  const filteredBookings = bookings?.filter((booking) => {
+  // Filter bookings by status tab
+  const filteredBookings = (bookings || []).filter((booking) => {
     if (activeTab === 'upcoming') {
       return ['pending', 'confirmed'].includes(booking.status);
     } else if (activeTab === 'completed') {
       return booking.status === 'completed';
     } else {
-      return booking.status === 'cancelled';
+      return booking.status === 'cancelled' || booking.status === 'no_show';
     }
-  }) || [];
+  });
 
   const handleCancelBooking = async (bookingId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
     try {
       await cancelBooking(bookingId);
-    } catch (error) {
-      console.error('Failed to cancel booking:', error);
+      toast.success("Booking cancelled successfully.");
+    } catch (err: any) {
+      console.error('Failed to cancel booking:', err);
+      toast.error(err?.message || "Failed to cancel booking");
     }
   };
 
-  const getStatusColor = (status: Booking['status']) => {
+  const getStatusBadge = (status: Booking['status']) => {
     switch (status) {
       case 'pending':
-        return { bg: 'rgba(251, 191, 36, 0.1)', text: '#d97706', border: 'rgba(251, 191, 36, 0.2)' };
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <Clock className="w-3 h-3" />
+            Pending Confirmation
+          </span>
+        );
       case 'confirmed':
-        return { bg: 'rgba(34, 197, 94, 0.1)', text: '#16a34a', border: 'rgba(34, 197, 94, 0.2)' };
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle className="w-3 h-3" />
+            Confirmed
+          </span>
+        );
       case 'completed':
-        return { bg: 'rgba(59, 130, 246, 0.1)', text: '#2563eb', border: 'rgba(59, 130, 246, 0.2)' };
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <CheckCircle className="w-3 h-3" />
+            Completed
+          </span>
+        );
       case 'cancelled':
-        return { bg: 'rgba(239, 68, 68, 0.1)', text: '#dc2626', border: 'rgba(239, 68, 68, 0.2)' };
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+            <XCircle className="w-3 h-3" />
+            Cancelled
+          </span>
+        );
       default:
-        return { bg: 'rgba(107, 114, 128, 0.1)', text: '#6b7280', border: 'rgba(107, 114, 128, 0.2)' };
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-50 text-slate-600 border border-slate-200">
+            {status}
+          </span>
+        );
     }
-  };
-
-  const getStatusLabel = (status: Booking['status']) => {
-    switch (status) {
-      case 'pending':
-        return 'Pending Confirmation';
-      case 'confirmed':
-        return 'Confirmed';
-      case 'completed':
-        return 'Completed';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return status;
-    }
-  };
-
-  const renderBookingCard = ({ item }: { item: Booking }) => {
-    const statusColors = getStatusColor(item.status);
-    const artistName = (item.artist as any)?.shop_name || (item.artist as any)?.full_name || 'Artist';
-    const serviceName = item.service_name || item.service?.title || 'Service';
-    
-    return (
-      <View style={styles.bookingCard}>
-        {/* Header */}
-        <View style={styles.bookingHeader}>
-          <View style={styles.artistInfo}>
-            <View style={styles.artistAvatar}>
-              {(item.artist as any)?.avatar_url ? (
-                <Text style={styles.avatarText}>
-                  {artistName.charAt(0).toUpperCase()}
-                </Text>
-              ) : (
-                <Ionicons name="person" size={20} color="#fff" />
-              )}
-            </View>
-            <View>
-              <Text style={styles.artistName}>{artistName}</Text>
-              <Text style={styles.serviceName}>{serviceName}</Text>
-            </View>
-          </View>
-          
-          <View style={[styles.statusBadge, { backgroundColor: statusColors.bg, borderColor: statusColors.border }]}>
-            <Text style={[styles.statusText, { color: statusColors.text }]}>
-              {getStatusLabel(item.status)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Details */}
-        <View style={styles.bookingDetails}>
-          <View style={styles.detailRow}>
-            <Ionicons name="calendar-outline" size={16} color="#666" />
-            <Text style={styles.detailText}>
-              {new Date(item.booking_date).toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-              })}
-            </Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Ionicons name="time-outline" size={16} color="#666" />
-            <Text style={styles.detailText}>{item.booking_time}</Text>
-          </View>
-          
-          {item.total_price && (
-            <View style={styles.detailRow}>
-              <Ionicons name="pricetag-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>₹{item.total_price.toLocaleString()}</Text>
-            </View>
-          )}
-          
-          <View style={styles.detailRow}>
-            <Ionicons name="wallet-outline" size={16} color="#666" />
-            <Text style={[styles.detailText, { 
-              color: item.payment_status === 'paid' ? '#16a34a' : '#d97706',
-              fontWeight: '600'
-            }]}>
-              {item.payment_status === 'paid' ? 'Paid' : 'Payment Pending'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Actions */}
-        <View style={styles.bookingActions}>
-          {onNavigateToArtistProfile && (
-            <TouchableOpacity
-              style={styles.viewButton}
-              onPress={() => onNavigateToArtistProfile(item.artist_id)}
-            >
-              <Ionicons name="eye-outline" size={18} color="#D4AF37" />
-              <Text style={styles.viewButtonText}>View Artist</Text>
-            </TouchableOpacity>
-          )}
-          
-          {item.status === 'pending' && (
-            <TouchableOpacity
-              style={[styles.cancelButton, cancelling && styles.cancelButtonDisabled]}
-              onPress={() => handleCancelBooking(item.id)}
-              disabled={cancelling}
-            >
-              <Ionicons name="close-circle-outline" size={18} color="#ef4444" />
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          )}
-          
-          {item.status === 'completed' && (
-            <TouchableOpacity style={styles.rebookButton}>
-              <Ionicons name="refresh-outline" size={18} color="#D4AF37" />
-              <Text style={styles.rebookButtonText}>Rebook</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Ionicons name="hourglass-outline" size={48} color="#D4AF37" />
-        <Text style={styles.loadingText}>Loading your bookings...</Text>
-      </View>
+      <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-[#faf5ff]">
+        <div className="sticky top-0 z-30">
+          <Header onNavigateToProfile={onNavigateToProfile} />
+        </div>
+        <div className="flex-grow flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm font-semibold text-slate-600">Loading your bookings...</p>
+          </div>
+        </div>
+        <div className="sticky bottom-0 z-30">
+          <BottomNav
+            onNavigateHome={onNavigateHome}
+            onNavigateToMirror={onNavigateToMirror}
+            onNavigateToProfile={onNavigateToProfile}
+            onNavigateToProducts={onNavigateToProducts}
+            onNavigateToCoach={onNavigateToCoach}
+            onNavigateToBooking={onNavigateToBooking}
+            onNavigateToChat={onNavigateToChat}
+          />
+        </div>
+      </div>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        {onBack && (
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
-          </TouchableOpacity>
-        )}
-        <Text style={styles.headerTitle}>My Bookings</Text>
-        <View style={styles.placeholder} />
-      </View>
+    <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-[#fffbfd]" style={{ position: "relative", zIndex: 1 }}>
+      {/* Top Header */}
+      <div className="sticky top-0 z-40">
+        <Header onNavigateToProfile={onNavigateToProfile} />
+      </div>
 
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.tabs}>
-            {(['upcoming', 'completed', 'cancelled'] as TabType[]).map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tab, activeTab === tab && styles.tabActive]}
-                onPress={() => setActiveTab(tab)}
+      <main className="flex-grow overflow-y-auto pb-32 px-4 pt-4" style={{ WebkitOverflowScrolling: "touch" }}>
+        {/* Title Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-2 rounded-xl bg-white border border-pink-100 shadow-sm hover:bg-pink-50 transition-colors"
+                aria-label="Go back"
               >
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === tab && styles.tabTextActive,
-                  ]}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
+                <ArrowLeft className="w-5 h-5 text-slate-700" />
+              </button>
+            )}
+            <div>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight">My Bookings</h1>
+              <p className="text-xs text-slate-500 font-medium">Track and manage your appointments</p>
+            </div>
+          </div>
+        </div>
 
-      {/* Bookings List */}
-      {filteredBookings.length > 0 ? (
-        <FlatList
-          data={filteredBookings}
-          renderItem={renderBookingCard}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+        {/* Tab Filters */}
+        <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl mb-5">
+          {(['upcoming', 'completed', 'cancelled'] as TabType[]).map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold capitalize transition-all duration-200 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tab}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700 font-medium">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Bookings List */}
+        {filteredBookings.length > 0 ? (
+          <div className="space-y-4">
+            {filteredBookings.map((booking) => {
+              const artistObj = booking.artist as any;
+              const serviceObj = booking.service as any;
+              const artistName = artistObj?.shop_name || artistObj?.full_name || artistObj?.username || 'Makeup Artist';
+              const serviceName = booking.service_name || serviceObj?.title || 'Beauty Service';
+              const price = booking.total_price || serviceObj?.price || 0;
+
+              return (
+                <div
+                  key={booking.id}
+                  className="bg-white rounded-2xl p-4 border border-pink-100 shadow-[0_4px_20px_rgba(236,72,153,0.06)] transition-all"
+                >
+                  {/* Header Row: Artist Info & Status */}
+                  <div className="flex items-start justify-between gap-3 mb-3 pb-3 border-b border-pink-50">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-100 to-purple-100 p-0.5 flex-shrink-0">
+                        <div className="w-full h-full rounded-[14px] overflow-hidden bg-white flex items-center justify-center">
+                          {artistObj?.avatar_url ? (
+                            <img src={artistObj.avatar_url} alt={artistName} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-6 h-6 text-pink-400" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-slate-900 truncate">{artistName}</h3>
+                        <p className="text-xs text-pink-600 font-semibold truncate">{serviceName}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex-shrink-0">
+                      {getStatusBadge(booking.status)}
+                    </div>
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-2 gap-2 mb-3 bg-pink-50/40 rounded-xl p-3 text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                      <Calendar className="w-3.5 h-3.5 text-pink-500" />
+                      <span>
+                        {new Date(booking.booking_date).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                      <Clock className="w-3.5 h-3.5 text-purple-500" />
+                      <span>{booking.booking_time}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                      <Tag className="w-3.5 h-3.5 text-pink-500" />
+                      <span className="font-bold text-slate-900">₹{price.toLocaleString()}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <Wallet className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className={`font-semibold ${
+                        booking.payment_status === 'paid' ? 'text-emerald-700' : 'text-amber-700'
+                      }`}>
+                        {booking.payment_status === 'paid' ? 'Paid' : 'Payment Pending'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-1">
+                    {onNavigateToArtistProfile && (
+                      <button
+                        onClick={() => onNavigateToArtistProfile(booking.artist_id)}
+                        className="flex-1 py-2 px-3 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        View Artist
+                      </button>
+                    )}
+
+                    {['pending', 'confirmed'].includes(booking.status) && (
+                      <button
+                        onClick={() => handleCancelBooking(booking.id)}
+                        disabled={cancelling}
+                        className="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        Cancel
+                      </button>
+                    )}
+
+                    {booking.status === 'completed' && onNavigateToArtistProfile && (
+                      <button
+                        onClick={() => onNavigateToArtistProfile(booking.artist_id)}
+                        className="flex-1 py-2 px-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Rebook
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="py-16 px-6 text-center bg-white rounded-3xl border border-pink-100 shadow-sm flex flex-col items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mb-4">
+              <Calendar className="w-8 h-8 text-pink-400" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1">
+              {activeTab === 'upcoming'
+                ? 'No upcoming bookings'
+                : activeTab === 'completed'
+                ? 'No completed bookings'
+                : 'No cancelled bookings'}
+            </h3>
+            <p className="text-xs text-slate-500 max-w-xs mb-6 leading-relaxed">
+              {activeTab === 'upcoming'
+                ? 'Discover top makeup artists and book your next glam session!'
+                : activeTab === 'completed'
+                ? 'Your completed appointments will appear here.'
+                : 'Your cancelled bookings will be listed here.'}
+            </p>
+            {activeTab === 'upcoming' && onNavigateToBooking && (
+              <button
+                onClick={onNavigateToBooking}
+                className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-bold text-xs shadow-lg flex items-center gap-2 active:scale-95 transition-transform"
+              >
+                <span>Browse Artists</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* Bottom Navigation */}
+      <div className="sticky bottom-0 z-40">
+        <BottomNav
+          onNavigateHome={onNavigateHome}
+          onNavigateToMirror={onNavigateToMirror}
+          onNavigateToProfile={onNavigateToProfile}
+          onNavigateToProducts={onNavigateToProducts}
+          onNavigateToCoach={onNavigateToCoach}
+          onNavigateToBooking={onNavigateToBooking}
+          onNavigateToChat={onNavigateToChat}
         />
-      ) : (
-        <View style={styles.emptyState}>
-          <Ionicons 
-            name={
-              activeTab === 'upcoming' 
-                ? 'calendar-outline' 
-                : activeTab === 'completed' 
-                ? 'checkmark-done-circle-outline' 
-                : 'close-circle-outline'
-            } 
-            size={64} 
-            color="#ccc" 
-          />
-          <Text style={styles.emptyTitle}>
-            {activeTab === 'upcoming'
-              ? 'No upcoming bookings'
-              : activeTab === 'completed'
-              ? 'No completed bookings'
-              : 'No cancelled bookings'}
-          </Text>
-          <Text style={styles.emptySubtitle}>
-            {activeTab === 'upcoming'
-              ? 'Book your first makeup artist now!'
-              : activeTab === 'completed'
-              ? 'Your completed bookings will appear here'
-              : 'Your cancelled bookings will appear here'}
-          </Text>
-          {activeTab === 'upcoming' && (
-            <LinearGradient
-              colors={['#ec4899', '#a855f7']}
-              style={styles.ctaButton}
-            >
-              <TouchableOpacity style={styles.ctaButtonInner}>
-                <Text style={styles.ctaButtonText}>Browse Artists</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
-              </TouchableOpacity>
-            </LinearGradient>
-          )}
-        </View>
-      )}
-    </View>
+      </div>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholder: {
-    width: 40,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1a1a1a',
-  },
-  tabsContainer: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  tabs: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#f5f5f5',
-  },
-  tabActive: {
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    borderWidth: 1,
-    borderColor: '#D4AF37',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  tabTextActive: {
-    color: '#D4AF37',
-    fontWeight: '700',
-  },
-  listContent: {
-    padding: 16,
-    gap: 12,
-  },
-  bookingCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  bookingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  artistInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  artistAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'linear-gradient(135deg, #ec4899, #a855f7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  artistName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 2,
-  },
-  serviceName: {
-    fontSize: 13,
-    color: '#666',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  bookingDetails: {
-    gap: 8,
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  detailText: {
-    fontSize: 13,
-    color: '#666',
-  },
-  bookingActions: {
-    flexDirection: 'row',
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f5f5f5',
-    paddingTop: 12,
-  },
-  viewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
-  },
-  viewButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#D4AF37',
-  },
-  cancelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  cancelButtonDisabled: {
-    opacity: 0.5,
-  },
-  cancelButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#ef4444',
-  },
-  rebookButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
-  },
-  rebookButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#D4AF37',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#666',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  ctaButton: {
-    marginTop: 24,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  ctaButtonInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-  },
-  ctaButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
-});

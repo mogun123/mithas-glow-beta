@@ -57,6 +57,7 @@ export interface DashboardStats {
   monthlyEarnings: number;
   averageRating: number;
   totalReviews: number;
+  reviewCount?: number;
 }
 
 // Tab navigation types

@@ -11,6 +11,9 @@ type ProductsScreenProps = {
   onNavigateToProfile: () => void;
   onNavigateToEvents?: () => void;
   onNavigateHome?: () => void;
+  onNavigateToCoach?: () => void;
+  onNavigateToBooking?: () => void;
+  onNavigateToChat?: () => void;
 };
 
 interface AffiliateProduct {
@@ -73,7 +76,14 @@ const SCREEN_CSS = `
 }
 `;
 
-export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavigateHome }: ProductsScreenProps) {
+export function ProductsScreen({ 
+  onNavigateToMirror, 
+  onNavigateToProfile, 
+  onNavigateHome,
+  onNavigateToCoach,
+  onNavigateToBooking,
+  onNavigateToChat
+}: ProductsScreenProps) {
   const [styleId, setStyleId] = useState<string>("");
   const [products, setProducts] = useState<AffiliateProduct[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<AffiliateProduct[]>([]);
@@ -600,6 +610,9 @@ export function ProductsScreen({ onNavigateToMirror, onNavigateToProfile, onNavi
           onNavigateHome={onNavigateHome}
           onNavigateToMirror={onNavigateToMirror}
           onNavigateToProfile={onNavigateToProfile}
+          onNavigateToCoach={onNavigateToCoach}
+          onNavigateToBooking={onNavigateToBooking}
+          onNavigateToChat={onNavigateToChat}
         />
       </div>
     </div>

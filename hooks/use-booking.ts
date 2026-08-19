@@ -1,12 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import type { Profile } from '../types/profile';
+import { supabase } from '../src/lib/supabase';
 
-export interface Artist extends Profile {
+export interface Artist {
+  id: string;
+  email?: string | null;
+  full_name?: string | null;
+  display_name?: string | null;
+  shop_name?: string | null;
+  username?: string | null;
+  avatar_url?: string | null;
+  photoUrl?: string | null;
+  seller_status?: string | null;
+  city?: string | null;
+  location_city?: string | null;
+  experience?: string | null;
+  industry?: string | null;
+  bio?: string | null;
+  specialities?: string[] | any;
   average_rating?: number;
   total_reviews?: number;
   distance_km?: number;
   starting_price?: number;
+  [key: string]: any;
 }
 
 export interface BookingSlot {
@@ -27,6 +42,9 @@ export interface Booking {
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   payment_id?: string;
   created_at: string;
+  artist?: Artist | any;
+  service?: ArtistService | any;
+  [key: string]: any;
 }
 
 export interface ArtistService {
@@ -39,6 +57,17 @@ export interface ArtistService {
   category: 'bridal' | 'party' | 'home_service';
   is_active: boolean;
 }
+
+// Helper to resolve storage paths into full public URLs
+const resolveAvatarUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+  const { data } = supabase.storage.from('profile-images').getPublicUrl(cleanPath);
+  return data?.publicUrl || url;
+};
 
 /**
  * Fetch verified makeup artists from Supabase
@@ -60,47 +89,76 @@ export const useVerifiedArtists = (options?: {
         setLoading(true);
         setError(null);
 
+        // Try primary query with relational joins for real verified pro artists only
         let query = supabase
           .from('profiles')
           .select(`
             *,
-            artist_services!artist_services_artist_id_fkey(price),
-            reviews!reviews_artist_id_fkey(rating)
+            artist_services(price, category, is_active),
+            reviews(rating)
           `)
-          .eq('account_type', 'professional')
-          .eq('industry', 'makeup_artist')
           .eq('seller_status', 'verified')
-          .eq('is_active', true);
+          .eq('is_active', true)
+          .or('is_seller.eq.true,account_type.eq.professional,user_type.eq.pro');
 
-        // Filter by category if provided
         if (options?.category) {
           query = query.eq('artist_services.category', options.category);
         }
 
-        // Execute query
         const { data, error: queryError } = await query;
 
-        if (queryError) throw queryError;
+        if (queryError) {
+          console.warn('[VerifiedArtistsDebug] Primary query error, attempting simple fallback:', queryError);
+        }
 
-        // Process data to calculate aggregates
-        const processedArtists = data?.map(artist => {
+        let rawArtists = data;
+
+        // Fallback: Query plain profiles strictly filtering for verified pro artists
+        if (queryError || !rawArtists || rawArtists.length === 0) {
+          const { data: fallbackData, error: fbError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('seller_status', 'verified')
+            .eq('is_active', true)
+            .or('is_seller.eq.true,account_type.eq.professional,user_type.eq.pro');
+          
+          if (fbError) {
+            console.error('[VerifiedArtistsDebug] Fallback query failed:', fbError);
+          } else if (fallbackData && fallbackData.length > 0) {
+            rawArtists = fallbackData;
+          }
+        }
+
+        if (process.env.NODE_ENV !== 'production' || import.meta.env?.DEV) {
+          console.log('[VerifiedArtistsDebug]', {
+            count: rawArtists?.length || 0,
+            artists: rawArtists?.map((a: any) => ({ id: a.id, name: a.shop_name || a.full_name, seller_status: a.seller_status })),
+            queryError: queryError || null,
+          });
+        }
+
+        // Process data to calculate aggregates & resolve avatar URLs
+        const processedArtists = (rawArtists || []).map((artist: any) => {
           const ratings = artist.reviews?.map((r: any) => r.rating) || [];
           const avgRating = ratings.length > 0
             ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length
             : null;
 
-          const services = artist.artist_services || [];
+          const services = (artist.artist_services || []).filter((s: any) => s.is_active !== false);
           const minPrice = services.length > 0
             ? Math.min(...services.map((s: any) => s.price))
             : null;
 
+          const resolvedAvatar = resolveAvatarUrl(artist.avatar_url || (artist as any).photoUrl || (artist as any).shop_logo_url);
+
           return {
             ...artist,
+            avatar_url: resolvedAvatar,
             average_rating: avgRating,
             total_reviews: ratings.length,
             starting_price: minPrice,
           };
-        }) || [];
+        });
 
         // Sort results
         const sortedArtists = [...processedArtists].sort((a, b) => {
@@ -113,13 +171,10 @@ export const useVerifiedArtists = (options?: {
               return (b.total_reviews || 0) - (a.total_reviews || 0);
             case 'nearby':
             default:
-              // Distance calculation would require lat/lng and PostGIS
-              // For now, return as-is or implement Haversine formula in JS
               return 0;
           }
         });
 
-        // Apply limit
         const limitedArtists = options?.limit
           ? sortedArtists.slice(0, options.limit)
           : sortedArtists;
@@ -127,7 +182,7 @@ export const useVerifiedArtists = (options?: {
         setArtists(limitedArtists);
       } catch (err: any) {
         setError(err.message || 'Failed to fetch artists');
-        console.error('Error fetching artists:', err);
+        console.error('[VerifiedArtistsDebug] Error fetching artists:', err);
       } finally {
         setLoading(false);
       }
@@ -157,48 +212,127 @@ export const useArtistProfile = (artistId: string) => {
     const fetchArtist = async () => {
       try {
         setLoading(true);
+        setError(null);
 
-        // Fetch artist profile
-        const { data: profileData, error: profileError } = await supabase
+        let targetUserId = artistId;
+        let profileData: any = null;
+
+        // Step 1: Try fetching profiles by ID
+        const { data: pData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', artistId)
-          .single();
+          .eq('id', targetUserId)
+          .maybeSingle();
 
-        if (profileError) throw profileError;
+        if (pData) {
+          profileData = pData;
+        } else {
+          console.warn('[ArtistProfileQueryDebug] Profile not found by ID directly, checking sellers/shops tables for ID:', targetUserId);
+          
+          // Step 2: Try shops table (if artistId was shop.id or user_id)
+          const { data: shopMatch } = await supabase
+            .from('shops')
+            .select('user_id')
+            .or(`id.eq.${targetUserId},user_id.eq.${targetUserId}`)
+            .maybeSingle();
+
+          if (shopMatch?.user_id) {
+            targetUserId = shopMatch.user_id;
+          } else {
+            // Step 3: Try sellers table (if artistId was seller.id or user_id)
+            const { data: sellerMatch } = await supabase
+              .from('sellers')
+              .select('user_id')
+              .or(`id.eq.${targetUserId},user_id.eq.${targetUserId}`)
+              .maybeSingle();
+
+            if (sellerMatch?.user_id) {
+              targetUserId = sellerMatch.user_id;
+            }
+          }
+
+          // Retry fetching profiles with resolved user_id
+          const { data: pRetry } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', targetUserId)
+            .maybeSingle();
+
+          profileData = pRetry;
+        }
+
+        if (!profileData) {
+          console.error('[ArtistProfileQueryDebug] Profile record missing in Supabase for artistId:', artistId, 'resolvedUserId:', targetUserId);
+          throw new Error(`Artist profile not found (ID: ${artistId})`);
+        }
+
+        // Fallback: check sellers/shops if avatar_url or shop_name is missing
+        let resolvedAvatar = resolveAvatarUrl(profileData.avatar_url || profileData.photoUrl);
+        let shopName = profileData.shop_name || profileData.display_name;
+
+        const { data: sellerData } = await supabase
+          .from('sellers')
+          .select('shop_name, shop_logo_url')
+          .eq('user_id', targetUserId)
+          .maybeSingle();
+
+        if (sellerData) {
+          if (!shopName) shopName = sellerData.shop_name;
+          if (!resolvedAvatar) resolvedAvatar = resolveAvatarUrl(sellerData.shop_logo_url);
+        }
 
         // Fetch artist services
         const { data: servicesData, error: servicesError } = await supabase
           .from('artist_services')
           .select('*')
-          .eq('artist_id', artistId)
+          .eq('artist_id', targetUserId)
           .eq('is_active', true)
           .order('price', { ascending: true });
 
-        if (servicesError) throw servicesError;
+        if (servicesError) {
+          console.warn('[ArtistProfileQueryDebug] Error fetching artist_services:', servicesError);
+        }
 
         // Fetch reviews count and average
         const { data: reviewsData, error: reviewsError } = await supabase
           .from('reviews')
           .select('rating')
-          .eq('artist_id', artistId);
+          .eq('artist_id', targetUserId);
 
-        if (reviewsError) throw reviewsError;
+        if (reviewsError) {
+          console.warn('[ArtistProfileQueryDebug] Error fetching reviews:', reviewsError);
+        }
 
-        const ratings = reviewsData?.map(r => r.rating) || [];
+        const ratings = reviewsData?.map((r: any) => r.rating) || [];
         const avgRating = ratings.length > 0
-          ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+          ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length
           : null;
 
-        setArtist({
+        const finalArtist: Artist = {
           ...profileData,
+          id: targetUserId,
+          shop_name: shopName || profileData.shop_name || profileData.full_name || 'Makeup Artist',
+          avatar_url: resolvedAvatar,
           average_rating: avgRating,
           total_reviews: ratings.length,
-        });
+        };
+
+        if (process.env.NODE_ENV !== 'production' || import.meta.env?.DEV) {
+          console.log('[ArtistProfileQueryDebug]', {
+            requestedArtistId: artistId,
+            resolvedUserId: targetUserId,
+            artistFound: !!finalArtist,
+            avatarUrl: finalArtist.avatar_url,
+            servicesCount: servicesData?.length || 0,
+            reviewsCount: ratings.length,
+          });
+        }
+
+        setArtist(finalArtist);
         setServices(servicesData || []);
       } catch (err: any) {
         setError(err.message || 'Failed to fetch artist profile');
-        console.error('Error fetching artist profile:', err);
+        console.error('[ArtistProfileQueryDebug] Error loading profile:', err);
       } finally {
         setLoading(false);
       }
@@ -438,10 +572,10 @@ export const useSearchArtists = (searchTerm: string) => {
         const { data, error: searchError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('account_type', 'professional')
-          .eq('industry', 'makeup_artist')
           .eq('seller_status', 'verified')
-          .ilike('username', `%${searchTerm}%`);
+          .eq('is_active', true)
+          .or('is_seller.eq.true,account_type.eq.professional,user_type.eq.pro')
+          .or(`username.ilike.%${searchTerm}%,shop_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
 
         if (searchError) throw searchError;
 

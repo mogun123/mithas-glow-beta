@@ -119,6 +119,7 @@ type HomeScreenProps = {
   onNavigateToProducts?: () => void;
   onNavigateToCoach?: () => void;
   onNavigateToBooking?: () => void;
+  onNavigateToChat?: () => void;
 };
 
 type ActivityItem = {
@@ -156,6 +157,7 @@ export function HomeScreen({
   onNavigateToProducts,
   onNavigateToCoach,
   onNavigateToBooking,
+  onNavigateToChat,
 }: HomeScreenProps) {
   // Subscribe to rewards store for real-time streak and points from database
   const { rewards, fetchRewards } = useRewardsStore();
@@ -1541,6 +1543,18 @@ export function HomeScreen({
           />
         )}
       </Suspense>
+
+      {/* Bottom Navigation Bar */}
+      <BottomNav
+        onNavigateHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onNavigateToMirror={onNavigateToMirror}
+        onNavigateToProfile={onNavigateToProfile}
+        onNavigateToEvents={onNavigateToEvents}
+        onNavigateToProducts={onNavigateToProducts}
+        onNavigateToCoach={onNavigateToCoach}
+        onNavigateToBooking={onNavigateToBooking}
+        onNavigateToChat={onNavigateToChat}
+      />
     </div>
   );
 }

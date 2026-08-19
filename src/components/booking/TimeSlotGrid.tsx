@@ -1,7 +1,4 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 
 interface TimeSlot {
   time: string;
@@ -16,91 +13,30 @@ interface TimeSlotGridProps {
 
 export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({ slots, selectedSlot, onSelectSlot }) => {
   return (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContainer}
-    >
-      {slots.map((slot, index) => (
-        <TouchableOpacity
-          key={index}
-          style={[
-            styles.slotButton,
-            !slot.available && styles.slotUnavailable,
-            selectedSlot === slot.time && styles.slotSelected,
-          ]}
-          onPress={() => slot.available && onSelectSlot(slot.time)}
-          disabled={!slot.available}
-          activeOpacity={0.7}
-        >
-          <LinearGradient
-            colors={
-              selectedSlot === slot.time
-                ? ['#D4AF37', '#B8962E']
-                : !slot.available
-                ? ['#f5f5f5', '#e8e8e8']
-                : ['#fff', '#f9f9f9']
-            }
-            style={styles.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+    <div className="flex gap-2.5 overflow-x-auto py-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {slots.map((slot, index) => {
+        const isSelected = selectedSlot === slot.time;
+        const isUnavailable = !slot.available;
+
+        return (
+          <button
+            key={index}
+            type="button"
+            onClick={() => slot.available && onSelectSlot(slot.time)}
+            disabled={isUnavailable}
+            className={`flex-shrink-0 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
+              isUnavailable
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50 border border-slate-200'
+                : isSelected
+                ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md scale-105'
+                : 'bg-white text-slate-800 border border-slate-100 hover:border-pink-200 shadow-sm'
+            }`}
+            style={{ minWidth: '76px' }}
           >
-            <Text
-              style={[
-                styles.slotText,
-                !slot.available && styles.slotTextUnavailable,
-                selectedSlot === slot.time && styles.slotTextSelected,
-              ]}
-            >
-              {slot.time}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
+            {slot.time}
+          </button>
+        );
+      })}
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  scrollContainer: {
-    paddingVertical: 8,
-  },
-  slotButton: {
-    marginRight: 12,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  slotUnavailable: {
-    opacity: 0.5,
-  },
-  slotSelected: {
-    shadowColor: '#D4AF37',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  gradient: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 80,
-  },
-  slotText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  slotTextUnavailable: {
-    color: '#999',
-  },
-  slotTextSelected: {
-    color: '#fff',
-  },
-});

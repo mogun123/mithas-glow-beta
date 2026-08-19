@@ -28,7 +28,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       if (event === "SIGNED_IN" && session?.user) {
         const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
 
@@ -37,7 +37,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
           // Identify user in analytics
           analyticsService.identify(session.user.id, {
             email: session.user.email,
-            name: profile.,
+            name: profile.full_name,
           })
         }
         setSession(session)
@@ -92,7 +92,7 @@ function NotificationsProvider({ children }: { children: ReactNode }) {
         })
       })
       // Update unread count
-      setUnreadNotifications((prev: number) => prev + 1)
+      setUnreadNotifications(1)
     })
   }, [isAuthenticated, setUnreadNotifications])
 

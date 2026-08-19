@@ -146,8 +146,7 @@ export const authAPI = {
    */
   register: (data: {
     email: string
-    password: string
-    ?: string
+    full_name?: string
     phone?: string
     gender?: "female" | "male" | "other"
   }) =>

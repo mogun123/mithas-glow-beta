@@ -1,8 +1,5 @@
---- src/components/common/VirtualizedList.tsx (原始)
-
-
-+++ src/components/common/VirtualizedList.tsx (修改后)
 /**
+ * Virtualized Booking List Component
  * Virtualized Booking List Component
  * Lightweight virtualization for large booking lists (100+ items)
  * No external dependencies - custom implementation

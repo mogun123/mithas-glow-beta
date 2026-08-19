@@ -120,31 +120,30 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
         className="
           sticky top-0 z-40
           flex items-center justify-between
-          border-b border-pink-100
-          bg-[#fdf4f8]/90
-          px-4 py-3
-          shadow-sm
-          backdrop-blur-2xl
+          border-b border-purple-100/70 dark:border-purple-950/40
+          bg-white/90 dark:bg-gray-950/90
+          px-3.5 py-2.5
+          shadow-xs
+          backdrop-blur-xl
         "
       >
         {/* ===================================================
             LEFT — LOGO
         ==================================================== */}
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-2">
           <div
             className="
-              flex h-8 w-8 items-center justify-center
+              flex h-7 w-7 items-center justify-center
               rounded-xl
               bg-gradient-to-br
-              from-pink-500
-              via-fuchsia-500
-              to-purple-600
-              shadow-md
-              shadow-pink-500/20
+              from-purple-600
+              via-fuchsia-600
+              to-pink-500
+              shadow-xs
             "
           >
             <Crown
-              className="h-4 w-4 text-white"
+              className="h-3.5 w-3.5 text-white"
               strokeWidth={2.5}
             />
           </div>
@@ -154,28 +153,19 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
               className="
                 whitespace-nowrap
                 bg-gradient-to-r
-                from-pink-600
-                via-fuchsia-500
-                to-purple-600
+                from-purple-700
+                via-fuchsia-600
+                to-pink-600
                 bg-clip-text
-                text-lg
-                font-black
-                italic
+                font-display
+                text-base
+                font-bold
                 tracking-tight
                 text-transparent
-                sm:text-2xl
               "
             >
               MITHAS GLOW
             </h1>
-
-            {/* Small status label on larger screens */}
-            <div className="hidden items-center gap-1 sm:flex">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-              <span className="text-[8px] font-extrabold uppercase tracking-[0.18em] text-slate-400">
-                Beauty • AI • AR
-              </span>
-            </div>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, UserPlus, Inbox, Shield } from 'lucide-react';
+import { MessageCircle, UserPlus, Inbox, Shield, ArrowLeft } from 'lucide-react';
 import { ConversationListItem } from '../components/chat/ConversationListItem';
 import { useConversations } from '../hooks/useConversations';
 import { useGlowChatContext } from '../components/chat/GlowChatProvider';
@@ -7,6 +7,8 @@ import { useGlowChatContext } from '../components/chat/GlowChatProvider';
 export type ConversationMode = 'artist' | 'contact' | 'messenger';
 
 interface ChatListScreenProps {
+  onNavigateHome?: () => void;
+  onNavigateBack?: () => void;
   onNavigateToThread: (conversationId: string) => void;
   onNavigateToContacts: () => void;
   onNavigateToRequests: () => void;
@@ -14,6 +16,8 @@ interface ChatListScreenProps {
 }
 
 export function ChatListScreen({ 
+  onNavigateHome,
+  onNavigateBack,
   onNavigateToThread,
   onNavigateToContacts,
   onNavigateToRequests,
@@ -22,6 +26,11 @@ export function ChatListScreen({
   const [activeMode, setActiveMode] = useState<ConversationMode>('artist');
   const { currentUserId, loading: userLoading } = useGlowChatContext();
   const { conversations, loading, error } = useConversations(activeMode);
+
+  const handleBack = () => {
+    if (onNavigateBack) onNavigateBack();
+    else if (onNavigateHome) onNavigateHome();
+  };
 
   if (userLoading) {
     return (
@@ -32,13 +41,28 @@ export function ChatListScreen({
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-slate-50/50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <MessageCircle className="w-6 h-6 text-pink-500" />
-          Glow Chat
-        </h1>
+      <div className="bg-white/90 backdrop-blur-md border-b border-purple-100/80 px-4 py-3 sticky top-0 z-10 flex items-center gap-3">
+        <button
+          onClick={handleBack}
+          className="p-2 text-slate-700 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all active:scale-95 flex-shrink-0"
+          aria-label="Back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-pink-500 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+            <MessageCircle className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-slate-900 font-display tracking-tight leading-none">
+              Glow Chat
+            </h1>
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">Real-time beauty messaging</p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation Actions */}

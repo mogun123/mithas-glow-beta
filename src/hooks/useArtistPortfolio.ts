@@ -15,7 +15,7 @@ interface UseArtistPortfolioReturn {
   refreshPortfolio: () => Promise<void>;
 }
 
-export function useArtistPortfolio(): UseArtistPortfolioReturn {
+export function useArtistPortfolio(targetArtistId?: string): UseArtistPortfolioReturn {
   const [portfolioItems, setPortfolioItems] = useState<ArtistPortfolioItem[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,26 +26,38 @@ export function useArtistPortfolio(): UseArtistPortfolioReturn {
       setLoading(true);
       setError(null);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        setError('No authenticated user');
+      // Determine effective artist ID: targetArtistId if passed, otherwise current auth user
+      let effectiveArtistId = targetArtistId;
+      if (!effectiveArtistId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        effectiveArtistId = session?.user?.id;
+      }
+
+      if (!effectiveArtistId) {
+        setError('No artist specified');
         setLoading(false);
         return;
       }
 
       // Try artist_portfolio table first
-      let { data: items, error: itemsError } = await supabase
+      let { data: rawItems, error: itemsError } = await supabase
         .from('artist_portfolio')
         .select('*')
-        .eq('artist_id', session.user.id)
+        .eq('artist_id', effectiveArtistId)
         .order('created_at', { ascending: false });
+
+      if (itemsError && itemsError.code !== '42P01') {
+        console.warn('[PortfolioDebug] Query warning for artist_portfolio:', itemsError);
+      }
+
+      let items = rawItems;
 
       // Fallback to profiles table
       if (itemsError && itemsError.code === '42P01') {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('portfolio_items, social_links')
-          .eq('id', session.user.id)
+          .eq('id', effectiveArtistId)
           .single();
 
         if (profileError) throw profileError;
@@ -56,20 +68,84 @@ export function useArtistPortfolio(): UseArtistPortfolioReturn {
         const { data: linksData } = await supabase
           .from('artist_social_links')
           .select('*')
-          .eq('artist_id', session.user.id);
+          .eq('artist_id', effectiveArtistId);
+
+        let finalSocialLinks: SocialLink[] = linksData || [];
+
+        // If artist_social_links is empty, check shops table for instagram/youtube links set in artist profile tabs
+        if (!finalSocialLinks || finalSocialLinks.length === 0) {
+          const { data: shopData } = await supabase
+            .from('shops')
+            .select('instagram, youtube')
+            .eq('user_id', effectiveArtistId)
+            .maybeSingle();
+
+          if (shopData) {
+            const fallbackLinks: SocialLink[] = [];
+            if (shopData.instagram) {
+              const instaUrl = shopData.instagram.startsWith('http')
+                ? shopData.instagram
+                : `https://instagram.com/${shopData.instagram.replace('@', '')}`;
+              fallbackLinks.push({
+                id: 'shop-instagram',
+                platform: 'instagram',
+                url: instaUrl,
+                created_at: new Date().toISOString(),
+              });
+            }
+            if (shopData.youtube) {
+              const ytUrl = shopData.youtube.startsWith('http')
+                ? shopData.youtube
+                : `https://youtube.com/${shopData.youtube}`;
+              fallbackLinks.push({
+                id: 'shop-youtube',
+                platform: 'youtube',
+                url: ytUrl,
+                created_at: new Date().toISOString(),
+              });
+            }
+            finalSocialLinks = fallbackLinks;
+          }
+        }
         
-        setSocialLinks(linksData || []);
+        setSocialLinks(finalSocialLinks);
       }
 
       if (itemsError && itemsError.code !== '42P01') throw itemsError;
-      setPortfolioItems(items || []);
+
+      // Ensure all image URLs are fully resolved public URLs
+      const resolvedItems: ArtistPortfolioItem[] = (items || []).map((item: any) => {
+        let finalUrl = item.image_url || item.after_image_url || item.before_image_url || '';
+        if (finalUrl && !finalUrl.startsWith('http://') && !finalUrl.startsWith('https://') && !finalUrl.startsWith('data:')) {
+          const cleanPath = finalUrl.startsWith('/') ? finalUrl.slice(1) : finalUrl;
+          const { data: pubData } = supabase.storage.from('portfolio-images').getPublicUrl(cleanPath);
+          finalUrl = pubData?.publicUrl || finalUrl;
+        }
+        return {
+          ...item,
+          image_url: finalUrl,
+        };
+      });
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[PortfolioDebug]', {
+          viewedArtistId: effectiveArtistId,
+          portfolioRowCount: (items || []).length,
+          portfolioArtistIds: (items || []).map((i: any) => i.artist_id),
+          firstImageUrl: items?.[0]?.image_url || null,
+          storagePath: items?.[0]?.image_url || null,
+          finalResolvedUrl: resolvedItems?.[0]?.image_url || null,
+        });
+      }
+
+      setPortfolioItems(resolvedItems);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch portfolio');
       console.error('Portfolio fetch error:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [targetArtistId]);
 
   useEffect(() => {
     fetchPortfolio();
@@ -89,7 +165,7 @@ export function useArtistPortfolio(): UseArtistPortfolioReturn {
       const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('portfolio-media')
+        .from('portfolio-images')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false,
@@ -99,7 +175,7 @@ export function useArtistPortfolio(): UseArtistPortfolioReturn {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('portfolio-media')
+        .from('portfolio-images')
         .getPublicUrl(fileName);
 
       // Save to database
@@ -157,12 +233,12 @@ export function useArtistPortfolio(): UseArtistPortfolioReturn {
       
       if (itemToDelete) {
         // Extract file path from URL
-        const urlParts = itemToDelete.image_url.split('/portfolio-media/');
+        const urlParts = itemToDelete.image_url.split('/portfolio-images/');
         if (urlParts.length > 1) {
           const filePath = urlParts[1];
           
           await supabase.storage
-            .from('portfolio-media')
+            .from('portfolio-images')
             .remove([filePath]);
         }
       }

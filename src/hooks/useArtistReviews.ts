@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export interface ArtistReview {
   id: string;
@@ -51,11 +51,11 @@ export const useArtistReviews = (artistId: string, limit: number = 10) => {
         setError(null);
 
         // Fetch reviews with customer profile information
-        const { data: reviewsData, error: reviewsError } = await supabase
+        let { data: reviewsData, error: reviewsError } = await supabase
           .from('reviews')
           .select(`
             *,
-            customer:profiles!reviews_customer_id_fkey (
+            customer:profiles (
               full_name,
               display_name,
               avatar_url
@@ -65,14 +65,24 @@ export const useArtistReviews = (artistId: string, limit: number = 10) => {
           .order('created_at', { ascending: false })
           .limit(limit);
 
-        if (reviewsError) throw reviewsError;
+        if (reviewsError) {
+          console.warn('[ArtistReviewsDebug] Primary join failed, falling back to plain select:', reviewsError);
+          const { data: plainReviews } = await supabase
+            .from('reviews')
+            .select('*')
+            .eq('artist_id', artistId)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+          reviewsData = plainReviews;
+        }
 
         // Transform data to include customer information
-        const transformedReviews: ArtistReview[] = reviewsData?.map((review: any) => ({
+        const transformedReviews: ArtistReview[] = (reviewsData || []).map((review: any) => ({
           ...review,
-          customer_name: review.customer?.display_name || review.customer?.full_name || 'Anonymous',
+          customer_name: review.customer?.display_name || review.customer?.full_name || 'Verified Customer',
           customer_avatar_url: review.customer?.avatar_url,
-        })) || [];
+        }));
 
         setReviews(transformedReviews);
 

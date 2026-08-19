@@ -1,3 +1,6 @@
+Nothing needs to be added to .gitignore since only a TypeScript source file (`src/hooks/useConversation.ts`) was added, which is a regular source code file that should be tracked in version control.
+node_modules
+.env.local
 ```
 # Build artifacts
 build/

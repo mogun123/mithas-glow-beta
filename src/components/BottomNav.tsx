@@ -1,5 +1,5 @@
 import { Home, ShoppingBag, MessageCircle, Calendar, Sparkles } from 'lucide-react';
-import { cn } from "@/components/ui/utils";
+import { cn } from "./ui/utils";
 import { useAuthStore } from '../lib/store';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
@@ -109,41 +109,26 @@ export function BottomNav({
     return null;
   }
 
-      return (
-    <div className="fixed bottom-0 left-0 w-full bg-[#fff0f5] border-t border-pink-200 z-50 pb-safe shadow-[0_-4px_20px_rgba(236,72,153,0.2)]">
-      <footer
-        className="p-3 max-w-lg mx-auto rounded-t-3xl"
-        style={{
-          background: '#fff0f5', // Solid Pink-Lavender Mix (No Transparency)
-          borderTop: '1px solid rgba(168,85,247,0.25)',
-        }}
-      >
-        <nav className="flex justify-around items-end pb-1 pt-2">
+  return (
+    <div className="fixed bottom-0 left-0 right-0 w-full z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-t border-purple-100/80 dark:border-purple-950/60 pb-safe shadow-lg shadow-purple-500/5">
+      <footer className="max-w-md mx-auto px-3 py-1.5">
+        <nav className="flex justify-between items-center h-12">
           {navItems.map((item) => {
             const isCenter = item.isCenter;
 
             if (isCenter) {
               return (
-                <div
-                  key={item.view}
-                  className="w-16 h-16 -mt-8 flex flex-col items-center justify-center"
-                >
+                <div key={item.view} className="relative flex flex-col items-center justify-center -mt-5">
                   <button
                     onClick={() => handleNavClick(item.action, item.view)}
-                    className="nav-tap-btn w-16 h-16 rounded-2xl relative cursor-pointer flex flex-col items-center justify-center min-w-[64px] min-h-[64px]"
-                    style={{
-                      background:
-                        'linear-gradient(135deg,#ec4899,#a855f7,#6366f1)',
-                      boxShadow:
-                        '0 8px 24px rgba(168,85,247,.38)',
-                    }}
+                    className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-pink-500 shadow-md shadow-purple-500/35 flex flex-col items-center justify-center active:scale-95 transition-all"
                     aria-label={item.label}
                   >
-                    <item.icon className="w-7 h-7 text-white" />
-                    <span className="text-xs mt-0.5 font-bold text-white tracking-tight">
-                      {item.label}
-                    </span>
+                    <item.icon className="w-5 h-5 text-white" />
                   </button>
+                  <span className="text-[10px] mt-0.5 font-bold text-purple-600 dark:text-purple-400 tracking-tight">
+                    {item.label}
+                  </span>
                 </div>
               );
             }
@@ -152,23 +137,14 @@ export function BottomNav({
               <button
                 key={item.view}
                 onClick={() => handleNavClick(item.action, item.view)}
-                className="nav-tap-btn flex flex-col items-center justify-center gap-1 cursor-pointer px-2 py-2 min-w-[60px] min-h-[44px]"
-                style={{ width: '22%' }}
+                className="flex flex-col items-center justify-center gap-0.5 cursor-pointer py-1 px-2 min-w-[54px] active:scale-95 transition-all"
                 aria-label={item.label}
               >
                 <item.icon
-                  className={cn(
-                    "w-6 h-6 transition-colors duration-200",
-                    "text-gray-500 hover:text-pink-600"
-                  )}
-                  strokeWidth={1.8}
+                  className="w-5 h-5 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors"
+                  strokeWidth={1.9}
                 />
-                <span
-                  className={cn(
-                    "text-xs font-semibold tracking-tight transition-colors duration-200",
-                    "text-gray-700"
-                  )}
-                >
+                <span className="text-[10px] font-semibold tracking-tight text-gray-600 dark:text-gray-400">
                   {item.label}
                 </span>
               </button>

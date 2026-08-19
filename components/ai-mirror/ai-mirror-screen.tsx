@@ -1,4 +1,4 @@
-Import { useState } from 'react';
+import { useState } from 'react';
 import { Home } from 'lucide-react';
 import { MirrorView } from './mirror/MirrorView';
 import { DIYGuideView } from './mirror/DIYGuideView';

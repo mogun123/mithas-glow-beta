@@ -13,7 +13,24 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export interface ArtistPortfolioItem {
+  id: string;
+  artist_id?: string;
+  image_url: string;
+  caption?: string | null;
+  category?: string | null;
+  is_featured?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
 
+export interface SocialLink {
+  id: string;
+  artist_id?: string;
+  platform: 'instagram' | 'youtube' | 'facebook' | string;
+  url: string;
+  created_at?: string;
+}
 
 export interface Database {
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../src/lib/supabase';
 
 export interface ProfessionalProfile {
   id: string;
@@ -57,6 +57,7 @@ export interface DashboardStats {
   monthlyEarnings: number;
   averageRating: number;
   totalReviews: number;
+  reviewCount?: number;
   profileCompletion: number;
   portfolioViews: number;
 }

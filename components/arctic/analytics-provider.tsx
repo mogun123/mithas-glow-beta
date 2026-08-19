@@ -20,7 +20,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const init = async () => {
       const { analyticsService } = await import("@/lib/arctic")
-      await analyticsService.initAnalytics()
+      await analyticsService.initialize()
     }
     init()
   }, [])
@@ -29,8 +29,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const trackPage = async () => {
       const { analyticsService } = await import("@/lib/arctic")
-      analyticsService.trackPageView({
-        path: pathname,
+      analyticsService.page(pathname, {
         search: searchParams.toString(),
       })
     }
@@ -42,11 +41,11 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     const identify = async () => {
       if (user) {
         const { analyticsService } = await import("@/lib/arctic")
-        analyticsService.identifyUser(user.id, {
+        analyticsService.identify(user.id, {
           email: user.email,
-          name: user. || undefined,
-          role: user.role,
-          created_at: user.created_at,
+          name: (user as any).full_name || undefined,
+          role: (user as any).role,
+          created_at: (user as any).created_at,
         })
       }
     }

@@ -7,6 +7,9 @@ type CoachScreenProps = {
   onNavigateToMirror: () => void;
   onNavigateToProfile: () => void;
   onNavigateHome?: () => void;
+  onNavigateToProducts?: () => void;
+  onNavigateToBooking?: () => void;
+  onNavigateToChat?: () => void;
 };
 
 const COACH_CSS = `
@@ -31,7 +34,14 @@ const COACH_CSS = `
 .fade-in-coach-d4 { animation-delay: 0.32s; }
 `;
 
-export function CoachScreen({ onNavigateToMirror, onNavigateToProfile, onNavigateHome }: CoachScreenProps) {
+export function CoachScreen({ 
+  onNavigateToMirror, 
+  onNavigateToProfile, 
+  onNavigateHome,
+  onNavigateToProducts,
+  onNavigateToBooking,
+  onNavigateToChat
+}: CoachScreenProps) {
   const [chatInput, setChatInput] = useState("");
   const [styleId, setStyleId] = useState("");
 
@@ -232,6 +242,9 @@ export function CoachScreen({ onNavigateToMirror, onNavigateToProfile, onNavigat
           onNavigateHome={onNavigateHome}
           onNavigateToMirror={onNavigateToMirror}
           onNavigateToProfile={onNavigateToProfile}
+          onNavigateToProducts={onNavigateToProducts}
+          onNavigateToBooking={onNavigateToBooking}
+          onNavigateToChat={onNavigateToChat}
         />
       </div>
     </div>

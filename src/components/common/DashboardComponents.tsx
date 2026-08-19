@@ -1,8 +1,5 @@
---- src/components/common/DashboardComponents.tsx (原始)
-
-
-+++ src/components/common/DashboardComponents.tsx (修改后)
 /**
+ * Reusable Professional Dashboard Components
  * Reusable Professional Dashboard Components
  * Optimized with React.memo to prevent unnecessary renders
  */

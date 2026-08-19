@@ -17,17 +17,19 @@ import { ProductsScreen } from "./screens/ProductsScreen";
 import { CoachScreen } from "./screens/CoachScreen";
 import { BookingScreen } from "./screens/BookingScreen";
 import { ArtistDetailScreen } from "./screens/ArtistDetailScreen";
+import { MyBookingsScreen } from "./screens/MyBookingsScreen";
 import { ChatListScreen } from "./screens/ChatListScreen";
 import { ChatThreadScreen } from "./screens/ChatThreadScreen";
 import { ContactSyncScreen } from "./screens/ContactSyncScreen";
 import { MessageRequestsScreen } from "./screens/MessageRequestsScreen";
 import { BlockedUsersScreen } from "./screens/BlockedUsersScreen";
 import ProfessionalDashboard from "./components/ProfessionalDashboard";
+import { GlowChatProvider } from "./components/chat/GlowChatProvider";
 import { AdminProductCatalog } from "./screens/AdminProductCatalog";
 
 const MirrorScreen = lazy(() => import("./screens/MirrorScreen"));
 
-type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "artist-detail" | "professional" | "chat" | "chat-thread" | "chat-contacts" | "chat-requests" | "chat-blocked";
+type View = "register" | "login" | "otp" | "profile" | "home" | "mirror" | "userprofile" | "events" | "products" | "coach" | "booking" | "artist-detail" | "my-bookings" | "professional" | "chat" | "chat-thread" | "chat-contacts" | "chat-requests" | "chat-blocked";
 
 const LoadingScreen = memo(function LoadingScreen() {
   return (
@@ -43,7 +45,7 @@ const LoadingScreen = memo(function LoadingScreen() {
 const THEME_MAP: Record<View, string> = {
   register: "mithas-theme", login: "mithas-theme", otp: "mithas-theme", profile: "mithas-theme",
   home: "glow-home-theme", mirror: "glow-mirror-theme", userprofile: "glow-profile-theme", events: "glow-home-theme",
-  products: "glow-home-theme", coach: "glow-home-theme", booking: "glow-home-theme", "artist-detail": "glow-home-theme", professional: "glow-home-theme",
+  products: "glow-home-theme", coach: "glow-home-theme", booking: "glow-home-theme", "artist-detail": "glow-home-theme", "my-bookings": "glow-home-theme", professional: "glow-home-theme",
   chat: "glow-home-theme", "chat-thread": "glow-home-theme", "chat-contacts": "glow-home-theme", "chat-requests": "glow-home-theme", "chat-blocked": "glow-home-theme"
 };
 
@@ -84,6 +86,7 @@ export default function App() {
   const goProducts = useCallback(() => navigate("products"), [navigate]);
   const goCoach = useCallback(() => navigate("coach"), [navigate]);
   const goBooking = useCallback(() => navigate("booking"), [navigate]);
+  const goMyBookings = useCallback(() => navigate("my-bookings"), [navigate]);
   const goChat = useCallback(() => navigate("chat"), [navigate]);
   const goChatThread = useCallback((conversationId: string) => {
     sessionStorage.setItem("currentConversationId", conversationId);
@@ -126,46 +129,54 @@ export default function App() {
           if (!profileError && profile) {
             useGlobalStore.getState().setUser(profile as any);
             setAuthProfileCompleted(!!profile.profile_completed);
-            
+
             // 🎯 ADMIN USERS SKIP PROFILE COMPLETION CHECK
             const isAdmin = profile.role === 'admin';
-            
+
             const savedView = localStorage.getItem("currentView") as View;
             const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "professional", "chat", "chat-thread", "chat-contacts", "chat-requests", "chat-blocked", "admin-products"];
 
+            const savedView = localStorage.getItem("currentView") as View;
+            const validViews: View[] = ["home", "mirror", "userprofile", "events", "products", "coach", "booking", "artist-detail", "my-bookings", "professional", "chat", "chat-thread", "chat-contacts", "chat-requests", "chat-blocked"];
+
             if (savedView && validViews.includes(savedView)) {
               setCurrentView(savedView);
-            } else if (isAdmin || profile?.profile_completed) {
-              if (isAdmin) {
-                // Admin users always go to professional view with access to admin features
+            } else if (profile?.profile_completed) {
+              if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
                 setCurrentView('professional');
-              } else if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
-                setCurrentView('professional');
+                if (savedView && validViews.includes(savedView)) {
+                  setCurrentView(savedView);
+                } else if (isAdmin || profile?.profile_completed) {
+                  if (isAdmin) {
+                    // Admin users always go to professional view with access to admin features
+                    setCurrentView('professional');
+                  } else if (profile.role === 'seller' && profile.industry === 'makeup_artist') {
+                    setCurrentView('professional');
+                  } else {
+                    setCurrentView('home');
+                  }
+                } else {
+                  setCurrentView('profile');
+                }
               } else {
-                setCurrentView('home');
+                localStorage.removeItem("currentView");
+                setCurrentView('register');
               }
             } else {
-              setCurrentView('profile');
+              localStorage.removeItem("currentView");
+              setCurrentView('register');
             }
-          } else {
+          } catch (error) {
+            console.error('Init app error:', error);
             localStorage.removeItem("currentView");
             setCurrentView('register');
+          } finally {
+            setIsInitialLoading(false);
           }
-        } else {
-          localStorage.removeItem("currentView");
-          setCurrentView('register');
-        }
-      } catch (error) {
-        console.error('Init app error:', error);
-        localStorage.removeItem("currentView");
-        setCurrentView('register');
-      } finally {
-        setIsInitialLoading(false);
-      }
-    };
+        };
 
-    initApp();
-  }, []);
+        initApp();
+      }, []);
 
   useEffect(() => {
     const newTheme = THEME_MAP[currentView] || "mithas-theme";
@@ -231,10 +242,10 @@ export default function App() {
 
     if (profile) {
       useGlobalStore.getState().setUser(profile as any);
-      
+
       // 🎯 ADMIN USERS SKIP PROFILE COMPLETION CHECK
       const isAdmin = profile.role === 'admin';
-      
+
       if (isAdmin || profile.profile_completed) {
         setAuthProfileCompleted(true);
         if (isAdmin) {
@@ -253,10 +264,22 @@ export default function App() {
   };
 
   const authenticatedScreen = useMemo(() => {
-    const screenMap: Record<string, JSX.Element> = {
+    const screenMap: Record<string, React.ReactNode> = {
       "userprofile": <ProfileScreen onNavigateHome={goHome} />,
       "events": <EventScreen onNavigateHome={goHome} latestScanReport={latestScanReport.current} setLatestScanReport={(val: any) => latestScanReport.current = val} />,
       "mirror": <MirrorScreen onNavigateHome={goHome} />,
+      "products": <ProductsScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} onNavigateToChat={goChat} />,
+      "coach": <CoachScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateToProducts={goProducts} onNavigateToBooking={goBooking} onNavigateToChat={goChat} />,
+      "booking": <BookingScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateToArtistDetail={handleNavigateToArtistDetail} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToChat={goChat} />,
+      "artist-detail": <ArtistDetailScreen artistId={selectedArtistId} onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateBack={goBooking} onNavigateToMyBookings={goMyBookings} onNavigateToChat={goChat} />,
+      "my-bookings": <MyBookingsScreen userId={user?.id || ''} onNavigateToArtistProfile={handleNavigateToArtistDetail} onBack={goBooking} onNavigateHome={goHome} onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} onNavigateToChat={goChat} />,
+      "professional": (isProUser && appViewMode === 'self') ? <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} onNavigateToChat={goChat} /> : <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} />,
+      "home": (isProUser && appViewMode === 'pro') ? <ProfessionalDashboard onNavigateHome={goHome} onNavigateToProfile={goProfile} onNavigateToMirror={goMirror} /> : <HomeScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateToEvents={goEvents} onNavigateToProducts={goProducts} onNavigateToCoach={goCoach} onNavigateToBooking={goBooking} onNavigateToChat={goChat} />,
+      "chat": <ChatListScreen onNavigateHome={goHome} onNavigateBack={goHome} onNavigateToThread={goChatThread} onNavigateToContacts={goChatContacts} onNavigateToRequests={goChatRequests} onNavigateToBlocked={goChatBlocked} />,
+      "chat-thread": <ChatThreadScreen conversation={null as any} onNavigateBack={goChat} />,
+      "chat-contacts": <ContactSyncScreen onNavigateBack={goChat} />,
+      "chat-requests": <MessageRequestsScreen onNavigateBack={goChat} />,
+      "chat-blocked": <BlockedUsersScreen onNavigateBack={goChat} />
       "products": <ProductsScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} />,
       "coach": <CoachScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} />,
       "booking": <BookingScreen onNavigateToMirror={goMirror} onNavigateToProfile={goProfile} onNavigateHome={goHome} onNavigateToArtistDetail={handleNavigateToArtistDetail} />,
@@ -271,7 +294,7 @@ export default function App() {
       "chat-blocked": <BlockedUsersScreen onNavigateHome={goHome} onNavigateToProfile={goProfile} goChat={goChat} goChatThread={goChatThread} goChatContacts={goChatContacts} goChatRequests={goChatRequests} goChatBlocked={goChatBlocked} />
     };
     return screenMap[currentView] || null;
-  }, [currentView, isProUser, appViewMode, selectedArtistId, goHome, goMirror, goProfile, goEvents, goProducts, goCoach, goBooking, handleNavigateToArtistDetail, goChat, goChatThread, goChatContacts, goChatRequests, goChatBlocked]);
+  }, [currentView, isProUser, appViewMode, selectedArtistId, user?.id, goHome, goMirror, goProfile, goEvents, goProducts, goCoach, goBooking, goMyBookings, handleNavigateToArtistDetail, goChat, goChatThread, goChatContacts, goChatRequests, goChatBlocked]);
 
   if (isInitialLoading) return <LoadingScreen />;
 
@@ -304,10 +327,12 @@ export default function App() {
   return (
     <AuthGuard onUnauthenticated={() => navigate("register")}>
       <ErrorBoundary>
-        <Toaster position="top-center" richColors />
-        <Suspense fallback={<LoadingScreen />}>
-          {authenticatedScreen}
-        </Suspense>
+        <GlowChatProvider>
+          <Toaster position="top-center" richColors />
+          <Suspense fallback={<LoadingScreen />}>
+            {authenticatedScreen}
+          </Suspense>
+        </GlowChatProvider>
       </ErrorBoundary>
     </AuthGuard>
   );
