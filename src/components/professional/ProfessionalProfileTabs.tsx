@@ -1287,4 +1287,44 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                     <p className="text-[10px] text-slate-400 mt-1">Upload your work samples above to show clients your talent!</p>
                   </div>
                 ) : (
- 
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {portfolioItems
+                      .filter(item => portfolioFilter === 'all' || item.category === portfolioFilter)
+                      .map((item) => (
+                        <div key={item.id} className="relative group rounded-2xl overflow-hidden border border-pink-100 bg-white shadow-sm">
+                          <img src={item.image_url} alt={item.title || 'Portfolio Work'} className="w-full h-36 object-cover" />
+                          <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                            <button
+                              onClick={() => handleToggleFeatured(item.id, !item.is_featured)}
+                              className={`p-2 rounded-full text-xs font-bold ${item.is_featured ? 'bg-amber-400 text-slate-900' : 'bg-white/80 text-slate-700 hover:bg-white'}`}
+                              title={item.is_featured ? 'Featured Cover' : 'Set as Featured'}
+                            >
+                              <Star className="w-4 h-4 fill-current" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePortfolioItem(item.id)}
+                              className="p-2 rounded-full bg-rose-500 text-white hover:bg-rose-600"
+                              title="Delete Item"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          {item.title && (
+                            <div className="p-2 bg-white text-[10px] font-bold text-slate-700 truncate">
+                              {item.title}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+
+export default ProfessionalProfileTabs;
