@@ -52,12 +52,6 @@ const CATEGORIES = [
 ];
 
 const SCREEN_CSS = `
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.fade-in { animation: fade-in 0.4s ease-out; }
-
 @keyframes shimmer {
   0% { background-position: -1000px 0; }
   100% { background-position: 1000px 0; }
@@ -67,7 +61,6 @@ const SCREEN_CSS = `
   background-size: 1000px 100%;
   animation: shimmer 1.5s infinite;
 }
-
 .product-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -84,7 +77,6 @@ export function ProductsScreen({
   onNavigateToBooking,
   onNavigateToChat
 }: ProductsScreenProps) {
-  const [styleId, setStyleId] = useState<string>("");
   const [products, setProducts] = useState<AffiliateProduct[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<AffiliateProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,21 +89,6 @@ export function ProductsScreen({
   const userId = authStore.user?.id || null;
   
   const { skinProfile, hasProfile: hasSkinProfile } = useSkinToneMatching({ userId });
-
-  useEffect(() => {
-    const id = "products-screen-css";
-    if (!document.getElementById(id)) {
-      const styleEl = document.createElement("style");
-      styleEl.id = id;
-      styleEl.textContent = SCREEN_CSS;
-      document.head.appendChild(styleEl);
-      setStyleId(id);
-    }
-    return () => {
-      const s = styleId && document.getElementById(styleId);
-      if (s) s.remove();
-    };
-  }, [styleId]);
 
   // Fetch products from Supabase
   useEffect(() => {
@@ -219,6 +196,7 @@ export function ProductsScreen({
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col max-w-lg mx-auto" style={{ position: "relative", zIndex: 1 }}>
+        <style>{SCREEN_CSS}</style>
         <div className="neural-bg" aria-hidden="true" />
         <div className="glass-header sticky top-0" style={{ zIndex: 30 }}>
           <Header onNavigateToProfile={onNavigateToProfile} />
@@ -250,6 +228,7 @@ export function ProductsScreen({
   if (error) {
     return (
       <div className="min-h-screen flex flex-col max-w-lg mx-auto" style={{ position: "relative", zIndex: 1 }}>
+        <style>{SCREEN_CSS}</style>
         <div className="neural-bg" aria-hidden="true" />
         <div className="glass-header sticky top-0" style={{ zIndex: 30 }}>
           <Header onNavigateToProfile={onNavigateToProfile} />
@@ -289,23 +268,24 @@ export function ProductsScreen({
     );
   }
 
-  // Empty state - compact and honest
+  // Empty state
   if (!hasData) {
     return (
       <div className="min-h-screen flex flex-col max-w-lg mx-auto" style={{ position: "relative", zIndex: 1 }}>
+        <style>{SCREEN_CSS}</style>
         <div className="neural-bg" aria-hidden="true" />
         <div className="glass-header sticky top-0" style={{ zIndex: 30 }}>
           <Header onNavigateToProfile={onNavigateToProfile} />
         </div>
 
         <main className="flex-grow overflow-y-auto pb-24 px-4" style={{ WebkitOverflowScrolling: "touch", paddingTop: "60px" }}>
-          <div className="fade-in">
+          <div>
             <h1 className="text-lg font-bold mb-1" style={{ color: '#1f2937' }}>Products</h1>
             <p className="text-xs" style={{ color: '#6b7280' }}>Discover beauty products from trusted marketplaces</p>
           </div>
 
           {/* Category chips */}
-          <div className="fade-in mt-4" style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="mt-4" style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
@@ -327,46 +307,13 @@ export function ProductsScreen({
             ))}
           </div>
 
-          {/* Compact empty state */}
-          <div className="fade-in mt-8" style={{ textAlign: 'center', padding: '32px 16px' }}>
+          <div className="mt-8" style={{ textAlign: 'center', padding: '32px 16px' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>🧴</div>
             <h2 className="text-base font-bold mb-2" style={{ color: '#1f2937' }}>No products yet</h2>
             <p className="text-xs" style={{ color: '#6b7280', maxWidth: '240px', margin: '0 auto' }}>
               The catalog is being prepared. Check back soon for personalized recommendations.
             </p>
           </div>
-
-          {!hasSkinProfile && (
-            <div className="fade-in mt-4" style={{
-              background: "rgba(16,185,129,0.06)",
-              border: "1px solid rgba(16,185,129,0.15)",
-              borderRadius: "12px",
-              padding: "16px",
-              textAlign: "center"
-            }}>
-              <p className="text-xs font-semibold mb-2" style={{ color: "#059669" }}>
-                ✨ Get Personalized Picks
-              </p>
-              <p className="text-xs mb-3" style={{ color: "#6b7280" }}>
-                Analyze your skin for product matches
-              </p>
-              <button
-                onClick={onNavigateToMirror}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  background: "linear-gradient(135deg, #10b981, #06b6d4)",
-                  color: "white",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  border: "none",
-                  cursor: "pointer"
-                }}
-              >
-                Analyze My Skin
-              </button>
-            </div>
-          )}
         </main>
 
         <div className="glass-nav sticky bottom-0" style={{ zIndex: 30 }}>
@@ -382,6 +329,7 @@ export function ProductsScreen({
 
   return (
     <div className="min-h-screen flex flex-col max-w-lg mx-auto" style={{ position: "relative", zIndex: 1 }}>
+      <style>{SCREEN_CSS}</style>
       <div className="neural-bg" aria-hidden="true" />
       <div className="glass-header sticky top-0" style={{ zIndex: 30 }}>
         <Header onNavigateToProfile={onNavigateToProfile} />
@@ -389,13 +337,13 @@ export function ProductsScreen({
 
       <main className="flex-grow overflow-y-auto pb-24 px-4" style={{ WebkitOverflowScrolling: "touch", paddingTop: "60px" }}>
         {/* Header */}
-        <div className="fade-in">
+        <div>
           <h1 className="text-lg font-bold mb-1" style={{ color: '#1f2937' }}>Products</h1>
           <p className="text-xs" style={{ color: '#6b7280' }}>Discover beauty from trusted marketplaces</p>
         </div>
 
         {/* Search */}
-        <div className="fade-in mt-4" style={{ position: 'relative' }}>
+        <div className="mt-4" style={{ position: 'relative' }}>
           <input
             type="text"
             placeholder="Search products, brands..."
@@ -423,7 +371,7 @@ export function ProductsScreen({
         </div>
 
         {/* Category chips */}
-        <div className="fade-in mt-4" style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="mt-4" style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
@@ -450,7 +398,7 @@ export function ProductsScreen({
 
         {/* Recommended section */}
         {hasSkinProfile && recommendedProducts.length > 0 && (
-          <div className="fade-in mt-6">
+          <div className="mt-6">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <h2 className="text-sm font-bold" style={{ color: '#1f2937' }}>✨ Recommended for You</h2>
               <span className="text-xs" style={{ color: '#6b7280' }}>Based on your skin profile</span>
@@ -470,7 +418,7 @@ export function ProductsScreen({
                     cursor: 'pointer'
                   }}
                 >
-                  <div style={{ position: 'relative', paddingTop: '100%', background: '#f9fafb' }}>
+                  <div style={{ position: 'relative', paddingTop: '100%', background: '#ffffff', borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
                     {product.image_url ? (
                       <img
                         src={product.image_url}
@@ -481,7 +429,8 @@ export function ProductsScreen({
                           left: 0,
                           width: '100%',
                           height: '100%',
-                          objectFit: 'cover'
+                          objectFit: 'contain',
+                          padding: '16px'
                         }}
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -525,7 +474,7 @@ export function ProductsScreen({
         )}
 
         {/* All products section */}
-        <div className="fade-in mt-6">
+        <div className="mt-6">
           <h2 className="text-sm font-bold mb-3" style={{ color: '#1f2937' }}>
             {selectedCategory === 'all' ? 'All Products' : CATEGORIES.find(c => c.id === selectedCategory)?.label}
             <span className="text-xs font-normal" style={{ color: '#9ca3af', marginLeft: '6px' }}>({filteredProducts.length})</span>
@@ -552,7 +501,7 @@ export function ProductsScreen({
                     cursor: 'pointer'
                   }}
                 >
-                  <div style={{ position: 'relative', paddingTop: '100%', background: '#f9fafb' }}>
+                  <div style={{ position: 'relative', paddingTop: '100%', background: '#ffffff', borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
                     {product.image_url ? (
                       <img
                         src={product.image_url}
@@ -563,7 +512,8 @@ export function ProductsScreen({
                           left: 0,
                           width: '100%',
                           height: '100%',
-                          objectFit: 'cover'
+                          objectFit: 'contain',
+                          padding: '16px'
                         }}
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).style.display = 'none';
