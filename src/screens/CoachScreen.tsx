@@ -179,8 +179,8 @@ export function CoachScreen({
           alignItems: "center",
           gap: "10px",
           boxShadow: "0 4px 24px rgba(168,85,247,0.12)",
-          marginTop: "auto", /* <-- எப்பவும் கீழேயே இருக்க உதவும் */
-          marginBottom: "90px" /* <-- இங்கதான் ட்ரிக்! Nav Bar-ஐ விட மேல தூக்கி வச்சிடும் */
+          marginTop: "auto",
+          marginBottom: "90px"
         }}>
           <button
             className="nav-tap-btn pulse-glow"
@@ -200,25 +200,34 @@ export function CoachScreen({
             <Mic className="w-5 h-5 text-white" />
           </button>
 
-          <div style={{ 
-            flex: 1,
-            background: "rgba(168,85,247,0.05)",
-            borderRadius: "14px",
-            padding: "12px 16px",
-            border: "1px solid rgba(168,85,247,0.1)"
-          }}>
-            <p style={{ 
-              margin: 0, 
-              fontSize: "14px", 
-              color: "#9ca3af", 
-              fontWeight: 500 
-            }}>
-              Ask about your skin, products, or routine...
-            </p>
+          {/* Real Input Field added here */}
+          <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask about your skin, products, or routine..."
+              style={{
+                width: "100%",
+                background: "rgba(168,85,247,0.05)",
+                borderRadius: "14px",
+                padding: "12px 16px",
+                border: "1px solid rgba(168,85,247,0.1)",
+                fontSize: "14px",
+                color: "#1f2937",
+                outline: "none"
+              }}
+            />
           </div>
 
           <button
             className="nav-tap-btn"
+            onClick={() => {
+              if (chatInput.trim()) {
+                console.Sending message: {chatInput};
+                setChatInput("");
+              }
+            }}
             style={{
               width: "48px",
               height: "48px",
@@ -230,13 +239,12 @@ export function CoachScreen({
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
-              opacity: 0.4
+              opacity: chatInput.trim() ? 1 : 0.4
             }}
           >
             <Send className="w-5 h-5 text-white" />
           </button>
         </div>
-
       </main>
 
       <div className="glass-nav sticky bottom-0" style={{ zIndex: 30 }}>
