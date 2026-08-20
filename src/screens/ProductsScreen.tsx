@@ -484,18 +484,21 @@ export function ProductsScreen({
                           objectFit: 'cover'
                         }}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          const fallbackBox = (e.currentTarget as HTMLImageElement).nextElementSibling as HTMLElement;
+                          if (fallbackBox) {
+                            fallbackBox.style.display = 'flex';
+                          }
                         }}
                       />
                     ) : null}
-                    <div className="hidden" style={{
+                    <div style={{
                       position: 'absolute',
                       top: 0,
                       left: 0,
                       width: '100%',
                       height: '100%',
-                      display: 'flex',
+                      display: 'none',
                       alignItems: 'center',
                       justifyContent: 'center',
                       background: '#f3f4f6',
@@ -563,18 +566,21 @@ export function ProductsScreen({
                           objectFit: 'cover'
                         }}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          const fallbackBox = (e.currentTarget as HTMLImageElement).nextElementSibling as HTMLElement;
+                          if (fallbackBox) {
+                            fallbackBox.style.display = 'flex';
+                          }
                         }}
                       />
                     ) : null}
-                    <div className="hidden" style={{
+                    <div style={{
                       position: 'absolute',
                       top: 0,
                       left: 0,
                       width: '100%',
                       height: '100%',
-                      display: 'flex',
+                      display: 'none',
                       alignItems: 'center',
                       justifyContent: 'center',
                       background: '#f3f4f6',
