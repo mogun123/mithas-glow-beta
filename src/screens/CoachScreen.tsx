@@ -168,7 +168,7 @@ export function CoachScreen({
           </div>
         </div>
 
-        {/* Chat Input Area */}
+                {/* Chat Input Area */}
         <div className="fade-in-coach-d3" style={{ 
           background: "rgba(255,255,255,0.9)",
           backdropFilter: "blur(24px)",
@@ -179,7 +179,8 @@ export function CoachScreen({
           alignItems: "center",
           gap: "10px",
           boxShadow: "0 4px 24px rgba(168,85,247,0.12)",
-          marginBottom: "8px"
+          marginTop: "auto", /* <-- எப்பவும் கீழேயே இருக்க உதவும் */
+          marginBottom: "90px" /* <-- இங்கதான் ட்ரிக்! Nav Bar-ஐ விட மேல தூக்கி வச்சிடும் */
         }}>
           <button
             className="nav-tap-btn pulse-glow"
@@ -235,6 +236,7 @@ export function CoachScreen({
             <Send className="w-5 h-5 text-white" />
           </button>
         </div>
+
       </main>
 
       <div className="glass-nav sticky bottom-0" style={{ zIndex: 30 }}>
