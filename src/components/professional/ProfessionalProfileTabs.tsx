@@ -5,11 +5,12 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import ServicesTab from './ServicesTab';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Tabs, TabsContent } from '../ui/tabs';
 import {
   User, MapPin, Save, Camera, RefreshCw, Clock, DollarSign,
   AlertCircle, CheckCircle, Globe, Instagram, Youtube, Car, Heart,
-  Image as ImageIcon, Sparkles, Plus, Trash2, X, Plane, XCircle, MessageCircle, PencilLine, Crown
+  Image as ImageIcon, Sparkles, Plus, Trash2, X, Plane, XCircle, MessageCircle, PencilLine, Crown,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,6 +18,16 @@ interface ProfessionalProfileProps {
   artistId: string;
   onBack?: () => void;
 }
+
+// Settings nav tabs — order drives swipe direction (left→right index)
+const SETTINGS_TABS = [
+  { value: 'overview', label: 'Overview', icon: User },
+  { value: 'portfolio', label: 'Portfolio', icon: ImageIcon },
+  { value: 'services', label: 'Services', icon: Sparkles },
+  { value: 'availability', label: 'Availability', icon: Clock },
+  { value: 'presence', label: 'Presence', icon: Globe },
+  { value: 'verification', label: 'Verification', icon: CheckCircle },
+] as const;
 
 const DAY_LABELS = [
   { day: 'monday', label: 'Monday' },
@@ -888,6 +899,36 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
     }
   };
 
+  // ---- Swipeable settings nav (UI-only; drives the same activeTab/setActiveTab used everywhere else) ----
+  const currentTabIndex = Math.max(0, SETTINGS_TABS.findIndex((t) => t.value === activeTab));
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const swipeStartXRef = useRef(0);
+
+  const goToSettingsTab = (newIndex: number) => {
+    const clamped = (newIndex + SETTINGS_TABS.length) % SETTINGS_TABS.length;
+    setActiveTab(SETTINGS_TABS[clamped].value);
+  };
+
+  const handleSwipeStart = (clientX: number) => {
+    swipeStartXRef.current = clientX;
+    setIsDragging(true);
+  };
+  const handleSwipeMove = (clientX: number) => {
+    if (!isDragging) return;
+    setDragOffset(clientX - swipeStartXRef.current);
+  };
+  const handleSwipeEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (dragOffset < -40) {
+      goToSettingsTab(currentTabIndex + 1); // swiped right→left: next
+    } else if (dragOffset > 40) {
+      goToSettingsTab(currentTabIndex - 1); // swiped left→right: previous
+    }
+    setDragOffset(0);
+  };
+
   if (loading) return <ProfileSkeleton />;
 
   if (loadError) {
@@ -910,14 +951,46 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 rounded-2xl bg-pink-50/80 p-1.5 !h-auto relative z-20">
-            <TabsTrigger value="overview" onClick={() => setActiveTab('overview')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Overview</TabsTrigger>
-            <TabsTrigger value="portfolio" onClick={() => setActiveTab('portfolio')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Portfolio</TabsTrigger>
-            <TabsTrigger value="services" onClick={() => setActiveTab('services')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Services</TabsTrigger>
-            <TabsTrigger value="availability" onClick={() => setActiveTab('availability')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Availability</TabsTrigger>
-            <TabsTrigger value="presence" onClick={() => setActiveTab('presence')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Presence</TabsTrigger>
-            <TabsTrigger value="verification" onClick={() => setActiveTab('verification')} className="cursor-pointer relative z-30 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-600 transition-all data-[state=active]:!bg-gradient-to-r data-[state=active]:!from-pink-500 data-[state=active]:!to-purple-600 data-[state=active]:!text-white data-[state=active]:shadow-md">Verification</TabsTrigger>
-          </TabsList>
+          {/* Swipeable settings nav — swipe the card itself left/right, no buttons needed */}
+          <div className="relative z-20 px-7">
+            <ChevronLeft className="pointer-events-none absolute left-0 top-1/2 z-10 h-6 w-6 -translate-y-1/2 rounded-full bg-white p-1 text-pink-500 shadow-[0_0_0_2px_rgba(236,72,153,0.18)] animate-pulse" />
+            <ChevronRight className="pointer-events-none absolute right-0 top-1/2 z-10 h-6 w-6 -translate-y-1/2 rounded-full bg-white p-1 text-pink-500 shadow-[0_0_0_2px_rgba(236,72,153,0.18)] animate-pulse" />
+
+            <div
+              className="touch-pan-y select-none overflow-hidden rounded-2xl"
+              onTouchStart={(e) => handleSwipeStart(e.touches[0].clientX)}
+              onTouchMove={(e) => handleSwipeMove(e.touches[0].clientX)}
+              onTouchEnd={handleSwipeEnd}
+              onMouseDown={(e) => handleSwipeStart(e.clientX)}
+              onMouseMove={(e) => handleSwipeMove(e.clientX)}
+              onMouseUp={handleSwipeEnd}
+              onMouseLeave={() => isDragging && handleSwipeEnd()}
+            >
+              <div
+                className="flex cursor-grab items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 px-3 py-2.5 text-white shadow-md active:cursor-grabbing"
+                style={{
+                  transform: `translateX(${dragOffset}px)`,
+                  transition: isDragging ? 'none' : 'transform 0.2s ease',
+                }}
+              >
+                {React.createElement(SETTINGS_TABS[currentTabIndex].icon, { className: 'h-3.5 w-3.5' })}
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {SETTINGS_TABS[currentTabIndex].label}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-center justify-center gap-1.5">
+              {SETTINGS_TABS.map((tab, i) => (
+                <span
+                  key={tab.value}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === currentTabIndex ? 'w-4 bg-gradient-to-r from-pink-500 to-purple-600' : 'w-1.5 bg-pink-200'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
 
           <div className="mt-4">
             <TabsContent value="overview">
@@ -1214,331 +1287,4 @@ function ProfessionalProfileContent({ artistId }: ProfessionalProfileProps) {
                     <p className="text-[10px] text-slate-400 mt-1">Upload your work samples above to show clients your talent!</p>
                   </div>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                    {portfolioItems.filter(item => portfolioFilter === 'all' || item.category === portfolioFilter).map(item => (
-                      <div key={item.id} className="group relative overflow-hidden rounded-3xl border border-pink-200 bg-pink-50 shadow-sm hover:shadow-md transition-all" onClick={() => setSelectedImage(item)}>
-
-                        <div className="relative h-48 w-full overflow-hidden bg-slate-100 flex cursor-pointer">
-                          {item.category === 'before_after' && item.before_image_url && item.after_image_url ? (
-                            <>
-                              <div className="relative w-1/2 h-full border-r-2 border-white">
-                                <img src={item.before_image_url} alt="Before" className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105" />
-                                <span className="absolute bottom-3 right-2 bg-black/70 backdrop-blur-sm text-white text-[9px] px-2 py-1 rounded font-black uppercase tracking-widest shadow-sm">Before</span>
-                              </div>
-                              <div className="relative w-1/2 h-full">
-                                <img src={item.after_image_url} alt="After" className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105" />
-                                <span className="absolute bottom-3 left-2 bg-pink-500/90 backdrop-blur-sm text-white text-[9px] px-2 py-1 rounded font-black uppercase tracking-widest shadow-sm">After</span>
-                              </div>
-                            </>
-                          ) : (
-                            <img src={item.image_url || item.after_image_url} alt={item.title} className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105" />
-                          )}
-
-                          {item.is_featured && (
-                            <span className="absolute top-3 left-3 rounded-full bg-pink-500/90 backdrop-blur-md px-3 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-sm z-10">
-                              ★ Cover Shot
-                            </span>
-                          )}
-
-                          <span className="absolute bottom-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[9px] font-bold text-white uppercase z-10">
-                            {item.category.replace('_', ' ')}
-                          </span>
-                        </div>
-
-                        <div className="p-4 space-y-2">
-                          <h4 className="text-sm font-black text-slate-900 line-clamp-1">{item.title}</h4>
-                          <p className="text-xs text-slate-500 line-clamp-2">{item.description || 'No caption provided'}</p>
-
-                          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handlePortfolioFeature(item); }}
-                              className="text-[10px] font-extrabold text-pink-600 uppercase hover:underline"
-                            >
-                              Make Cover
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handlePortfolioDelete(item.id); }}
-                              className="flex items-center gap-1 text-[10px] font-extrabold text-rose-500 uppercase hover:bg-rose-50 p-1.5 rounded-lg transition"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" /> Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-8 pt-6 border-t border-pink-100 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-black uppercase tracking-widest text-slate-900">Client Reviews & Testimonials</h4>
-                      <p className="text-[10px] text-slate-400">Ratings submitted by verified clients after booking.</p>
-                    </div>
-                    <div className="flex items-center gap-1 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                      <span className="text-xs font-black text-amber-700">
-                        ★ {reviews?.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : "0.0"}
-                      </span>
-                      <span className="text-[9px] text-amber-600 font-bold">({reviews?.length || 0} Reviews)</span>
-                    </div>
-                  </div>
-
-                  {(!reviews || reviews.length === 0) ? (
-                    <div className="flex flex-col items-center justify-center p-8 rounded-3xl border border-pink-200 bg-pink-50/60 text-center">
-                      <p className="text-xs font-bold text-slate-500">No client reviews yet.</p>
-                      <p className="text-[10px] text-slate-400 mt-1">Once clients book and review your services, they will appear here.</p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {reviews.map((review) => (
-                        <div key={review.id} className="p-4 rounded-2xl bg-pink-50 border border-pink-200 space-y-2 hover:bg-pink-100/60 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-black text-slate-900">{review.client_name}</span>
-                            <span className="text-[10px] font-bold text-amber-500">
-                              {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-600 italic">"{review.comment}"</p>
-                          <span className="text-[9px] font-bold text-slate-400 block">
-                            Booked: {review.service_name || 'General Service'} • {new Date(review.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            </TabsContent>
-
-           <TabsContent value="services">
-  <ServicesTab
-    services={services}
-    servicesLoading={servicesLoading}
-    editingServiceId={editingServiceId}
-    showAdvancedServiceOptions={showAdvancedServiceOptions}
-    setShowAdvancedServiceOptions={setShowAdvancedServiceOptions}
-    serviceForm={serviceForm}
-    setServiceForm={setServiceForm}
-    onSave={handleServiceSave}
-    onEdit={handleServiceEdit}
-    onDuplicate={handleServiceDuplicate}
-    onDelete={handleServiceDelete}
-    onCancelEdit={handleCancelServiceEdit}
-    onToggleStatus={toggleServiceStatus}
-  />
-</TabsContent>
-
-            <TabsContent value="availability">
-              <div className="space-y-6 rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
-                <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Weekly Availability</h3>
-                  <p className="mt-1 text-xs text-slate-500">Set your working hours and booking capacity for each day.</p>
-                </div>
-                <div className="space-y-3">
-                  {availabilityRows.map((row, index) => (
-                    <div key={row.day_of_week ?? index} className="rounded-3xl border border-pink-200 bg-pink-50 p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-black text-slate-900">{DAY_LABELS[index]?.label || row.day_label || `Day ${row.day_of_week}`}</h4>
-                          <p className="text-xs text-slate-500">Working hours and booking capacity</p>
-                        </div>
-                        <label className="flex items-center gap-2 rounded-full bg-pink-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-pink-600">
-                          <input type="checkbox" checked={row.is_working_day ?? true} onChange={(e) => updateAvailabilityRow(index, 'is_working_day', e.target.checked)} className="h-4 w-4 accent-pink-500" />
-                          Working day
-                        </label>
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-4">
-                        <div>
-                          <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Start</label>
-                          <input type="time" value={row.start_time || '09:00'} onChange={(e) => updateAvailabilityRow(index, 'start_time', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold" />
-                        </div>
-                        <div>
-                          <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">End</label>
-                          <input type="time" value={row.end_time || '18:00'} onChange={(e) => updateAvailabilityRow(index, 'end_time', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold" />
-                        </div>
-                        <div>
-                          <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Slot duration (min)</label>
-                          <input type="number" value={row.slot_duration_minutes || 60} onChange={(e) => updateAvailabilityRow(index, 'slot_duration_minutes', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold" />
-                        </div>
-                        <div>
-                          <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Max bookings</label>
-                          <input type="number" value={row.max_bookings_per_day || 1} onChange={(e) => updateAvailabilityRow(index, 'max_bookings_per_day', e.target.value)} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" onClick={() => void handleAvailabilitySave()} disabled={availabilityLoading} className="flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-rose-400 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg disabled:opacity-50">
-                  {availabilityLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : null} Save availability
-                </button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="presence">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Online Presence</h3>
-                    <p className="mt-1 text-xs text-slate-500">Share your links and map location so clients can reach you faster.</p>
-                  </div>
-                  <button type="submit" disabled={isSubmitting || (!isDirty && !saveSuccess)} className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-200 hover:scale-105'}`}>
-                    {isSubmitting ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : saveSuccess ? <CheckCircle className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
-                    {isSubmitting ? 'Saving...' : saveSuccess ? 'Saved ✓' : 'Save Presence'}
-                  </button>
-                </div>
-
-                {saveError && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{saveError}</div>}
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                      <Instagram className="h-3.5 w-3.5 text-pink-500" /> Instagram
-                    </label>
-                    <Controller name="instagram" control={control} render={({ field }) => <input {...field} placeholder="Username or profile URL" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                  </div>
-                  <div>
-                    <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                      <Youtube className="h-3.5 w-3.5 text-pink-500" /> YouTube
-                    </label>
-                    <Controller name="youtube" control={control} render={({ field }) => <input {...field} placeholder="Channel or video link" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                  </div>
-                  <div>
-                    <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                      <Globe className="h-3.5 w-3.5 text-pink-500" /> Website
-                    </label>
-                    <Controller name="website" control={control} render={({ field }) => <input {...field} type="url" placeholder="https://yourstudio.com" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                    {errors.website && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.website.message}</p>}
-                  </div>
-                  <div>
-                    <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                      <MapPin className="h-3.5 w-3.5 text-pink-500" /> Google Maps Link
-                    </label>
-                    <Controller name="googleMapsUrl" control={control} render={({ field }) => <input {...field} type="url" placeholder="Google Maps location link" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                    {errors.googleMapsUrl && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.googleMapsUrl.message}</p>}
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="ml-1 mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                      <MessageCircle className="h-3.5 w-3.5 text-pink-500" /> WhatsApp Number
-                    </label>
-                    <Controller name="whatsapp" control={control} render={({ field }) => <input {...field} type="tel" placeholder="10-digit mobile number" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                    {errors.whatsapp && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.whatsapp.message}</p>}
-                  </div>
-                  <div>
-                    <label className="ml-1 mb-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Service Areas</label>
-                    <Controller name="serviceAreas" control={control} render={({ field }) => <input {...field} placeholder="Anna Nagar, T Nagar" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                  </div>
-                </div>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="verification">
-              <form onSubmit={handleSubmit(onSubmitVerificationTab)} className="space-y-6 rounded-3xl border border-pink-100 bg-pink-50 p-6 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900">Verification & Payouts</h3>
-                    <p className="mt-1 text-xs text-slate-500">Keep KYC and payout details current so bookings can flow smoothly.</p>
-                  </div>
-                  <button type="submit" disabled={isSubmitting || verificationLoading} className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-gradient-to-r from-pink-500 to-rose-400 shadow-pink-200 hover:scale-105'}`}>
-                    {isSubmitting || verificationLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : saveSuccess ? <CheckCircle className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
-                    {isSubmitting || verificationLoading ? 'Saving...' : saveSuccess ? 'Saved ✓' : 'Save Verification & Payouts'}
-                  </button>
-                </div>
-
-                {saveError && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{saveError}</div>}
-
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">GST Number</label>
-                    <Controller name="gstNumber" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold uppercase" />} />
-                    {errors.gstNumber && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.gstNumber.message}</p>}
-                  </div>
-                  <div>
-                    <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">PAN Number</label>
-                    <Controller name="panNumber" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold uppercase" />} />
-                    {errors.panNumber && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.panNumber.message}</p>}
-                  </div>
-                  <div>
-                    <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Aadhaar / ID</label>
-                    <Controller name="aadhaarVerification" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Bank A/C</label>
-                    <Controller name="bankAccount" control={control} render={({ field }) => <input {...field} type="password" className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                  </div>
-                  <div>
-                    <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">IFSC Code</label>
-                    <Controller name="ifscCode" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold uppercase" />} />
-                    {errors.ifscCode && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.ifscCode.message}</p>}
-                  </div>
-                  <div>
-                    <label className="ml-1 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">UPI ID</label>
-                    <Controller name="upiId" control={control} render={({ field }) => <input {...field} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold" />} />
-                    {errors.upiId && <p className="mt-1 ml-1 text-[10px] font-bold text-rose-500">{errors.upiId.message}</p>}
-                  </div>
-                </div>
-                <div className="rounded-3xl border border-pink-200 bg-pink-50 p-4">
-                  <label className="mb-2 block text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Verification status</label>
-                  <select value={verificationStatus} onChange={(e) => setVerificationStatus(e.target.value as 'pending' | 'verified' | 'rejected')} className="w-full rounded-2xl border border-pink-200 bg-pink-50 px-3 py-2 text-sm font-bold">
-                    <option value="pending">Pending</option>
-                    <option value="verified">Verified</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                  <p className="mt-2 text-[10px] text-slate-500">Use the "Save Verification & Payouts" button above to save this along with GST, PAN and bank details.</p>
-                </div>
-              </form>
-            </TabsContent>
-          </div>
-        </Tabs>
-      </div>
-
-      {selectedImage && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm" onClick={() => setSelectedImage(null)}>
-          <button className="absolute top-4 right-4 z-[101] rounded-full bg-pink-50/20 p-2 text-white hover:bg-pink-50/30 transition" onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}>
-            <X className="h-8 w-8" />
-          </button>
-
-          <div className="relative max-w-5xl max-h-[90vh] w-full p-4" onClick={(e) => e.stopPropagation()}>
-            {selectedImage.category === 'before_after' && selectedImage.before_image_url && selectedImage.after_image_url ? (
-              <div className="flex h-full w-full gap-2">
-                <div className="relative w-1/2 h-[70vh]">
-                  <img src={selectedImage.before_image_url} alt="Before" className="h-full w-full object-cover object-center rounded-2xl" />
-                  <span className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-lg font-black uppercase tracking-widest shadow-lg">Before</span>
-                </div>
-                <div className="relative w-1/2 h-[70vh]">
-                  <img src={selectedImage.after_image_url} alt="After" className="h-full w-full object-cover object-center rounded-2xl" />
-                  <span className="absolute bottom-4 left-4 bg-pink-500/90 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-lg font-black uppercase tracking-widest shadow-lg">After</span>
-                </div>
-              </div>
-            ) : (
-              <img src={selectedImage.image_url || selectedImage.after_image_url} alt={selectedImage.title} className="max-h-[80vh] max-w-full object-contain rounded-2xl mx-auto" />
-            )}
-
-            <div className="mt-4 text-center">
-              <h3 className="text-lg font-bold text-white">{selectedImage.title}</h3>
-              {selectedImage.description && (
-                <p className="text-sm text-gray-300 mt-1">{selectedImage.description}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function ProfessionalProfile(props: ProfessionalProfileProps) {
-  return (
-    <ProfileErrorBoundary>
-      <ProfessionalProfileContent {...props} />
-    </ProfileErrorBoundary>
-  );
-}
-
+ 
