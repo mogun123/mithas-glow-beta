@@ -133,7 +133,7 @@ export const AdminProductCatalog: React.FC = () => {
     }
   };
 
-  // Handle form submission
+    // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -142,28 +142,34 @@ export const AdminProductCatalog: React.FC = () => {
     // Validation
     if (!formData.name.trim()) {
       setError('Product name is required');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (!formData.brand.trim()) {
       setError('Brand is required');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (!formData.affiliate_url.trim()) {
       setError('Affiliate URL is required');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (!validateAffiliateUrl(formData.affiliate_url, formData.merchant)) {
       setError(`Invalid affiliate URL for ${formData.merchant}. Must be a valid HTTPS URL from the merchant's domain.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (!formData.image_url.trim()) {
       setError('Product image URL is required');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     const priceNum = parseFloat(formData.price);
     if (isNaN(priceNum) || priceNum <= 0) {
       setError('Price must be a positive number');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -192,16 +198,18 @@ export const AdminProductCatalog: React.FC = () => {
           .from('products')
           .update(productData)
           .eq('id', editingProduct.id);
-        setSuccess('Product updated successfully');
       } else {
         // Create new product
         result = await supabase
           .from('products')
           .insert([productData]);
-        setSuccess('Product added successfully');
       }
 
+      // Check for error FIRST
       if (result.error) throw result.error;
+
+      // Only set success if there was no error
+      setSuccess(editingProduct ? 'Product updated successfully' : 'Product added successfully');
 
       // Reset form and refresh list
       setFormData({
@@ -219,10 +227,17 @@ export const AdminProductCatalog: React.FC = () => {
       setShowForm(false);
       setEditingProduct(null);
       fetchProducts();
+      
+      // Auto-scroll to top to see the success message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
     } catch (err: any) {
       setError(err.message || 'Failed to save product');
+      // Auto-scroll to top to see the error message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
 
   // Handle edit
   const handleEdit = (product: Product) => {
