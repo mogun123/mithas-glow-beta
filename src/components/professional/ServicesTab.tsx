@@ -2,7 +2,7 @@
 // MITHAS GLOW — Futuristic AI Beauty Service Studio
 // UI redesign only. Existing Supabase/business handlers remain untouched.
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Sparkles,
   Globe,
@@ -94,6 +94,14 @@ export default function ServicesTab({
   const [activeCategoryFilter, setActiveCategoryFilter] =
     useState<string>('all');
 
+  // Create/Edit form is collapsed by default so the page doesn't need long
+  // scrolling — tapping "Create Experience" (or editing a service) opens it.
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  useEffect(() => {
+    if (editingServiceId) setShowCreateForm(true);
+  }, [editingServiceId]);
+
   const catalogResults = useMemo(
     () =>
       catalogQuery
@@ -147,7 +155,14 @@ export default function ServicesTab({
       return;
     }
 
-    void onSave();
+    void Promise.resolve(onSave())
+      .then(() => setShowCreateForm(false))
+      .catch(() => {});
+  };
+
+  const handleCancelClick = () => {
+    setShowCreateForm(false);
+    onCancelEdit();
   };
 
   return (
@@ -260,9 +275,22 @@ export default function ServicesTab({
         </div>
 
         {/* ========================================================= */}
-        {/* CREATE SERVICE */}
+        {/* CREATE SERVICE — collapsed behind a button by default so the */}
+        {/* page fits without long scrolling; opens on tap or when editing */}
         {/* ========================================================= */}
 
+        {!showCreateForm && (
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(true)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-[0_8px_20px_rgba(236,72,153,0.25)] transition-transform active:scale-[0.98]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Create Experience
+          </button>
+        )}
+
+        {showCreateForm && (
         <div
           className={`relative rounded-2xl border p-4 shadow-[0_8px_30px_rgba(236,72,153,0.08)] backdrop-blur-xl transition-all ${
             editingServiceId
@@ -295,22 +323,35 @@ export default function ServicesTab({
               </div>
             </div>
 
-            {/* Live toggle */}
-            <label className="flex cursor-pointer items-center gap-1.5">
-              <span className="hidden text-[8px] font-black uppercase tracking-widest text-slate-500 sm:block">
-                {serviceForm.isActive ? 'Live' : 'Hidden'}
-              </span>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={serviceForm.isActive}
-                  onChange={(e) => setServiceForm((prev) => ({ ...prev, isActive: e.target.checked }))}
-                  className="peer sr-only"
-                />
-                <div className="h-5 w-9 rounded-full border border-pink-200 bg-pink-50 transition-all peer-checked:border-pink-400 peer-checked:bg-pink-500" />
-                <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-4" />
-              </div>
-            </label>
+            <div className="flex items-center gap-2">
+              {/* Live toggle */}
+              <label className="flex cursor-pointer items-center gap-1.5">
+                <span className="hidden text-[8px] font-black uppercase tracking-widest text-slate-500 sm:block">
+                  {serviceForm.isActive ? 'Live' : 'Hidden'}
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={serviceForm.isActive}
+                    onChange={(e) => setServiceForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+                    className="peer sr-only"
+                  />
+                  <div className="h-5 w-9 rounded-full border border-pink-200 bg-pink-50 transition-all peer-checked:border-pink-400 peer-checked:bg-pink-500" />
+                  <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-4" />
+                </div>
+              </label>
+
+              {/* Collapse form (only when not mid-edit; editing exits via Cancel) */}
+              {!editingServiceId && (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(false)}
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-pink-200 bg-white text-slate-500 transition hover:bg-pink-50 hover:text-pink-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* ===================================================== */}
@@ -548,7 +589,7 @@ export default function ServicesTab({
             {editingServiceId && (
               <button
                 type="button"
-                onClick={onCancelEdit}
+                onClick={handleCancelClick}
                 className="rounded-xl border border-pink-200 bg-white px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-500 transition hover:bg-pink-50 active:scale-95"
               >
                 Cancel
@@ -565,6 +606,7 @@ export default function ServicesTab({
             </button>
           </div>
         </div>
+        )}
 
         {/* ========================================================= */}
         {/* PUBLISHED SERVICES LIST */}
