@@ -115,7 +115,7 @@ export const AdminProductCatalog: React.FC = () => {
     fetchProducts();
   }, []);
 
-  // Validate affiliate URL
+    // Validate affiliate URL
   const validateAffiliateUrl = (url: string, merchant: string): boolean => {
     try {
       const parsed = new URL(url);
@@ -124,7 +124,8 @@ export const AdminProductCatalog: React.FC = () => {
       const hostname = parsed.hostname.toLowerCase();
       
       if (merchant === 'Nykaa' && !hostname.includes('nykaa.com')) return false;
-      if (merchant === 'Amazon' && !hostname.includes('amazon.in') && !hostname.includes('amzn.to')) return false;
+      // Added amzn.in below
+      if (merchant === 'Amazon' && !hostname.includes('amazon.in') && !hostname.includes('amzn.to') && !hostname.includes('amzn.in')) return false; 
       if (merchant === 'Flipkart' && !hostname.includes('flipkart.com')) return false;
       
       return true;
@@ -132,6 +133,7 @@ export const AdminProductCatalog: React.FC = () => {
       return false;
     }
   };
+
 
     // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
