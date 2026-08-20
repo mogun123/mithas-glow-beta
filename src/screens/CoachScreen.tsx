@@ -244,7 +244,7 @@ export function CoachScreen({
           >
             <Send className="w-5 h-5 text-white" />
           </button>
-
+          </div>
       </main>
 
       <div className="glass-nav sticky bottom-0" style={{ zIndex: 30 }}>
