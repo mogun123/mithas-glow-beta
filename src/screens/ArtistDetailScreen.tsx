@@ -116,15 +116,23 @@ export function ArtistDetailScreen({
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#faf5ff] p-4">
         <div className="text-center bg-white p-8 rounded-3xl shadow-sm border border-pink-100 max-w-sm w-full">
-          <AlertCircle className="w-14 h-14 text-rose-400 mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-slate-900 mb-1">Artist Profile Not Found</h2>
-          <p className="text-xs text-slate-500 mb-5">This profile may have been deactivated or removed.</p>
-          <button
-            onClick={onNavigateBack}
-            className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-bold text-xs shadow-md"
-          >
-            Back to Discovery
-          </button>
+          <AlertCircle className="w-14 h-14 text-pink-500 mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-slate-900 mb-1">Artist Profile Not Available</h2>
+          <p className="text-xs text-slate-500 mb-6">This artist profile may be updating or unavailable right now.</p>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={onNavigateBack}
+              className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-bold text-xs shadow-md hover:opacity-95 transition-opacity"
+            >
+              Explore Other Artists
+            </button>
+            <button
+              onClick={onNavigateHome}
+              className="w-full py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-200 transition-colors"
+            >
+              Return to Home
+            </button>
+          </div>
         </div>
       </div>
     );

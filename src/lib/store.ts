@@ -86,11 +86,12 @@ export const useAuthStore = create<AuthState>()(
       setSession: (session) => {
         // Get the current profile from the store to preserve it
         const currentProfile = get().profile;
+        const isValidDbProfile = currentProfile && currentProfile.role && currentProfile.role !== 'authenticated' && currentProfile.role !== 'anon';
         set({
           session,
           user: session?.user ?? null,
-          // Only update profile if we don't have one yet
-          profile: currentProfile ? currentProfile : (session?.user as Profile) ?? null,
+          // Only preserve profile if it represents a valid database profile
+          profile: isValidDbProfile ? currentProfile : null,
           isAuthenticated: !!session?.user,
         });
       },

@@ -48,20 +48,20 @@ export function Header({ onNavigateToProfile }: HeaderProps) {
     try {
       setShowDropdown(false);
 
-      const { error } = await supabase.auth.signOut();
+      useGlobalStore.getState().clearData();
+      useAuthStore.getState().logout();
+      localStorage.removeItem("currentView");
+      localStorage.removeItem("mithas-glow-storage");
+      sessionStorage.clear();
 
-      if (error) {
-        throw error;
-      }
+      await supabase.auth.signOut().catch(() => {});
 
       toast.success('Logged out successfully');
 
-      window.dispatchEvent(
-        new CustomEvent('navigateToHome')
-      );
+      window.dispatchEvent(new CustomEvent('appLogout'));
     } catch (err) {
       console.error('Logout failed:', err);
-      toast.error('Logout failed. Please try again.');
+      window.dispatchEvent(new CustomEvent('appLogout'));
     }
   };
 

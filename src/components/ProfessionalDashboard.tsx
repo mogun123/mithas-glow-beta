@@ -319,7 +319,11 @@ export default function ProfessionalDashboard({
             <div className="flex items-center gap-2">
               {profile?.role === 'admin' && onNavigateToAdminProducts && (
                 <button
-                  onClick={onNavigateToAdminProducts}
+                  onClick={() => {
+                    console.log('[ADMIN PRODUCTS] button clicked');
+                    console.log('[ADMIN PRODUCTS] navigating to /admin/products');
+                    onNavigateToAdminProducts();
+                  }}
                   className="px-3 py-1.5 rounded-lg text-[11px] font-extrabold bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm border border-purple-200 hover:opacity-90 transition-opacity"
                 >
                   📦 Products

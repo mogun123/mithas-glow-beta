@@ -361,13 +361,24 @@ export function UserProfileMenu({
   }, [isOpen, userId, isSupabaseReady, glowPoints, authStoreProfile]);
 
   const handleLogout = async () => {
-    if (isSupabaseReady) {
-      await supabase.auth.signOut();
+    try {
+      onClose();
+      useGlobalStore.getState().clearData();
+      useAuthStore.getState().logout();
+      localStorage.removeItem("currentView");
+      localStorage.removeItem("mithas-glow-storage");
+      sessionStorage.clear();
+
+      if (isSupabaseReady) {
+        await supabase.auth.signOut().catch(() => {});
+      }
+
+      toast.success('Logged out successfully');
+      window.dispatchEvent(new CustomEvent('appLogout'));
+    } catch (err) {
+      console.error('Logout error:', err);
+      window.dispatchEvent(new CustomEvent('appLogout'));
     }
-    toast.success('Logged out successfully');
-    onClose();
-    // Reload to reset state
-    setTimeout(() => window.location.reload(), 500);
   };
 
   if (!isOpen) return null;

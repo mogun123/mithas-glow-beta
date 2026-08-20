@@ -6,12 +6,18 @@ import { supabase, isSupabaseConfigured } from '../supabase';
 import { toast } from 'sonner';
 import type { Database } from '../database.types';
 
+import { useGlobalStore } from '../globalStore';
+
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export function useAuth() {
   console.log('useAuth: Calling useAuthStore...');
   const { user, session, isAuthenticated, isLoading, profile, setUser, setSession, setLoading, logout: logoutStore } = useAuthStore();
-  console.log('useAuth: user:', user?.id || 'no-user', 'session:', session?.user?.id || 'no-session', 'isAuthenticated:', isAuthenticated, 'profile:', profile?.id || 'no-profile');
+  const globalUser = useGlobalStore((state) => state.user);
+  const isValidStoreProfile = profile && profile.role && profile.role !== 'authenticated' && profile.role !== 'anon';
+  const effectiveProfile = isValidStoreProfile ? profile : (globalUser as any || profile);
+
+  console.log('useAuth: user:', user?.id || 'no-user', 'session:', session?.user?.id || 'no-session', 'isAuthenticated:', isAuthenticated, 'profile:', effectiveProfile?.id || 'no-profile', 'role:', effectiveProfile?.role || 'no-role');
   const [error, setError] = useState<string | null>(null);
 
   // Initialize auth state on mount
@@ -28,14 +34,22 @@ export function useAuth() {
         setLoading(true);
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) throw error;
+        if (error) {
+          console.warn('Auth session initialization notice:', error.message);
+          if (error.message?.includes('Refresh Token') || error.message?.includes('invalid_grant') || (error as any).status === 400) {
+            console.warn('Invalid refresh token detected, resetting local auth state...');
+            await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+            logoutStore();
+          }
+          throw error;
+        }
         
         if (session) {
           setSession(session);
           await fetchProfile(session.user.id);
         }
       } catch (err: any) {
-        console.error('Auth initialization error:', err.message || JSON.stringify(err));
+        console.warn('Auth initialization info:', err.message || JSON.stringify(err));
         setError(err.message);
       } finally {
         setLoading(false);
@@ -290,26 +304,22 @@ export function useAuth() {
 
   // Sign out
   const logout = async () => {
-    // Check if Supabase is configured
-    if (!isSupabaseConfigured()) {
-      // In demo mode, just clear local state
-      logoutStore();
-      toast.info('Logged out (demo mode)');
-      return { success: true };
-    }
-
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
-      
+      if (isSupabaseConfigured()) {
+        await supabase.auth.signOut().catch(() => {});
+      }
+      useGlobalStore.getState().clearData();
       logoutStore();
+      localStorage.removeItem("currentView");
+      localStorage.removeItem("mithas-glow-storage");
+      sessionStorage.clear();
+      window.dispatchEvent(new CustomEvent('appLogout'));
+      toast.info('Logged out successfully');
       return { success: true };
     } catch (err: any) {
       console.error('Logout error:', err.message || JSON.stringify(err));
-      setError(err.message);
-      toast.error(err.message || 'Failed to sign out');
+      window.dispatchEvent(new CustomEvent('appLogout'));
       return { success: false, error: err.message };
     } finally {
       setLoading(false);
@@ -322,7 +332,7 @@ export function useAuth() {
     session,
     isAuthenticated,
     isLoading,
-    profile,
+    profile: effectiveProfile,
     error,
 
     // Actions

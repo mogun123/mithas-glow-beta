@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/hooks/useAuth';
+import { useGlobalStore } from '../lib/globalStore';
 import { supabase } from '../lib/supabase';
 import type { Json } from '../lib/database.types';
 
@@ -35,7 +36,15 @@ const CATEGORIES = [
 ];
 
 export const AdminProductCatalog: React.FC = () => {
-  const { profile, isLoading: authLoading } = useAuth();
+  const { profile: authProfile, user: authUser, isLoading: authLoading } = useAuth();
+  const globalUser = useGlobalStore((state) => state.user);
+  const globalLoading = useGlobalStore((state) => state.isLoading);
+
+  const profile = (globalUser && globalUser.role && globalUser.role !== 'authenticated' ? globalUser : null)
+    || (authProfile && authProfile.role && authProfile.role !== 'authenticated' ? authProfile : null);
+
+  const isAuthLoading = authLoading || (globalLoading && !profile);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -46,10 +55,14 @@ export const AdminProductCatalog: React.FC = () => {
 
   // Debug logging
   useEffect(() => {
-    console.log('[ADMIN_PRODUCTS] authLoading:', authLoading);
-    console.log('[ADMIN_PRODUCTS] profile:', profile);
-    console.log('[ADMIN_PRODUCTS] profile.role:', profile?.role);
-  }, [authLoading, profile]);
+    console.log('[ADMIN PRODUCTS ACCESS]', {
+      userId: authUser?.id || profile?.id,
+      profileId: profile?.id,
+      role: profile?.role,
+      isAdmin: profile?.role === 'admin',
+      isProfessional: profile?.role === 'seller' || profile?.role === 'admin' || (profile as any)?.is_seller,
+    });
+  }, [isAuthLoading, profile, authUser]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -67,16 +80,18 @@ export const AdminProductCatalog: React.FC = () => {
 
   // Check admin/seller access
   useEffect(() => {
-    if (!authLoading && profile) {
-      console.log('[ADMIN_PRODUCTS] Checking access, role:', profile.role);
-      if (profile.role !== 'admin' && profile.role !== 'seller') {
+    if (!isAuthLoading && profile) {
+      const isAdmin = profile.role === 'admin';
+      const isSeller = profile.role === 'seller' || (profile as any)?.is_seller === true;
+      console.log('[ADMIN_PRODUCTS] Checking access, role:', profile.role, 'isAdmin:', isAdmin, 'isSeller:', isSeller);
+      if (!isAdmin && !isSeller) {
         setError('Unauthorized access. Admin or seller privileges required.');
       } else {
         setError(null);
         console.log('[ADMIN_PRODUCTS] Access granted');
       }
     }
-  }, [profile, authLoading]);
+  }, [profile, isAuthLoading]);
 
   // Fetch products
   const fetchProducts = async () => {
@@ -272,9 +287,9 @@ export const AdminProductCatalog: React.FC = () => {
       category.toLowerCase().includes(query);
   });
 
-  // Show loading state while auth is being determined
-  if (authLoading) {
-    console.log('[ADMIN_PRODUCTS] Still loading auth...');
+  // Show loading state while auth & profile are being determined
+  if (isAuthLoading && !profile) {
+    console.log('[ADMIN_PRODUCTS] Still loading auth/profile...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-gray-500">Loading...</div>
@@ -293,7 +308,10 @@ export const AdminProductCatalog: React.FC = () => {
     );
   }
 
-  if (profile.role !== 'admin' && profile.role !== 'seller') {
+  const isAdmin = profile.role === 'admin';
+  const isSeller = profile.role === 'seller' || (profile as any)?.is_seller === true;
+
+  if (!isAdmin && !isSeller) {
     console.error('[ADMIN_PRODUCTS] Access denied for role:', profile.role);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
