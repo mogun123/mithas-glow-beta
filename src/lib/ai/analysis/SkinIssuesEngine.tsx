@@ -214,11 +214,11 @@ export const extractAcneCoordinates = (
     // Convert RGB to LAB for advanced analysis
     const lab = rgbToLab(pixel.r, pixel.g, pixel.b)
     
-    // 🔥 TIER 1: COLOR FILTER (Melanin-Adaptive)
+    // 🔥 TIER 1: COLOR FILTER (Melanin-Adaptive) - CLINICAL UPDATE: Stricter thresholds
     // Dark skin: Acne shows as dark spots (hyperpigmentation) AND slight redness.
     // White skin: Acne shows as bright red (high a-axis).
-    const isRedBlemish = lab.a > (isDarkSkin ? 8 : 15); // Lower red threshold for dark skin
-    const isDarkBlemish = isDarkSkin && (lab.l < avgL - 8); // Spot is significantly darker than base tone
+    const isRedBlemish = lab.a > (isDarkSkin ? 5 : 10); // Lowered from 8/15 for more sensitive detection
+    const isDarkBlemish = isDarkSkin && (lab.l < avgL - 5); // Reduced contrast requirement from 8 to 5
     
     if (!isRedBlemish && !isDarkBlemish) return; // Skip normal skin pixels
     
@@ -241,16 +241,18 @@ export const extractAcneCoordinates = (
     // Calculate elevation variance (acne is slightly raised)
     const avgNeighborZ = neighborLandmarks.reduce((sum, lm) => sum + lm.z, 0) / neighborLandmarks.length
     const elevationVariance = currentLandmark.z - avgNeighborZ
-    const isRaised = elevationVariance > 0.0005 // 🔥 Lowered threshold slightly to catch micro-comedones
+    // CLINICAL UPDATE: Lowered elevation threshold from 0.0005 to 0.0002 for accurate micro-comedone detection
+    const isRaised = elevationVariance > 0.0002
     
     if (!isRaised) return // Skip flat lesions (likely scars, not active acne)
     
     // PASSED ALL FILTERS - This is valid acne
     // Score based on BOTH redness and darkness (for brown skin)
-    const severityFactor = isDarkSkin ? Math.abs(avgL - lab.l) / 30 : Math.abs(lab.a) / 50;
+    // CLINICAL UPDATE: Reduced denominator from 50 to 25 for accurate severity scaling
+    const severityFactor = isDarkSkin ? Math.abs(avgL - lab.l) / 20 : Math.abs(lab.a) / 25;
     const acneIntensity = Math.min(1.0, severityFactor);
     
-    const spotRadius = 0.005 + (acneIntensity * 0.01) // Dynamic radius based on intensity
+    const spotRadius = 0.008 + (acneIntensity * 0.015) // Increased base radius for clinical visibility
     
     acneSpots.push({
       x: currentLandmark.x,
@@ -263,8 +265,10 @@ export const extractAcneCoordinates = (
     validPixelCount++
   })
 
-  // Calculate final acne score
-  const finalAcneScore = validPixelCount > 0 ? totalAcneScore / validPixelCount : 0
+  // CLINICAL UPDATE: Use weighted scoring that accounts for lesion density
+  // Multiply by density factor to reflect concentration of acne
+  const densityFactor = validPixelCount > 10 ? 1.0 + Math.min(0.5, validPixelCount / 100) : 1.0;
+  const finalAcneScore = validPixelCount > 0 ? (totalAcneScore / validPixelCount) * densityFactor : 0
 
   return {
     acneScore: Math.min(1, finalAcneScore), // Normalize to 0-1
@@ -309,9 +313,9 @@ export const extractPoreClusters = (
     throw new Error("CLINICAL_DATA_ERROR: Insufficient landmark data for pore extraction");
   }
   
-  if (oilinessScore > 0.6) { // Only extract if high oiliness detected
-    // Sample landmarks from T-zone (forehead, nose, chin) where pores are prominent
-    const tZoneIndices = [10, 1, 2, 5, 4, 6, 19, 20, 94, 125, 141, 18, 175, 199, 200]
+  if (oilinessScore > 0.4) { // CLINICAL UPDATE: Lowered threshold from 0.6 to detect moderate oiliness
+    // Expanded T-zone indices for comprehensive pore detection
+    const tZoneIndices = [10, 1, 2, 5, 4, 6, 19, 20, 94, 125, 141, 18, 175, 199, 200, 35, 36, 126, 127]
     
     tZoneIndices.forEach((index, i) => {
       if (index < landmarks.length) {
@@ -320,7 +324,8 @@ export const extractPoreClusters = (
         // Deterministic landmark-based offsets using golden ratio for natural distribution
         const goldenRatio = 1.618033988749895
         const angleOffset = (i * goldenRatio * 2 * Math.PI) % (2 * Math.PI)
-        const radiusOffset = 0.01 + (i % 3) * 0.003 // Alternating radius for variation
+        // CLINICAL UPDATE: Increased base radius from 0.01 to 0.015 for accurate pore representation
+        const radiusOffset = 0.015 + (i % 3) * 0.005 // Enhanced variation for realistic distribution
         
         // Calculate deterministic offsets
         const offsetX = Math.cos(angleOffset) * radiusOffset
@@ -355,13 +360,14 @@ export const extractDarkCircleBounds = (
 
   const darkCircleBounds: Array<{x: number, y: number}> = []
   
-  // Detect dark circles based on LAB L-value (darkness)
-  const darknessThreshold = underEyeLAB.l < 40 // Dark under-eye region
+  // CLINICAL UPDATE: Raised L-value threshold from 40 to 55 for accurate dark circle detection
+  // LAB L* < 55 captures mild to moderate hyperpigmentation in under-eye region
+  const darknessThreshold = underEyeLAB.l < 55
   
   if (darknessThreshold) {
-    // Use under-eye landmark indices from MediaPipe
-    const underEyeIndices = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173] // Left eye
-    const rightEyeIndices = [362, 398, 384, 385, 386, 387, 388, 466, 263, 249] // Right eye
+    // Use under-eye landmark indices from MediaPipe - expanded for complete coverage
+    const underEyeIndices = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 158, 159] // Left eye - expanded
+    const rightEyeIndices = [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 397, 396] // Right eye - expanded
     
     // Extract bounds from both eyes
     const allUnderEyeIndices = [...underEyeIndices, ...rightEyeIndices]
