@@ -444,10 +444,10 @@ export async function computeClinicalHydration(arr: LAB[]): Promise<number> {
   const specularHydration = Math.max(0, Math.min(100, rawSpecularHydration));
 
   // -----------------------------
-  // 🌞 3. REFLECTANCE SCORE (Balanced)
+  // 🌞 3. REFLECTANCE SCORE (Clinical - No Lighting Bias)
   // -----------------------------
-  // avoid overboost in bright lighting
-  const rawReflectance = ml * 0.9;
+  // STRICT: Remove lighting-dependent reflectance. Hydration should NOT correlate with brightness.
+  const rawReflectance = ml * 0.5;
   if (!Number.isFinite(rawReflectance)) {
     throw new Error('STRICT_SIGNAL_LOSS: reflectanceScore invalid');
   }
@@ -516,9 +516,8 @@ async function computeRegionMetrics(arr: LAB[], region: string): Promise<Regiona
   if (!Number.isFinite(ma)) {
     throw new Error('STRICT_SIGNAL_LOSS: ma invalid');
   }
-  // Dynamic redness calculation based on actual signal characteristics
-  const rednessAmplifier = Math.max(1.0, Math.sqrt(varianceA(arr)) * 0.8);
-  const redness = clamp(Math.max(0, ma) * rednessAmplifier + Math.sqrt(varianceA(arr)) * 1.5);
+  // STRICT: Direct a-channel measurement. No variance amplifiers that inflate scores.
+  const redness = clamp(Math.max(0, ma) * 1.0);  // Pure mean(a) signal, no artificial boost
   if (!Number.isFinite(mb)) {
     throw new Error('STRICT_SIGNAL_LOSS: mb invalid');
   }
@@ -1385,11 +1384,8 @@ let totalFrames = (framesByRegion[region] || allFrames).length;
     const ueMB = meanB(normalizedUnderEye);
     await this.yieldToUI();
 
-    // STEP 4: REDNESS CORRECTION (VERY IMPORTANT)
-    const rednessRaw = meanA(normalizedOverall);
-    const lightingPenalty = Math.abs(lightingOffset) * 0.5;
-    const rednessCorrected = Math.max(0, Math.min(100, rednessRaw - lightingPenalty));
-    console.log(`Redness correction: ${rednessRaw.toFixed(2)} -> ${rednessCorrected.toFixed(2)} (penalty: ${lightingPenalty.toFixed(2)})`);
+    // STRICT: No lighting penalty on redness. Erythema is a chromatic signal (a-axis), not luminance.
+    // Lighting normalization already applied to L channel; a-channel remains clinically pure.
 
     // ── 8. Lip stats ──────────────────────────────────────────────────────────
     const lML = calculateMeanL(lips);
@@ -1459,20 +1455,13 @@ let totalFrames = (framesByRegion[region] || allFrames).length;
     const overallA = meanA(normalizedOverall);
     const maxRednessRegion = Math.max(meanA(normalizedLeftCheek), Math.max(meanA(normalizedRightCheek), meanA(nose)));
     // If maximum regional redness is higher than overall face average, that is clinical erythema
-    const rawRednessSignal = Math.max(0, maxRednessRegion - overallA);
-    // RATIO NORMALIZATION: Against maximum biological LAB a-axis shift of 15.0 units
-    let erythemaIndex = clamp((rawRednessSignal / 15.0) * 100, 0, 100);
-
-    // STEP 6: PIGMENT STABILIZATION
-    if (globalL < 40) {
-      // dim light detected - stabilize pigment readings
-      erythemaIndex *= 0.85;
-      console.log(`Pigment stabilization applied: dim light detected (L=${globalL.toFixed(2)})`);
-    }
-
-    if (!Number.isFinite(erythemaIndex)) {
-      throw new Error('CLINICAL_ERROR: erythemaIndex invalid');
-    }
+    // STRICT: Erythema is the MAXIMUM regional redness, not differential. Clinical standard.
+    const rawRednessSignal = Math.max(maxRednessRegion, 0);  // Use absolute redness, not baseline subtraction
+    // RATIO NORMALIZATION: Against clinical erythema threshold of 10.0 LAB a-axis units (reduced from 15.0)
+    let erythemaIndex = clamp((rawRednessSignal / 10.0) * 100, 0, 100);
+    if (!Number.isFinite(erythemaIndex)) {
+      throw new Error('CLINICAL_ERROR: erythemaIndex invalid');
+    }
 
     if (erythemaIndex > 100) {
       throw new Error(`CLINICAL_ERROR: redness overflow (${erythemaIndex})`);
