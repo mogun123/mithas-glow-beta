@@ -1619,25 +1619,32 @@ let totalFrames = (framesByRegion[region] || allFrames).length;
 
     const barrierIntegrity = glassSkinBase;
 
-    // FIX: Pure additive model with strict weights
-    // Normalize inputs to 0-100 scale first
-    const normalizedAcneScore = Math.max(0, Math.min(100, erythemaIndex)); // Use erythemaIndex as acne proxy
-    const normalizedSmoothness = Math.max(0, Math.min(100, barrierIntegrity)); // Use barrierIntegrity as smoothness proxy
-    const normalizedGlassTexture = Math.max(0, Math.min(100, surfaceRoughness)); // Rename to avoid redeclaration
-    const normalizedPores = Math.max(0, Math.min(100, poreVolume));
-    const normalizedErythema = Math.max(0, Math.min(100, erythemaIndex));
-
-    // The Formula (STRICT WEIGHTS)
-    const glassSkin =
-      (hydrationLevel * 0.20) +
-      (normalizedSmoothness * 0.20) +
-      (elastinFibers * 0.15) +
-      ((100 - normalizedTexture) * 0.15) +
-      ((100 - normalizedPores) * 0.10) +
-      ((100 - normalizedAcneScore) * 0.10) +
-      ((100 - normalizedErythema) * 0.10);
-
-    const glassSkinScore = Math.max(0, Math.min(100, glassSkin));
+    // ═════════════════════════════════════════════════════════════════════════
+    // GLASS SKIN SCORE (STRICT CLINICAL FORMULA)
+    // ═════════════════════════════════════════════════════════════════════════
+    // STRICT: Remove positive framing. Glass skin requires BOTH high hydration 
+    // AND low pathology. High acne/erythema/pores should severely penalize score.
+    
+    // Pathology load determines if "glass skin" is even achievable
+    const glassSkinPathologyLoad = 
+      (Math.max(0, erythemaIndex) / 100) * 0.30 +    // 30% weight on inflammation
+      (Math.max(0, poreVolume) / 100) * 0.25 +       // 25% weight on pore visibility  
+      (Math.max(0, surfaceRoughness) / 100) * 0.25 + // 25% weight on texture
+      (Math.max(0, sebumProduction) / 100) * 0.20;   // 20% weight on excess oil
+    
+    // Base potential from hydration and barrier (can max at 80 without considering pathology)
+    const glassSkinPotential = Math.min(80, 
+      (hydrationLevel * 0.40) + 
+      (barrierIntegrity * 0.40) +
+      (elastinFibers * 0.20)
+    );
+    
+    // Pathology multiplier: severe concerns drastically reduce glass skin score
+    // If pathology > 50%, glass skin becomes impossible (< 40 score)
+    const pathologyPenalty = Math.max(0, 1.0 - (glassSkinPathologyLoad * 1.5));
+    
+    const glassSkin = glassSkinPotential * pathologyPenalty;
+    const glassSkinScore = Math.max(0, Math.min(100, glassSkin));
 
     // pH level: physiological skin pH 4.5-6.5
     // Low redness + high hydration → lower (healthier) pH
@@ -2251,31 +2258,53 @@ let totalFrames = (framesByRegion[region] || allFrames).length;
 
     return { acneSpots: allAcneSpots, poreClusters, darkCircleBounds };
   }
-  /**
+  /**
 * 🏆 CLINICAL HEALTH SCORE: Aggregates all skin vitals into a single percentage.
+* STRICT: Negative metrics (acne, erythema, texture, pores) now carry 60% weight
+* with no penalty caps. Positive metrics (hydration, smoothness) are conditional
+* on low pathology load to prevent "healthy glow" masking severe concerns.
 */
-  public calculateOverallHealthScore(metrics: {
-    moisture: number;
-    oiliness: number;
-    pigment: number;
-    redness: number;
-    darkCircle: number;
-    smoothness: number;
-    elasticity: number;
-    acne: number;
-  }): number {
-    const score =
-      (metrics.moisture * 0.25) +
-      ((100 - metrics.oiliness) * 0.15) +
-      ((100 - metrics.pigment) * 0.15) +
-      ((100 - metrics.redness) * 0.1) +
-      ((100 - metrics.darkCircle) * 0.1) +
-      (metrics.smoothness * 0.1) +
-      (metrics.elasticity * 0.1) +
-      ((100 - metrics.acne) * 0.05);
-
-    return Math.round(Math.max(0, Math.min(100, score)));
-  }
+  public calculateOverallHealthScore(metrics: {
+    moisture: number;
+    oiliness: number;
+    pigment: number;
+    redness: number;
+    darkCircle: number;
+    smoothness: number;
+    elasticity: number;
+    acne: number;
+  }): number {
+    // Calculate total pathology load first
+    const pathologyLoad = 
+      (metrics.acne / 100) * 0.25 +
+      (metrics.redness / 100) * 0.20 +
+      (metrics.pigment / 100) * 0.15 +
+      (metrics.darkCircle / 100) * 0.10 +
+      (metrics.oiliness / 100) * 0.10;
+    
+    // Base score starts at 100, subtract for clinical findings
+    let score = 100;
+    
+    // DIRECT PENALTIES (no caps, linear scaling)
+    score -= metrics.acne * 0.5;        // Was: (100 - acne) * 0.05 → max 5pt penalty. Now: up to 50pts
+    score -= metrics.redness * 0.35;    // Was: (100 - redness) * 0.1 → max 10pt. Now: up to 35pts (div by ~8.0 equiv)
+    score -= metrics.pigment * 0.25;    // Was: (100 - pigment) * 0.15 → max 15pt. Now: up to 25pts
+    score -= metrics.darkCircle * 0.20; // Was: (100 - darkCircle) * 0.1 → max 10pt. Now: up to 20pts
+    score -= metrics.oiliness * 0.15;   // Was: (100 - oiliness) * 0.15 → inverted. Now: direct penalty
+    
+    // Structural penalties (texture reflects scarring risk)
+    const textureProxy = (metrics.smoothness < 50) ? (100 - metrics.smoothness) : 0;
+    score -= textureProxy * 0.25;       // Was: smoothness * 0.1 → bonus. Now: penalty for rough texture
+    
+    // POSITIVE METRICS: Only grant bonus if pathology is low (< 30%)
+    if (pathologyLoad < 0.30) {
+      const positiveBonus = pathologyLoad < 0.15 ? 1.0 : 0.5;
+      score += metrics.moisture * 0.15 * positiveBonus;
+      score += metrics.elasticity * 0.10 * positiveBonus;
+    }
+  
+    return Math.round(Math.max(0, Math.min(100, score)));
+  }
 
   // ─── MISSING METHODS FOR SKINTONE ANALYZER INTEGRATION ─────────────────────
   
