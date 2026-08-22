@@ -1508,7 +1508,7 @@ let totalFrames = (framesByRegion[region] || allFrames).length;
     // Use real sigmaSignal, only scale (not normalize to zero), keep natural variation
     let surfaceRoughness = Math.max(
       0,
-      Math.min(100, sigmaSignal * 120)
+      Math.min(100, sigmaSignal * 100)
     );
 
     // STEP 5: TEXTURE NOISE FILTER
