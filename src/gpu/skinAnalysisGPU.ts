@@ -552,21 +552,12 @@ const finalTextureIntensity = normalizedTexture;
         throw new Error(`CLINICAL_ERROR: acne invalid (${result})`);
       }
     } else {
-      // Raw signal normalization - only reject NaN/Infinity
       if (!Number.isFinite(result)) {
         throw new Error("STRICT_SIGNAL_LOSS: Texture is NaN");
       }
-      
-      // Normalize 8-bit signal to ratio (0-1)
-      // If signal > 1.0, it's 8-bit raw. Divide by 255.0
-      // Otherwise, treat as already normalized ratio.
-      let normalizedResult = result > 1.0 ? result / 255.0 : result;
-      
-      // Bound without multipliers
-      normalizedResult = Math.max(0, Math.min(1, normalizedResult));
-      
-      // Use new variable for return
-      finalResult = normalizedResult;
+      // `result` is already a 0-100 percentage from the calculation above.
+      // Convert directly to a 0-1 ratio — do NOT divide by 255 again.
+      finalResult = Math.max(0, Math.min(1, result / 100));
     }
     
     return channel === 'acne' ? result : finalResult;
