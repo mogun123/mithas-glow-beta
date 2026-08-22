@@ -2257,55 +2257,58 @@ let totalFrames = (framesByRegion[region] || allFrames).length;
 * Positive bonuses only granted if pathologyLoad < 0.30, with full bonus at < 0.15.
 */
   public calculateOverallHealthScore(metrics: {
-    moisture: number;
-    oiliness: number;
-    pigment: number;
-    redness: number;
-    darkCircle: number;
-    smoothness: number;
-    elasticity: number;
-    acne: number;
-    texture?: number;
-    pores?: number;
-    glassSkin?: number;
-  }): number {
-    // Calculate total pathology load first (updated weights)
-    const pathologyLoad = 
-      (metrics.acne / 100) * 0.25 +
-      (metrics.redness / 100) * 0.20 +
-      (metrics.pigment / 100) * 0.15 +
-      (metrics.darkCircle / 100) * 0.10 +
-      (metrics.oiliness / 100) * 0.10 +
-      ((metrics.texture ?? 0) / 100) * 0.12 +
-      ((metrics.pores ?? 0) / 100) * 0.08;
-    
-    // Base score starts at 100, subtract for clinical findings
-    let score = 100;
-    
-    // DIRECT PENALTIES (no caps, linear scaling - updated weights)
-    score -= metrics.acne * 0.35;        // Updated weight
-    score -= metrics.redness * 0.28;     // Updated weight
-    score -= metrics.pigment * 0.22;     // Updated weight
-    score -= metrics.darkCircle * 0.15;  // Updated weight
-    score -= metrics.oiliness * 0.15;    // Unchanged
-    score -= (metrics.texture ?? 0) * 0.28; // New: texture penalty
-    score -= (metrics.pores ?? 0) * 0.18;   // New: pores penalty
-    
-    // POSITIVE METRICS: Only grant bonus if pathology is low (< 30%)
-    if (pathologyLoad < 0.30) {
-      const positiveBonus = pathologyLoad < 0.15 ? 1.0 : 0.5;
-      score += metrics.moisture * 0.12 * positiveBonus;
-      score += metrics.smoothness * 0.10 * positiveBonus;
-      score += metrics.elasticity * 0.08 * positiveBonus;
-    }
-    
-    // Optional sanity check: penalize if glassSkin metric is provided
-    if (metrics.glassSkin !== undefined) {
-      score -= (100 - metrics.glassSkin) * 0.05;
-    }
+  moisture: number;
+  oiliness: number;
+  pigment: number;
+  redness: number;
+  darkCircle: number;
+  smoothness: number;
+  elasticity: number;
+  acne: number;
+  texture?: number;
+  pores?: number;
+  glassSkin?: number;
+}): number {
+  const pathologyLoad = 
+    (metrics.acne / 100) * 0.25 +
+    (metrics.redness / 100) * 0.20 +
+    (metrics.pigment / 100) * 0.15 +
+    (metrics.darkCircle / 100) * 0.10 +
+    (metrics.oiliness / 100) * 0.10 +
+    ((metrics.texture ?? 0) / 100) * 0.12 +
+    ((metrics.pores ?? 0) / 100) * 0.08;
   
-    return Math.round(Math.max(0, Math.min(100, score)));
+  let score = 100;
+  
+  score -= metrics.acne * 0.35;
+  score -= metrics.redness * 0.28;
+  score -= metrics.pigment * 0.22;
+  score -= metrics.darkCircle * 0.15;
+  score -= metrics.oiliness * 0.15;
+  score -= (metrics.texture ?? 0) * 0.28;
+  score -= (metrics.pores ?? 0) * 0.18;
+  
+  if (pathologyLoad < 0.30) {
+    const positiveBonus = pathologyLoad < 0.15 ? 1.0 : 0.5;
+    score += metrics.moisture * 0.08 * positiveBonus;      // 0.12 → 0.08
+    score += metrics.smoothness * 0.07 * positiveBonus;     // 0.10 → 0.07
+    score += metrics.elasticity * 0.05 * positiveBonus;     // 0.08 → 0.05
   }
+  
+  if (metrics.glassSkin !== undefined) {
+    score -= (100 - metrics.glassSkin) * 0.05;
+  }
+
+  // Soft-cap near ceiling instead of hard clamp
+  function softCapNear100(s: number): number {
+    if (s <= 90) return s;
+    const excess = s - 90;
+    return 90 + (10 * (1 - Math.exp(-excess / 15)));
+  }
+  
+  const finalScore = softCapNear100(score);
+  return Math.round(Math.max(0, Math.min(100, finalScore)));
+}
 
   // ─── MISSING METHODS FOR SKINTONE ANALYZER INTEGRATION ─────────────────────
   
